@@ -36,6 +36,7 @@ jobs:
 
       - name: Run optional live OpenRouter smoke test
         env:
+          PYTHONPATH: .
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_SMOKE_MODEL: openrouter/free
         run: python scripts/live_smoke_test.py
