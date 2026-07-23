@@ -1,0 +1,4 @@
+# Microsoft Agent Framework: multi-agent orchestration core
+# Keep within major version 1 for stability while allowing compatible updates.
+agent-framework-core>=1.11,<2
+agent-framework-openai>=1.10,<2
