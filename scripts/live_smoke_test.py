@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import traceback
 from pathlib import Path
 
 from expert_team.dynamic_team import run_dynamic_team
@@ -20,7 +21,7 @@ def _write(payload: dict) -> None:
     ARTIFACT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-async def main() -> None:
+async def _run() -> None:
     if not os.getenv("OPENROUTER_API_KEY", "").strip():
         _write({"status": "skipped_no_key"})
         print("LIVE_SMOKE_SKIPPED: OPENROUTER_API_KEY is not configured")
@@ -89,6 +90,21 @@ async def main() -> None:
     }
     _write(payload)
     print(json.dumps(payload, ensure_ascii=False))
+
+
+async def main() -> None:
+    try:
+        await _run()
+    except Exception as exc:
+        failure = {
+            "status": "failed",
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+            "traceback": traceback.format_exc(),
+        }
+        _write(failure)
+        print(json.dumps(failure, ensure_ascii=False))
+        raise
 
 
 if __name__ == "__main__":
