@@ -1,0 +1,37 @@
+{
+  "version": "1",
+  "task": "<用户的原始任务>",
+  "rationale": "<网页 GPT 根据具体任务说明为什么选择这套专家、模型与组合方式>",
+  "experts": [
+    {
+      "name": "<唯一专家名称>",
+      "mission": "<该专家独立负责的问题>",
+      "instructions": "<该专家针对本任务的具体工作要求>",
+      "model": "<OpenRouter 中本任务最适合的模型 ID>"
+    }
+  ],
+  "stages": [
+    {
+      "id": "<阶段唯一 ID>",
+      "mode": "parallel",
+      "members": [
+        "<本阶段参与的专家名称>"
+      ],
+      "input_from": [
+        "task"
+      ]
+    }
+  ],
+  "red_team": {
+    "enabled": false,
+    "name": "red_team",
+    "model": "<启用时由网页 GPT 动态选择 OpenRouter 模型 ID>",
+    "instructions": "<启用时由网页 GPT 根据任务生成红队反证要求>"
+  },
+  "judge": {
+    "enabled": true,
+    "name": "final_judge",
+    "model": "<由网页 GPT 动态选择 OpenRouter 模型 ID>",
+    "instructions": "<由网页 GPT 根据任务生成最终综合、裁决或报告要求>"
+  }
+}
