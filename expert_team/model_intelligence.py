@@ -13,7 +13,6 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from openrouter import OpenRouter
@@ -21,6 +20,8 @@ from openrouter import OpenRouter
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
 RANKING_SORTS = (
     "intelligence-high-to-low",
+    "coding-high-to-low",
+    "agentic-high-to-low",
     "design-arena-elo-high-to-low",
     "top-weekly",
     "most-popular",
@@ -58,15 +59,35 @@ def _plain(value: Any) -> Any:
         return {
             key: _plain(item)
             for key, item in vars(value).items()
-            if not key.startswith("_")
+            if not key.startswith("_") and not callable(item)
         }
     return str(value)
 
 
-def _rest_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    query = f"?{urlencode(params)}" if params else ""
+def _unwrap_models_response(response: Any) -> dict[str, Any]:
+    """Unwrap OpenRouter SDK GetModelsResponse.result into its ModelsListResponse."""
+    if response is None:
+        raise RuntimeError("OpenRouter SDK returned no response")
+
+    result = getattr(response, "result", None)
+    if result is not None:
+        payload = _plain(result)
+    else:
+        payload = _plain(response)
+        if isinstance(payload, dict) and "result" in payload:
+            payload = payload["result"]
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("OpenRouter SDK returned an unexpected models response")
+    data = payload.get("data")
+    if not isinstance(data, list):
+        raise RuntimeError("OpenRouter SDK models response has no valid data list")
+    return payload
+
+
+def _rest_get(path: str) -> dict[str, Any]:
     request = Request(
-        f"{OPENROUTER_API_BASE}{path}{query}",
+        f"{OPENROUTER_API_BASE}{path}",
         headers={
             "Authorization": f"Bearer {_api_key()}",
             "Accept": "application/json",
@@ -80,29 +101,29 @@ def _rest_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]
 def fetch_catalog_via_sdk() -> dict[str, Any]:
     """Read the canonical model catalog through the official OpenRouter SDK."""
     with OpenRouter(api_key=_api_key()) as client:
-        response = client.models.list()
-    plain = _plain(response)
-    if isinstance(plain, dict):
-        return plain
-    return {"data": plain}
+        response = client.models.list(limit=1000)
+    return _unwrap_models_response(response)
 
 
 def fetch_ranked_models(sort: str, limit: int = 20) -> list[dict[str, Any]]:
-    """Fetch one server-side OpenRouter ranking view."""
+    """Fetch one server-side ranking through the official OpenRouter SDK."""
     if sort not in RANKING_SORTS:
         raise ValueError(f"unsupported OpenRouter ranking sort: {sort}")
     if limit < 1:
         raise ValueError("limit must be >= 1")
-    payload = _rest_get("/models", {"sort": sort})
-    data = payload.get("data", [])
-    if not isinstance(data, list):
-        raise RuntimeError("OpenRouter /models returned an invalid data field")
-    return data[:limit]
+
+    with OpenRouter(api_key=_api_key()) as client:
+        response = client.models.list(sort=sort, limit=limit)
+    payload = _unwrap_models_response(response)
+    return payload["data"][:limit]
 
 
 def fetch_benchmarks() -> dict[str, Any]:
     """Fetch OpenRouter's unified benchmark feed."""
-    return _rest_get("/benchmarks")
+    payload = _rest_get("/benchmarks")
+    if not isinstance(payload.get("data", []), list):
+        raise RuntimeError("OpenRouter /benchmarks returned an invalid data field")
+    return payload
 
 
 def build_model_intelligence_snapshot(limit_per_ranking: int = 20) -> dict[str, Any]:
@@ -116,7 +137,7 @@ def build_model_intelligence_snapshot(limit_per_ranking: int = 20) -> dict[str, 
     return {
         "schema_version": "1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "source": "OpenRouter official SDK + official REST API",
+        "source": "OpenRouter official Python SDK + official benchmark API",
         "selection_rule": (
             "Use these signals as decision evidence, not as a universal winner list. "
             "Web GPT must choose models according to the concrete task, role, budget, "
