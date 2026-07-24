@@ -45,17 +45,35 @@ jobs:
           required = %w[
             getOpenRouterModels
             getExecutionPlanSchema
+            getDeepSeekStewardPolicy
             dispatchExpertTeamOperation
             listExpertTeamRuns
             getExpertTeamRun
             getExpertTeamRunJobs
             listExpertTeamRunArtifacts
             getExpertTeamResult
+            getDeepSeekStewardResult
             getExpertTeamOperationMetadata
             downloadExpertTeamArtifact
           ]
           missing = required - ids
-          raise "missing operationIds: #{missing.join(",")}" unless missing.empty?
+          raise "missing operationIds: #{missing.join(',')}" unless missing.empty?
+
+          dispatch = d.dig(
+            "paths",
+            "/repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches",
+            "post",
+            "requestBody",
+            "content",
+            "application/json",
+            "schema",
+            "properties",
+            "inputs",
+            "properties",
+            "operation",
+            "enum"
+          )
+          raise "deepseek_steward missing from operation enum" unless dispatch&.include?("deepseek_steward")
 
           errors = []
           walk = lambda do |node, path|
@@ -64,7 +82,7 @@ jobs:
               type = node["type"]
               object_type = type == "object" || (type.is_a?(Array) && type.include?("object"))
               if object_type && !node.key?("properties")
-                errors << "object schema missing properties at #{path.join("/")}"
+                errors << "object schema missing properties at #{path.join('/')}"
               end
               node.each { |k, v| walk.call(v, path + [k.to_s]) }
             when Array
