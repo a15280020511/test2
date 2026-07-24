@@ -17,9 +17,13 @@ def _write(payload: dict) -> None:
 
 async def main() -> None:
     if not os.getenv("DEEPSEEK_API_KEY", "").strip():
-        _write({"status": "skipped_no_key", "provider": "DeepSeek official API"})
-        print("DEEPSEEK_STEWARD_SMOKE_SKIPPED: DEEPSEEK_API_KEY is not configured")
-        return
+        payload = {
+            "status": "failed_missing_key",
+            "provider": "DeepSeek official API",
+            "required_secret": "DEEPSEEK_API_KEY",
+        }
+        _write(payload)
+        raise RuntimeError("DEEPSEEK_API_KEY is required for the live official DeepSeek Steward smoke test")
 
     model, output = await generate_official_deepseek_json(
         "Return one JSON object exactly matching the requested schema.",
