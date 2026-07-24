@@ -16,6 +16,22 @@ SELECTION_POLICY = (
 )
 
 
+def base_plan(task: str = "same task") -> dict:
+    return {
+        "version": "1",
+        "selection_policy": SELECTION_POLICY,
+        "task": task,
+        "rationale": "original",
+        "budget": {"max_total_usd": 1.0, "recovery_reserve_ratio": 0.3},
+        "experts": [
+            {"name": "expert", "mission": "analyze", "instructions": "use evidence", "model": "provider/model-a"}
+        ],
+        "stages": [{"id": "s1", "mode": "parallel", "members": ["expert"], "input_from": ["task"]}],
+        "red_team": {"enabled": False, "name": "red", "model": "", "instructions": ""},
+        "judge": {"enabled": False, "name": "judge", "model": "", "instructions": ""},
+    }
+
+
 class SupervisorResumeTests(unittest.TestCase):
     def _run_plan(
         self,
@@ -23,6 +39,7 @@ class SupervisorResumeTests(unittest.TestCase):
         failed_run_id: str = "",
         retry_operation_overrides: dict | None = None,
         original_plan: dict | None = None,
+        recovery_consumed: bool = False,
     ) -> dict:
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
@@ -48,7 +65,7 @@ class SupervisorResumeTests(unittest.TestCase):
                             "operation_id": "op-1",
                             "operation": "execute_team",
                             "receipt_comment_id": "55",
-                            "plan_json": json.dumps(original_plan or {}),
+                            "plan_json": json.dumps(original_plan or base_plan()),
                             "ranking_limit": "20",
                         },
                     }
@@ -56,8 +73,22 @@ class SupervisorResumeTests(unittest.TestCase):
                 with (
                     patch("scripts.supervisor_resume._matching_runs", return_value=runs),
                     patch(
+                        "scripts.supervisor_resume._published_recovery_evidence",
+                        return_value={
+                            "consumed": recovery_consumed,
+                            "managed_attempts": 2 if recovery_consumed else 1,
+                            "effective_plan_source": "deepseek_top_supervisor" if recovery_consumed else "web_gpt",
+                            "reason": "test",
+                        },
+                    ),
+                    patch(
                         "scripts.supervisor_resume.preflight_execution_plan",
-                        return_value={"within_budget": True, "estimated_worst_case_usd": 0.2},
+                        return_value={
+                            "within_budget": True,
+                            "execution_phase": "recovery",
+                            "estimated_worst_case_usd": 0.2,
+                            "available_execution_budget_usd": 0.3,
+                        },
                     ),
                 ):
                     plan = _plan_resume(
@@ -72,29 +103,17 @@ class SupervisorResumeTests(unittest.TestCase):
                 os.chdir(previous)
         return plan
 
-    def test_missing_run_allows_one_resume(self) -> None:
+    def test_missing_run_allows_one_recovery_resume(self) -> None:
         plan = self._run_plan([])
         self.assertEqual(plan["action"], "dispatch")
+        self.assertEqual(plan["reason"], "validated_recovery_budget_available")
+        self.assertEqual(
+            plan["applied_retry_overrides"]["plan_json"],
+            "unchanged_validated_recovery_budget_compliant",
+        )
 
     def test_deepseek_plan_override_is_validated_and_provenance_added(self) -> None:
-        original_plan = {
-            "version": "1",
-            "selection_policy": SELECTION_POLICY,
-            "task": "same task",
-            "rationale": "original",
-            "budget": {"max_total_usd": 1.0, "recovery_reserve_ratio": 0.3},
-            "experts": [
-                {
-                    "name": "expert",
-                    "mission": "analyze",
-                    "instructions": "use evidence",
-                    "model": "provider/model-a",
-                }
-            ],
-            "stages": [{"id": "s1", "mode": "parallel", "members": ["expert"], "input_from": ["task"]}],
-            "red_team": {"enabled": False, "name": "red", "model": "", "instructions": ""},
-            "judge": {"enabled": False, "name": "judge", "model": "", "instructions": ""},
-        }
+        original_plan = base_plan()
         replacement_plan = json.loads(json.dumps(original_plan))
         replacement_plan["rationale"] = "lower-cost technical retry"
         replacement_plan["experts"][0]["max_completion_tokens"] = 512
@@ -108,19 +127,13 @@ class SupervisorResumeTests(unittest.TestCase):
         self.assertEqual(payload["inputs"]["ranking_limit"], "8")
         self.assertEqual(effective["provenance"]["effective_plan_source"], "deepseek_top_supervisor")
         self.assertEqual(effective["provenance"]["supervisor_operation_id"], "sup-1")
-        self.assertEqual(plan["applied_retry_overrides"]["plan_json"], "replaced_validated_budget_compliant")
+        self.assertEqual(
+            plan["applied_retry_overrides"]["plan_json"],
+            "replaced_validated_recovery_budget_compliant",
+        )
 
     def test_replacement_cannot_change_user_task(self) -> None:
-        original = {
-            "version": "1",
-            "selection_policy": SELECTION_POLICY,
-            "task": "original task",
-            "rationale": "original",
-            "experts": [{"name": "e", "mission": "m", "instructions": "i", "model": "p/m"}],
-            "stages": [{"id": "s", "mode": "parallel", "members": ["e"], "input_from": ["task"]}],
-            "red_team": {"enabled": False, "name": "red", "model": "", "instructions": ""},
-            "judge": {"enabled": False, "name": "judge", "model": "", "instructions": ""},
-        }
+        original = base_plan("original task")
         replacement = json.loads(json.dumps(original))
         replacement["task"] = "changed task"
         with self.assertRaisesRegex(RuntimeError, "changed the user's substantive task"):
@@ -140,15 +153,22 @@ class SupervisorResumeTests(unittest.TestCase):
         )
         self.assertEqual(plan["action"], "dispatch")
 
-    def test_two_matching_runs_block_third_dispatch(self) -> None:
+    def test_raw_failed_run_count_does_not_consume_budget(self) -> None:
         plan = self._run_plan(
             [
                 {"id": 100, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"},
                 {"id": 101, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"},
             ]
         )
+        self.assertEqual(plan["action"], "dispatch")
+
+    def test_actual_prior_recovery_blocks_second_recovery_budget(self) -> None:
+        plan = self._run_plan(
+            [{"id": 100, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"}],
+            recovery_consumed=True,
+        )
         self.assertEqual(plan["action"], "none")
-        self.assertEqual(plan["reason"], "bounded_retry_limit_reached")
+        self.assertEqual(plan["reason"], "logical_task_recovery_budget_already_consumed")
 
 
 if __name__ == "__main__":
