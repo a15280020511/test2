@@ -30,6 +30,7 @@ jobs:
             scripts/action_entrypoint.py \
             scripts/managed_operation.py \
             scripts/plugin_runner.py \
+            scripts/verify_deepseek_entry.py \
             scripts/cross_repo_control.py
           python - <<'PY'
           from pathlib import Path
@@ -47,7 +48,6 @@ jobs:
           python -m json.tool plugins/expert-team/plugin.json >/dev/null
           grep -F 'cleanup": "always' plugins/expert-team/plugin.json >/dev/null
           grep -F 'shutil.rmtree(temp_root, ignore_errors=True)' scripts/plugin_runner.py >/dev/null
-          grep -F 'plugins/expert-team/requirements.txt' TOOL_PACKAGE_GUARDRAILS.md >/dev/null || true
           grep -F '任务级临时插头' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
           grep -F '预算先批准' DEEPSEEK_STEWARD.md >/dev/null
           echo 'Ephemeral plugin contract OK'
@@ -66,7 +66,7 @@ jobs:
       - name: Validate independent DeepSeek control plane
         run: ruby scripts/validate_control_schema.rb
 
-      - name: Validate DeepSeek-first budget and review contract
+      - name: Validate DeepSeek-first budget, receipt and review contract
         run: |
           grep -F 'ASSIST — mandatory first contact' expert_team/deepseek_steward.py >/dev/null
           grep -F 'Mode: REVIEW' expert_team/deepseek_steward.py >/dev/null
@@ -76,7 +76,12 @@ jobs:
           grep -F 'deepseek_final_review' scripts/action_entrypoint.py >/dev/null
           grep -F 'publication_status' scripts/action_entrypoint.py >/dev/null
           grep -F 'version": "2' expert_team/execution_plan_form.json >/dev/null
-          echo 'DeepSeek entry, budget and final review contract OK'
+          python -m json.tool budget_approval_receipt.template.json >/dev/null
+          grep -F 'web_gpt_after_user_budget_selection' budget_approval_receipt.template.json >/dev/null
+          grep -F 'budget receipt does not exactly match' scripts/verify_deepseek_entry.py >/dev/null
+          grep -F 'execute_team requires a durable Web GPT receipt' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'issues/comments/${RECEIPT_COMMENT_ID}' .github/workflows/expert-team-production.yml >/dev/null
+          echo 'DeepSeek entry, durable budget approval and final review contract OK'
 
       - name: Validate provider separation and hard stop
         run: |
