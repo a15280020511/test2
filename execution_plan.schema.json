@@ -2,21 +2,79 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/a15280020511/test2/execution_plan.schema.json",
   "title": "Web GPT Dynamic Expert Team Execution Plan",
-  "description": "Web GPT 是任务规划者。必须先读取 OpenRouter 当前模型情报，再依据 selection_policy 针对具体任务动态选择专家、模型和组合方式。若对仓库使用、填表或编排不确定，可调用 DeepSeek Steward ASSIST；若发现任何仓库技术故障，应停止自行修码并交给 DeepSeek Steward REPAIR。",
+  "description": "DeepSeek ASSIST 是网页 GPT 的最高优先级入口。网页 GPT 必须先取得 DeepSeek READY 和三档预算建议，向用户展示并取得明确预算批准后，才能提交付费专家团。工具包以任务级临时插头安装，任务结束后销毁。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "selection_policy", "task", "rationale", "experts", "stages", "red_team", "judge"],
+  "required": [
+    "version",
+    "selection_policy",
+    "task",
+    "rationale",
+    "deepseek_entry",
+    "budget",
+    "experts",
+    "stages",
+    "red_team",
+    "judge"
+  ],
   "properties": {
-    "version": {"const": "1"},
+    "version": {"const": "2"},
     "selection_policy": {
       "type": "string",
-      "const": "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，必须具体问题具体分析。",
-      "description": "Web GPT 每次规划和填写 Execution Plan 时必须遵守的固定底层规则。"
+      "const": "DeepSeek ASSIST 必须作为最高优先级入口，先审计任务、插件需求和预算方案；网页 GPT 必须把经济、均衡、质量三档预算反馈给用户并取得明确选择。执行时先满足用户批准的质量和成本边界，再在边界内动态选择专家、模型和工作流。所有专业工具采用任务级临时插头，用时安装、结束销毁。重大任务能力优先，普通任务性价比优先，具体问题具体分析。",
+      "description": "每次规划都必须遵守的入口、预算、插件和动态选择规则。"
     },
     "task": {"type": "string", "minLength": 1},
     "rationale": {
       "type": "string",
-      "description": "说明本次如何依据 selection_policy，结合任务难度、价值、风险、不确定性以及 OpenRouter 当前模型能力、价格、延迟和上下文等信号，决定专家数量、模型与工作流组合。DeepSeek Steward ASSIST 可提供仓库和填表建议，但最终 Execution Plan 仍由 Web GPT 决定。"
+      "minLength": 1,
+      "description": "说明 DeepSeek 入口建议、用户预算选择、插件需求、模型价格和质量信号如何共同形成当前方案。"
+    },
+    "deepseek_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "operation_id", "budget_options_presented"],
+      "properties": {
+        "status": {"const": "READY"},
+        "operation_id": {"type": "string", "minLength": 1},
+        "budget_options_presented": {"const": true}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_status",
+        "tier",
+        "currency",
+        "max_cost_usd",
+        "estimated_cost_usd",
+        "max_model_calls",
+        "max_output_tokens_per_call",
+        "approval_reference"
+      ],
+      "properties": {
+        "approval_status": {"const": "approved_by_user"},
+        "tier": {"enum": ["economy", "balanced", "quality", "custom"]},
+        "currency": {"const": "USD"},
+        "max_cost_usd": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+        "estimated_cost_usd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["low", "high"],
+          "properties": {
+            "low": {"type": "number", "minimum": 0, "maximum": 1000},
+            "high": {"type": "number", "minimum": 0, "maximum": 1000}
+          }
+        },
+        "max_model_calls": {"type": "integer", "minimum": 1, "maximum": 50},
+        "max_output_tokens_per_call": {"type": "integer", "minimum": 128, "maximum": 32768},
+        "approval_reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "网页 GPT 对用户明确预算选择的可审计简短引用，不得伪造。"
+        }
+      }
     },
     "experts": {
       "type": "array",
@@ -43,16 +101,8 @@
         "properties": {
           "id": {"type": "string", "minLength": 1},
           "mode": {"enum": ["parallel", "sequential"]},
-          "members": {
-            "type": "array",
-            "minItems": 1,
-            "items": {"type": "string", "minLength": 1}
-          },
-          "input_from": {
-            "type": "array",
-            "minItems": 1,
-            "items": {"type": "string", "minLength": 1}
-          }
+          "members": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "input_from": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
         }
       }
     },
@@ -73,12 +123,7 @@
       "allOf": [
         {
           "if": {"properties": {"enabled": {"const": true}}, "required": ["enabled"]},
-          "then": {
-            "properties": {
-              "model": {"minLength": 1},
-              "instructions": {"minLength": 1}
-            }
-          }
+          "then": {"properties": {"model": {"minLength": 1}, "instructions": {"minLength": 1}}}
         }
       ]
     }
