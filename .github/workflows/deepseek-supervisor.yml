@@ -23,7 +23,7 @@ on:
         default: ""
         type: string
       failure_class:
-        description: Startup timeout, Action-edge, workflow, control-plane, publication, budget, or other failure
+        description: Startup, Action-edge, workflow, control, publication, budget, or other failure
         required: true
         type: string
       support_packet_json:
@@ -43,22 +43,21 @@ permissions:
   issues: read
 
 concurrency:
-  group: deepseek-top-supervisor
+  group: deepseek-top-supervisor-${{ inputs.original_operation_id }}
   cancel-in-progress: false
 
 jobs:
   supervise:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
           cache: pip
@@ -109,7 +108,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python -m scripts.repair_delivery --operation-id "${{ inputs.operation_id }}"
 
-      - name: Plan validated budget-compliant original-operation resume
+      - name: Plan validated recovery-reserve-compliant resume
         env:
           PYTHONPATH: .
           GH_TOKEN: ${{ github.token }}
@@ -137,6 +136,7 @@ jobs:
         if: always()
         env:
           PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
         run: python -m scripts.publish_runtime_result --operation-id "${{ inputs.operation_id }}"
 
       - name: Publish final supervisor status after resume decision
@@ -155,9 +155,16 @@ jobs:
             --result-published "${{ steps.publish_result.outcome }}" \
             --current-policy if-owner
 
+      - name: Build final local supervisor audit
+        if: always()
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.build_operation_audit --operation-id "${{ inputs.operation_id }}"
+
       - name: Upload supervisor audit artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: deepseek-supervisor-${{ inputs.operation_id }}
           path: artifacts/${{ inputs.operation_id }}/
