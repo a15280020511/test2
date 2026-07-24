@@ -20,7 +20,7 @@ def _run_soft(command: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify and deliver a DeepSeek Steward repair if the operation produced one")
+    parser = argparse.ArgumentParser(description="Verify and deliver a DeepSeek Steward repair through a PR only")
     parser.add_argument("--operation-id", required=True)
     args = parser.parse_args()
 
@@ -41,12 +41,10 @@ def main() -> None:
     result = read_json(result_path)
     decision = str(result.get("decision") or "").upper()
     if decision != "EDIT":
-        print(f"DeepSeek Steward decision={decision or 'N/A'}; no repair delivery required.")
+        print(f"DeepSeek Steward decision={decision or 'N/A'}; no repository repair delivery required.")
         return
 
     source_paths = ensure_safe_repair_changes()
-    # Always verify again at the delivery boundary. Auto-repair already verified before retry,
-    # but this second gate ensures only the exact workspace being delivered is accepted.
     run_verification()
 
     run_id = os.getenv("GITHUB_RUN_ID", "manual")
@@ -60,43 +58,50 @@ def main() -> None:
 
     pr_title = f"DeepSeek Steward repair: {operation_id}"
     pr_body = (
-        "Automated DeepSeek Steward repair. The repair used the official DeepSeek API, "
-        "passed Python compilation, existing unit tests, strict GPT Action OpenAPI validation, "
-        "the live OpenRouter smoke test, and the live official DeepSeek smoke test. "
-        "For automatically recovered production failures, the original operation also succeeded "
-        "on the single allowed retry before delivery."
+        "Automated DeepSeek Steward repair using the official DeepSeek API. "
+        "The repair passed compilation, unit tests, strict Action-schema validation, "
+        "OpenRouter smoke testing, and official DeepSeek smoke testing. "
+        "Direct push to main is forbidden; this PR is the only delivery path."
     )
     created = _run_soft(
         ["gh", "pr", "create", "--base", "main", "--head", branch, "--title", pr_title, "--body", pr_body]
     )
     pr_url = created.stdout.strip() if created.returncode == 0 else ""
-    delivery_method = "verified_direct_merge"
+    if not pr_url:
+        result["repair_delivery"] = {
+            "status": "blocked",
+            "method": "verified_branch_only",
+            "branch": branch,
+            "pull_request_url": None,
+            "verification": "passed",
+            "error": (created.stderr or created.stdout)[-4000:],
+            "changed_files": source_paths,
+        }
+        result["resume"] = "STOP"
+        write_json(result_path, result)
+        raise RuntimeError("Verified repair branch was pushed, but PR creation failed; direct main push is forbidden")
 
-    if pr_url:
-        merged = _run_soft(["gh", "pr", "merge", pr_url, "--merge", "--delete-branch"])
-        if merged.returncode == 0:
-            delivery_method = "verified_pr_merge"
-        else:
-            # Never force push. The fallback succeeds only if GitHub accepts the normal update.
-            run_checked(["git", "push", "origin", "HEAD:main"])
-            _run_soft(
-                [
-                    "gh",
-                    "pr",
-                    "close",
-                    pr_url,
-                    "--comment",
-                    "Repair was delivered by verified non-force fast-forward fallback because workflow PR merge was unavailable.",
-                ]
-            )
-    else:
-        run_checked(["git", "push", "origin", "HEAD:main"])
+    merged = _run_soft(["gh", "pr", "merge", pr_url, "--merge", "--delete-branch"])
+    if merged.returncode != 0:
+        result["repair_delivery"] = {
+            "status": "pending_review",
+            "method": "verified_pr",
+            "branch": branch,
+            "pull_request_url": pr_url,
+            "verification": "passed",
+            "error": (merged.stderr or merged.stdout)[-4000:],
+            "changed_files": source_paths,
+        }
+        result["resume"] = "STOP"
+        write_json(result_path, result)
+        raise RuntimeError("Verified repair PR could not be merged automatically; direct main push is forbidden")
 
     result = read_json(result_path)
     result["repair_delivery"] = {
         "status": "merged",
-        "method": delivery_method,
-        "pull_request_url": pr_url or None,
+        "method": "verified_pr_merge",
+        "branch": branch,
+        "pull_request_url": pr_url,
         "verification": "passed",
         "changed_files": source_paths,
     }
@@ -106,8 +111,8 @@ def main() -> None:
     if manifest_path.exists():
         manifest = read_json(manifest_path)
         manifest["status"] = "delivered"
-        manifest["delivery_method"] = delivery_method
-        manifest["pull_request_url"] = pr_url or None
+        manifest["delivery_method"] = "verified_pr_merge"
+        manifest["pull_request_url"] = pr_url
         write_json(manifest_path, manifest)
 
     managed_path = output_dir / "managed_operation.json"
@@ -117,7 +122,7 @@ def main() -> None:
         managed["resume"] = "READY"
         write_json(managed_path, managed)
 
-    print(f"DeepSeek repair delivered successfully via {delivery_method}")
+    print("DeepSeek repair delivered successfully via verified PR merge")
 
 
 if __name__ == "__main__":
