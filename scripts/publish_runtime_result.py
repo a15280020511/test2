@@ -16,6 +16,14 @@ PUBLISH_FILES = (
     "auto_repair_manifest.json",
     "managed_operation.json",
     "model_intelligence_gpt.json",
+    "cost_preflight.json",
+    "effective_execution_plan.json",
+    "model_calls.json",
+    "execution_trace.json",
+    "partial_execution.json",
+    "supervisor_resume.json",
+    "single_task_lock.json",
+    "operation_audit.json",
 )
 
 
@@ -49,12 +57,7 @@ def main() -> None:
 
             gpt_snapshot = source_dir / "model_intelligence_gpt.json"
             if gpt_snapshot.exists():
-                # Keep the existing public Action path for backward compatibility, but
-                # publish only the new bounded/minified GPT snapshot there.
-                for latest_name in (
-                    "model_intelligence_latest.json",
-                    "model_intelligence_gpt_latest.json",
-                ):
+                for latest_name in ("model_intelligence_latest.json", "model_intelligence_gpt_latest.json"):
                     latest = worktree / "runtime_results" / latest_name
                     latest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(gpt_snapshot, latest)
