@@ -50,6 +50,8 @@ jobs:
             getExpertTeamRun
             getExpertTeamRunJobs
             listExpertTeamRunArtifacts
+            getExpertTeamResult
+            getExpertTeamOperationMetadata
             downloadExpertTeamArtifact
           ]
           missing = required - ids
@@ -59,7 +61,9 @@ jobs:
           walk = lambda do |node, path|
             case node
             when Hash
-              if node["type"] == "object" && !node.key?("properties")
+              type = node["type"]
+              object_type = type == "object" || (type.is_a?(Array) && type.include?("object"))
+              if object_type && !node.key?("properties")
                 errors << "object schema missing properties at #{path.join("/")}"
               end
               node.each { |k, v| walk.call(v, path + [k.to_s]) }
