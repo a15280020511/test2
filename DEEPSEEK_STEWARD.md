@@ -17,7 +17,8 @@ Web GPT remains the user-facing task commander. DeepSeek Steward owns repository
 - Repository technical diagnosis, maintenance, fault repair, compatibility repair, and recovery belong to DeepSeek Steward.
 - Web GPT should not independently improvise repository code repairs when DeepSeek Steward is available.
 - Microsoft Agent Framework remains the expert-team execution runtime.
-- OpenRouter remains the model marketplace/inference endpoint.
+- OpenRouter remains the expert-team model marketplace and inference endpoint.
+- DeepSeek Steward must use the **official DeepSeek API** at `https://api.deepseek.com`; it must not route Steward requests through OpenRouter.
 - GitHub remains the execution, evidence, logging, validation, and repair-delivery center.
 
 ## ASSIST mode
@@ -30,7 +31,7 @@ DeepSeek Steward should:
 - explain how Web GPT should fill the current Execution Plan;
 - identify missing required fields or invalid structure;
 - advise expert count, role separation, stage topology, red-team need, and judge need without taking over Web GPT's final planning authority;
-- remind Web GPT to use current OpenRouter model intelligence rather than memory when choosing models;
+- remind Web GPT to use current OpenRouter model intelligence rather than memory when choosing expert-team models;
 - advise whether the task is `READY` to submit or should `STOP` for missing evidence or invalid configuration;
 - recommend the minimum sufficient workflow rather than unnecessary complexity.
 
@@ -45,6 +46,7 @@ Use `REPAIR` for any repository technical problem, including but not limited to:
 - Python import/runtime errors;
 - dependency/version incompatibility;
 - OpenRouter SDK/API integration failures;
+- DeepSeek official API integration failures;
 - Microsoft Agent Framework integration failures;
 - result publication or runtime-results failures;
 - Artifact generation failures;
@@ -72,7 +74,7 @@ DeepSeek Steward is authorized to repair repository code directly through the co
 - Never expose, print, modify, or request repository secrets.
 - Never write to `.git/`, `runtime_results/`, or generated `artifacts/` as source-code repair targets.
 - Never modify files under `tests/` during autonomous repair. Existing tests are part of the independent acceptance gate.
-- Do not remove the mandatory CI checks for Python compilation, OpenAPI validation, offline contract tests, or live OpenRouter smoke testing.
+- Do not remove the mandatory CI checks for Python compilation, OpenAPI validation, offline contract tests, live OpenRouter smoke testing, or live official DeepSeek smoke testing.
 - Never force-push an autonomous repair to `main`.
 - Never deliver a repair to `main` before the verification gate passes.
 - Do not fabricate a successful repair when verification fails.
@@ -102,11 +104,21 @@ Web GPT should send as much of the following as is available:
 
 Missing fields are allowed. Evidence must not be fabricated.
 
-## DeepSeek model
+## DeepSeek provider and strongest-model policy
 
-The default Steward model is `deepseek/deepseek-v4-pro` through the existing OpenRouter connection.
+DeepSeek Steward uses the **official DeepSeek API** at `https://api.deepseek.com` with repository secret `DEEPSEEK_API_KEY`.
 
-The model can be overridden with the environment variable `DEEPSEEK_STEWARD_MODEL` without changing repository code. No second model-provider API key is required.
+It must never fall back to OpenRouter for Steward inference.
+
+Default model policy:
+
+1. Unless `DEEPSEEK_STEWARD_MODEL` is explicitly set, query the official DeepSeek `/models` endpoint at runtime.
+2. Select the strongest available official DeepSeek model using version first and capability tier second.
+3. For the current official V4 model set, this selects `deepseek-v4-pro` over `deepseek-v4-flash`.
+4. If model discovery is temporarily unavailable, use `deepseek-v4-pro` as the current strongest baseline.
+5. Steward requests run with thinking enabled and `reasoning_effort=max` by default.
+
+The environment variable `DEEPSEEK_STEWARD_MODEL` remains an explicit operator override. Normal operation should leave it unset so the strongest-model policy can select automatically.
 
 ## Web GPT handoff rule
 
@@ -123,4 +135,4 @@ When Web GPT only needs usage or form guidance, dispatch `steward_mode=ASSIST`.
 
 ## Core principle
 
-**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance.**
+**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance through DeepSeek's official API.**
