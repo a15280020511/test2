@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -105,11 +105,20 @@ jobs:
           OPENROUTER_SMOKE_MODEL: openrouter/free
         run: python scripts/live_smoke_test.py
 
+      - name: Run live DeepSeek Steward smoke test
+        env:
+          PYTHONPATH: .
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DEEPSEEK_STEWARD_MODEL: deepseek/deepseek-v4-pro
+        run: python scripts/deepseek_steward_smoke_test.py
+
       - name: Upload smoke result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: expert-team-smoke-result
-          path: artifacts/live_smoke_result.json
+          path: |
+            artifacts/live_smoke_result.json
+            artifacts/deepseek_steward_smoke_result.json
           if-no-files-found: warn
           retention-days: 7
