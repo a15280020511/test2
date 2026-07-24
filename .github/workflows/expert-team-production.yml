@@ -26,7 +26,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: expert-team-production
@@ -71,3 +71,53 @@ jobs:
           path: artifacts/${{ inputs.operation_id }}/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish GPT-readable JSON result
+        if: always()
+        env:
+          OPERATION_ID: ${{ inputs.operation_id }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+
+          SAFE_ID="$(python - <<'PY'
+          import os
+          value = os.environ['OPERATION_ID']
+          cleaned = ''.join(ch for ch in value.strip() if ch.isalnum() or ch in {'-', '_', '.'})
+          if not cleaned:
+              raise SystemExit('operation_id has no safe characters')
+          print(cleaned[:120])
+          PY
+          )"
+
+          SOURCE_DIR="artifacts/${SAFE_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin runtime-results
+          rm -rf /tmp/test2-runtime-results
+          git worktree add /tmp/test2-runtime-results origin/runtime-results
+
+          DEST_DIR="/tmp/test2-runtime-results/runtime_results/${SAFE_ID}"
+          mkdir -p "$DEST_DIR"
+
+          if [ -f "${SOURCE_DIR}/metadata.json" ]; then
+            cp "${SOURCE_DIR}/metadata.json" "${DEST_DIR}/metadata.json"
+          fi
+
+          if [ -f "${SOURCE_DIR}/expert_team_result.json" ]; then
+            cp "${SOURCE_DIR}/expert_team_result.json" "${DEST_DIR}/expert_team_result.json"
+          fi
+
+          if [ -f "${SOURCE_DIR}/model_intelligence_compact.json" ]; then
+            cp "${SOURCE_DIR}/model_intelligence_compact.json" "${DEST_DIR}/model_intelligence.json"
+            cp "${SOURCE_DIR}/model_intelligence_compact.json" "/tmp/test2-runtime-results/runtime_results/model_intelligence_latest.json"
+          fi
+
+          git -C /tmp/test2-runtime-results add runtime_results
+          if git -C /tmp/test2-runtime-results diff --cached --quiet; then
+            echo "No runtime result changes to publish"
+            exit 0
+          fi
+
+          git -C /tmp/test2-runtime-results commit -m "Publish runtime result ${SAFE_ID}"
+          git -C /tmp/test2-runtime-results push origin HEAD:runtime-results

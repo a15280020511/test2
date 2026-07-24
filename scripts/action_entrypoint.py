@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from expert_team.dynamic_team import run_dynamic_team, validate_execution_plan
-from expert_team.model_intelligence import build_model_intelligence_snapshot
+from expert_team.model_intelligence import (
+    build_compact_model_intelligence_snapshot,
+    build_model_intelligence_snapshot,
+)
 
 
 def _safe_operation_id(value: str) -> str:
@@ -54,9 +57,13 @@ async def main() -> None:
         if args.operation == "model_intelligence":
             result = build_model_intelligence_snapshot(limit_per_ranking=args.ranking_limit)
             result_path = output_dir / "model_intelligence.json"
+            compact_path = output_dir / "model_intelligence_compact.json"
+            _write_json(compact_path, build_compact_model_intelligence_snapshot(result))
+            metadata["readable_result_file"] = compact_path.name
         else:
             result = await _execute_team(args.plan_json)
             result_path = output_dir / "expert_team_result.json"
+            metadata["readable_result_file"] = result_path.name
 
         _write_json(result_path, result)
         metadata.update({"status": "success", "result_file": result_path.name})

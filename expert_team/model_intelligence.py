@@ -127,7 +127,7 @@ def fetch_benchmarks() -> dict[str, Any]:
 
 
 def build_model_intelligence_snapshot(limit_per_ranking: int = 20) -> dict[str, Any]:
-    """Build a compact current snapshot intended for Web GPT model selection."""
+    """Build the full current OpenRouter intelligence snapshot for audit artifacts."""
     catalog = fetch_catalog_via_sdk()
     rankings = {
         sort: fetch_ranked_models(sort, limit=limit_per_ranking)
@@ -146,6 +146,82 @@ def build_model_intelligence_snapshot(limit_per_ranking: int = 20) -> dict[str, 
         "catalog": catalog,
         "rankings": rankings,
         "benchmarks": benchmarks,
+    }
+
+
+def build_compact_model_intelligence_snapshot(
+    snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    """Create a GitHub-Contents-friendly snapshot for Web GPT to read directly.
+
+    The full OpenRouter snapshot can exceed GitHub Contents API practical response
+    limits. This compact form preserves the task-selection signals while omitting
+    large descriptions and raw benchmark feeds. Rankings contain model IDs and the
+    ``models`` map contains the metadata needed for task-specific model selection.
+    """
+    ranking_ids: dict[str, list[str]] = {}
+    models: dict[str, dict[str, Any]] = {}
+
+    raw_rankings = snapshot.get("rankings", {})
+    if not isinstance(raw_rankings, dict):
+        raise ValueError("snapshot.rankings must be an object")
+
+    for sort, items in raw_rankings.items():
+        if not isinstance(items, list):
+            continue
+        ranking_ids[str(sort)] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            model_id = str(item.get("id") or "").strip()
+            if not model_id:
+                continue
+            ranking_ids[str(sort)].append(model_id)
+            if model_id in models:
+                continue
+
+            architecture = item.get("architecture") if isinstance(item.get("architecture"), dict) else {}
+            benchmarks = item.get("benchmarks") if isinstance(item.get("benchmarks"), dict) else {}
+            artificial_analysis = (
+                benchmarks.get("artificial_analysis")
+                if isinstance(benchmarks.get("artificial_analysis"), dict)
+                else {}
+            )
+            design_arena = benchmarks.get("design_arena") if isinstance(benchmarks.get("design_arena"), list) else []
+            design_rows = [row for row in design_arena if isinstance(row, dict)]
+            best_design = None
+            if design_rows:
+                best = max(
+                    design_rows,
+                    key=lambda row: row.get("elo") if isinstance(row.get("elo"), (int, float)) else -1,
+                )
+                best_design = {
+                    key: best.get(key)
+                    for key in ("arena", "category", "elo", "rank", "win_rate")
+                }
+
+            models[model_id] = {
+                "id": model_id,
+                "name": item.get("name"),
+                "context_length": item.get("context_length"),
+                "pricing": item.get("pricing"),
+                "supported_parameters": item.get("supported_parameters"),
+                "input_modalities": architecture.get("input_modalities"),
+                "output_modalities": architecture.get("output_modalities"),
+                "reasoning": item.get("reasoning"),
+                "expiration_date": item.get("expiration_date"),
+                "knowledge_cutoff": item.get("knowledge_cutoff"),
+                "artificial_analysis": artificial_analysis,
+                "best_design_arena": best_design,
+            }
+
+    return {
+        "schema_version": "2",
+        "generated_at": snapshot.get("generated_at"),
+        "source": snapshot.get("source"),
+        "selection_rule": snapshot.get("selection_rule"),
+        "rankings": ranking_ids,
+        "models": models,
     }
 
 
