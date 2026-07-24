@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -9,6 +10,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from expert_team.budget import DEFAULT_TASK_BUDGET_USD, preflight_execution_plan
+from expert_team.dynamic_team import validate_execution_plan
 from scripts.repair_utils import read_json, safe_operation_id, write_json
 
 WORKFLOW_FILE = "expert-team-production.yml"
@@ -50,17 +53,32 @@ def _matching_runs(repository: str, token: str, original_operation_id: str) -> l
     runs = payload.get("workflow_runs", [])
     if not isinstance(runs, list):
         return []
-    matched: list[dict[str, Any]] = []
-    for run in runs:
-        if not isinstance(run, dict):
-            continue
-        display_title = str(run.get("display_title") or "")
-        if original_operation_id in display_title:
-            matched.append(run)
-    return matched
+    return [
+        run
+        for run in runs
+        if isinstance(run, dict) and original_operation_id in str(run.get("display_title") or "")
+    ]
 
 
-def _apply_retry_overrides(retry_payload: dict[str, Any], steward_result: dict[str, Any]) -> dict[str, Any]:
+def _sha256_json(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _task_budget(plan: dict[str, Any]) -> float:
+    budget = plan.get("budget")
+    if not isinstance(budget, dict):
+        return DEFAULT_TASK_BUDGET_USD
+    return float(budget.get("max_total_usd", DEFAULT_TASK_BUDGET_USD))
+
+
+def _apply_retry_overrides(
+    retry_payload: dict[str, Any],
+    steward_result: dict[str, Any],
+    *,
+    supervisor_operation_id: str,
+    output_dir: Path,
+) -> dict[str, Any]:
     overrides = steward_result.get("retry_operation_overrides")
     if not isinstance(overrides, dict) or not overrides:
         return {}
@@ -69,16 +87,53 @@ def _apply_retry_overrides(retry_payload: dict[str, Any], steward_result: dict[s
     if not isinstance(inputs, dict):
         raise RuntimeError("retry dispatch payload has no inputs object")
 
+    original_plan_raw = str(inputs.get("plan_json") or "{}")
+    original_plan = _load_object(original_plan_raw)
     applied: dict[str, Any] = {}
+
     if "plan_json" in overrides:
         plan_value = overrides.get("plan_json")
         if isinstance(plan_value, dict):
-            plan_value = json.dumps(plan_value, ensure_ascii=False)
-        if not isinstance(plan_value, str) or not plan_value.strip():
-            raise RuntimeError("DeepSeek retry_operation_overrides.plan_json must be JSON string or object")
-        json.loads(plan_value)
-        inputs["plan_json"] = plan_value
-        applied["plan_json"] = "replaced"
+            replacement_plan = dict(plan_value)
+        elif isinstance(plan_value, str) and plan_value.strip():
+            replacement_plan = _load_object(plan_value)
+        else:
+            raise RuntimeError("DeepSeek retry_operation_overrides.plan_json must be a JSON string or object")
+
+        original_task = str(original_plan.get("task") or "").strip()
+        replacement_task = str(replacement_plan.get("task") or "").strip()
+        if original_task and replacement_task != original_task:
+            raise RuntimeError("DeepSeek replacement plan changed the user's substantive task")
+
+        original_budget = _task_budget(original_plan)
+        replacement_budget = _task_budget(replacement_plan)
+        if replacement_budget > original_budget + 1e-9:
+            raise RuntimeError("DeepSeek replacement plan may not increase the user's logical-task budget")
+        replacement_plan.setdefault(
+            "budget",
+            original_plan.get("budget")
+            if isinstance(original_plan.get("budget"), dict)
+            else {"max_total_usd": original_budget, "recovery_reserve_ratio": 0.30},
+        )
+        replacement_plan["provenance"] = {
+            "original_plan_source": str(
+                (original_plan.get("provenance") or {}).get("original_plan_source")
+                if isinstance(original_plan.get("provenance"), dict)
+                else "web_gpt"
+            ) or "web_gpt",
+            "effective_plan_source": "deepseek_top_supervisor",
+            "original_plan_sha256": _sha256_json(original_plan),
+            "supervisor_operation_id": supervisor_operation_id,
+            "override_reason": str(steward_result.get("diagnosis") or "technical recovery"),
+        }
+
+        validate_execution_plan(replacement_plan)
+        preflight = preflight_execution_plan(replacement_plan)
+        write_json(output_dir / "replacement_plan_cost_preflight.json", preflight)
+        inputs["plan_json"] = json.dumps(replacement_plan, ensure_ascii=False, separators=(",", ":"))
+        applied["plan_json"] = "replaced_validated_budget_compliant"
+        applied["original_plan_sha256"] = _sha256_json(original_plan)
+        applied["effective_plan_sha256"] = _sha256_json(replacement_plan)
 
     if "ranking_limit" in overrides:
         ranking_value = str(overrides.get("ranking_limit") or "").strip()
@@ -131,7 +186,12 @@ def _plan_resume(
         write_json(result_path, steward_result)
         return plan
 
-    plan["applied_retry_overrides"] = _apply_retry_overrides(retry_payload, steward_result)
+    plan["applied_retry_overrides"] = _apply_retry_overrides(
+        retry_payload,
+        steward_result,
+        supervisor_operation_id=supervisor_operation_id,
+        output_dir=output_dir,
+    )
 
     runs = _matching_runs(repository, token, original_operation_id)
     plan["matching_runs"] = [
@@ -189,6 +249,10 @@ def _execute_resume(*, supervisor_operation_id: str, repository: str, token: str
             plan["dispatch_status"] = "accepted"
             plan["dispatch_attempt"] = attempt
             write_json(plan_path, plan)
+            result_path = output_dir / "deepseek_steward_result.json"
+            steward_result = read_json(result_path)
+            steward_result["supervisor_resume"] = plan
+            write_json(result_path, steward_result)
             return plan
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
@@ -198,11 +262,15 @@ def _execute_resume(*, supervisor_operation_id: str, repository: str, token: str
     plan["dispatch_status"] = "failure"
     plan["dispatch_error"] = last_error
     write_json(plan_path, plan)
+    result_path = output_dir / "deepseek_steward_result.json"
+    steward_result = read_json(result_path)
+    steward_result["supervisor_resume"] = plan
+    write_json(result_path, steward_result)
     raise RuntimeError(f"Supervisor could not redispatch original operation: {last_error}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Plan or execute one bounded original-operation resume after DeepSeek supervision")
+    parser = argparse.ArgumentParser(description="Plan or execute one bounded original-operation resume")
     parser.add_argument("--mode", choices=("plan", "execute"), required=True)
     parser.add_argument("--supervisor-operation-id", required=True)
     parser.add_argument("--original-operation-id", default="")
