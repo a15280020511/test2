@@ -49,9 +49,15 @@ def main() -> None:
 
             gpt_snapshot = source_dir / "model_intelligence_gpt.json"
             if gpt_snapshot.exists():
-                latest = worktree / "runtime_results" / "model_intelligence_gpt_latest.json"
-                latest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(gpt_snapshot, latest)
+                # Keep the existing public Action path for backward compatibility, but
+                # publish only the new bounded/minified GPT snapshot there.
+                for latest_name in (
+                    "model_intelligence_latest.json",
+                    "model_intelligence_gpt_latest.json",
+                ):
+                    latest = worktree / "runtime_results" / latest_name
+                    latest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(gpt_snapshot, latest)
 
             run_checked(["git", "-C", str(worktree), "add", "runtime_results"])
             diff = subprocess.run(
