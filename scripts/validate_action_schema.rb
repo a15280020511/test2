@@ -2,7 +2,7 @@ require "yaml"
 
 schema = YAML.load_file("gpt_action_openapi.yaml")
 raise "missing openapi" unless schema["openapi"]
-raise "Action schema version must be 1.5.0" unless schema.dig("info", "version") == "1.5.0"
+raise "Action schema version must be 1.6.0" unless schema.dig("info", "version") == "1.6.0"
 
 schemas = schema.dig("components", "schemas")
 raise "components.schemas must be an object" unless schemas.is_a?(Hash)
@@ -31,11 +31,13 @@ end
 raise description_errors.join("\n") unless description_errors.empty?
 
 required_operation_ids = %w[
+  createOperationReceipt
   getOpenRouterModels
   getExecutionPlanSchema
   getDeepSeekStewardPolicy
   getActionRecoveryPolicy
   dispatchExpertTeamOperation
+  dispatchDeepSeekSupervisor
   getCurrentOperationStatus
   getExpertTeamRun
   getExpertTeamRunJobs
@@ -95,6 +97,20 @@ raise "permanent current status must expose HTTP 200" unless current.dig("respon
 history_path = "/repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json"
 raise "per-operation history status must not be exposed as primary Action control plane" if schema.dig("paths", history_path)
 
+receipt_path = "/repos/a15280020511/test2/issues/15/comments"
+receipt = schema.dig("paths", receipt_path, "post")
+raise "durable receipt endpoint missing" unless receipt
+raise "durable receipt must return HTTP 201" unless receipt.dig("responses", "201")
+
+production_path = "/repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches"
+production_inputs = schema.dig("paths", production_path, "post", "requestBody", "content", "application/json", "schema", "properties", "inputs")
+raise "production dispatch inputs missing" unless production_inputs
+required_inputs = production_inputs["required"] || []
+raise "production dispatch must require receipt_comment_id" unless required_inputs.include?("receipt_comment_id")
+
+supervisor_path = "/repos/a15280020511/test2/actions/workflows/deepseek-supervisor.yml/dispatches"
+raise "independent DeepSeek supervisor dispatch missing" unless schema.dig("paths", supervisor_path, "post")
+
 main_paths = [
   "/repos/a15280020511/test2/contents/execution_plan.schema.json",
   "/repos/a15280020511/test2/contents/DEEPSEEK_STEWARD.md",
@@ -111,4 +127,4 @@ main_paths.each do |path|
   raise "ref must be pinned to main: #{path}" unless enum == ["main"]
 end
 
-puts "GPT Action OpenAPI strict permanent-control-plane contract OK"
+puts "GPT Action OpenAPI strict durable-receipt and top-supervisor contract OK"

@@ -1,4 +1,5 @@
 name: Expert Team Production
+run-name: expert-${{ inputs.operation_id }}-${{ inputs.operation }}
 
 on:
   workflow_dispatch:
@@ -8,13 +9,17 @@ on:
         required: true
         type: string
       operation:
-        description: Model intelligence, expert execution, or DeepSeek Steward service
+        description: Model intelligence, expert execution, or DeepSeek Steward assistance
         required: true
         type: choice
         options:
           - model_intelligence
           - execute_team
           - deepseek_steward
+      receipt_comment_id:
+        description: Durable receipt comment ID created in control issue 15 before dispatch
+        required: true
+        type: string
       plan_json:
         description: Execution Plan JSON; required only for execute_team
         required: false
@@ -26,7 +31,7 @@ on:
         default: "20"
         type: string
       steward_mode:
-        description: DeepSeek Steward mode; ASSIST advises Web GPT, REPAIR repairs repository faults
+        description: Main workflow Steward mode; use ASSIST here and top supervisor for REPAIR
         required: false
         default: ASSIST
         type: choice
@@ -42,6 +47,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
+  issues: read
 
 concurrency:
   group: expert-team-production
@@ -71,6 +78,7 @@ jobs:
           python -m scripts.publish_operation_status \
             --operation-id "${{ inputs.operation_id }}" \
             --operation "${{ inputs.operation }}" \
+            --receipt-comment-id "${{ inputs.receipt_comment_id }}" \
             --phase start
 
       - name: Install dependencies
@@ -88,6 +96,7 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           PLAN_JSON: ${{ inputs.plan_json }}
           SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
+          RECEIPT_COMMENT_ID: ${{ inputs.receipt_comment_id }}
         run: |
           python -m scripts.managed_operation \
             --operation "${{ inputs.operation }}" \
@@ -129,6 +138,58 @@ jobs:
           python -m scripts.publish_operation_status \
             --operation-id "${{ inputs.operation_id }}" \
             --operation "${{ inputs.operation }}" \
+            --receipt-comment-id "${{ inputs.receipt_comment_id }}" \
             --phase final \
             --job-status "${{ job.status }}" \
             --result-published "${{ steps.publish_result.outcome }}"
+
+  escalate_to_deepseek:
+    name: Escalate failed production run to DeepSeek Top Supervisor
+    needs: run
+    if: ${{ always() && needs.run.result == 'failure' && inputs.operation != 'deepseek_steward' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dispatch independent DeepSeek top supervisor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORIGINAL_OPERATION_ID: ${{ inputs.operation_id }}
+          ORIGINAL_OPERATION: ${{ inputs.operation }}
+          ORIGINAL_RECEIPT_COMMENT_ID: ${{ inputs.receipt_comment_id }}
+          ORIGINAL_PLAN_JSON: ${{ inputs.plan_json }}
+          ORIGINAL_RANKING_LIMIT: ${{ inputs.ranking_limit }}
+          ORIGINAL_STEWARD_MODE: ${{ inputs.steward_mode }}
+          ORIGINAL_SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
+        run: |
+          SUPERVISOR_ID="supervisor-${ORIGINAL_OPERATION_ID}-${GITHUB_RUN_ID}"
+          RETRY_DISPATCH_JSON=$(jq -cn \
+            --arg operation_id "$ORIGINAL_OPERATION_ID" \
+            --arg operation "$ORIGINAL_OPERATION" \
+            --arg receipt_comment_id "$ORIGINAL_RECEIPT_COMMENT_ID" \
+            --arg plan_json "$ORIGINAL_PLAN_JSON" \
+            --arg ranking_limit "$ORIGINAL_RANKING_LIMIT" \
+            --arg steward_mode "$ORIGINAL_STEWARD_MODE" \
+            --arg support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
+            '{ref:"main",inputs:{operation_id:$operation_id,operation:$operation,receipt_comment_id:$receipt_comment_id,plan_json:$plan_json,ranking_limit:$ranking_limit,steward_mode:$steward_mode,support_packet_json:$support_packet_json}}')
+          SUPPORT_PACKET_JSON=$(jq -cn \
+            --arg operation_id "$ORIGINAL_OPERATION_ID" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg operation "$ORIGINAL_OPERATION" \
+            --arg receipt_comment_id "$ORIGINAL_RECEIPT_COMMENT_ID" \
+            --arg original_plan_json "$ORIGINAL_PLAN_JSON" \
+            --arg original_ranking_limit "$ORIGINAL_RANKING_LIMIT" \
+            --arg original_support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
+            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Top-level supervisor: diagnose and recover a failed production workflow, including failures outside managed_operation and recoverable provider/resource limits.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or one of its infrastructure steps",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Preserve user intent","Repair repository-side faults when evidence supports them","For recoverable OpenRouter resource or model failures, prefer safe retry_operation_overrides instead of stopping","Resume or redispatch the original operation at most once"],requested_outcome:"Restore repository operation and safely resume the original task."}')
+          PAYLOAD=$(jq -cn \
+            --arg operation_id "$SUPERVISOR_ID" \
+            --arg original_operation_id "$ORIGINAL_OPERATION_ID" \
+            --arg failed_run_id "$GITHUB_RUN_ID" \
+            --arg receipt_comment_id "$ORIGINAL_RECEIPT_COMMENT_ID" \
+            --arg failure_class "workflow_failure" \
+            --arg support_packet_json "$SUPPORT_PACKET_JSON" \
+            --arg retry_dispatch_json "$RETRY_DISPATCH_JSON" \
+            '{ref:"main",inputs:{operation_id:$operation_id,original_operation_id:$original_operation_id,failed_run_id:$failed_run_id,receipt_comment_id:$receipt_comment_id,failure_class:$failure_class,support_packet_json:$support_packet_json,retry_dispatch_json:$retry_dispatch_json}}')
+          echo "$PAYLOAD" | gh api \
+            --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/deepseek-supervisor.yml/dispatches" \
+            --input -
