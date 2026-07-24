@@ -3,22 +3,25 @@
 ASSIST mode gives Web GPT repository-facing guidance without editing files.
 REPAIR mode diagnoses repository faults and applies bounded full-file edits that are
 subsequently verified and delivered through the GitHub repair workflow.
+
+DeepSeek Steward uses DeepSeek's official API directly. It does not use OpenRouter.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from agent_framework import Agent
+from .deepseek_official import (
+    DEFAULT_STEWARD_MODEL,
+    DEEPSEEK_API_BASE,
+    generate_official_deepseek_json,
+    select_strongest_official_model,
+)
 
-from .openrouter_client import create_model_client
-
-DEFAULT_STEWARD_MODEL = "deepseek/deepseek-v4-pro"
 MAX_CONTEXT_CHARS = 180_000
 MAX_EDIT_FILES = 12
 MAX_EDIT_CHARS = 300_000
@@ -54,11 +57,13 @@ repository source/configuration through bounded full-file replacements, but must
 modify tests, generated artifacts, runtime-results, secrets, or .git data. It must prefer
 the smallest evidence-based repair and return STOP/NO_EDIT for external or transient
 failures rather than inventing code changes. Autonomous repairs are accepted only after
-the repository verification gate passes."""
+the repository verification gate passes. DeepSeek Steward must use the official DeepSeek
+API directly and must not fall back to OpenRouter."""
 
 
 def _steward_model() -> str:
-    return os.getenv("DEEPSEEK_STEWARD_MODEL", DEFAULT_STEWARD_MODEL).strip() or DEFAULT_STEWARD_MODEL
+    """Return the strongest available official DeepSeek model unless explicitly overridden."""
+    return select_strongest_official_model()
 
 
 def _safe_json(value: str) -> dict[str, Any]:
@@ -206,7 +211,7 @@ Return ONLY one JSON object, with no markdown fences.
         return base + """
 Mode: ASSIST.
 Do not edit repository files. Advise Web GPT how to use this repository and, when relevant, how to fill the Execution Plan.
-Return this shape:
+Return this JSON shape:
 {
   "mode": "ASSIST",
   "status": "READY" | "STOP",
@@ -229,7 +234,7 @@ Use current repository rules and latest model intelligence when present. Do not 
 Mode: REPAIR.
 Diagnose the technical problem. Only edit when evidence supports a repository defect. For external/transient problems, choose NO_EDIT or STOP.
 Repairs must be minimal full-file replacements/deletions. Do not provide shell commands. Do not modify tests/, runtime_results/, artifacts/, or .git/.
-Return this shape:
+Return this JSON shape:
 {
   "mode": "REPAIR",
   "decision": "EDIT" | "NO_EDIT" | "STOP",
@@ -258,19 +263,19 @@ async def run_deepseek_steward(
 
     support_packet = _safe_json(support_packet_json)
     context = _repo_context(root)
-    agent = Agent(
-        name="deepseek_steward",
-        client=create_model_client(_steward_model()),
-        instructions=_instructions(normalized_mode),
-    )
     request = {
         "mode": normalized_mode,
         "support_packet": support_packet,
         "repository_context": context,
     }
-    response = await agent.run(json.dumps(request, ensure_ascii=False))
-    result = _extract_json_object(response.text)
-    result["steward_model"] = _steward_model()
+    model, response_text = await generate_official_deepseek_json(
+        _instructions(normalized_mode),
+        request,
+    )
+    result = _extract_json_object(response_text)
+    result["steward_model"] = model
+    result["steward_provider"] = "DeepSeek official API"
+    result["steward_api_base"] = DEEPSEEK_API_BASE
     result["policy"] = "DEEPSEEK_STEWARD.md"
 
     if normalized_mode == "REPAIR":

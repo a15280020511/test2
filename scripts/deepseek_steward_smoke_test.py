@@ -5,10 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from agent_framework import Agent
-
-from expert_team.deepseek_steward import DEFAULT_STEWARD_MODEL
-from expert_team.openrouter_client import create_model_client
+from expert_team.deepseek_official import generate_official_deepseek_json
 
 ARTIFACT = Path("artifacts/deepseek_steward_smoke_result.json")
 
@@ -19,29 +16,35 @@ def _write(payload: dict) -> None:
 
 
 async def main() -> None:
-    if not os.getenv("OPENROUTER_API_KEY", "").strip():
-        _write({"status": "skipped_no_key"})
-        print("DEEPSEEK_STEWARD_SMOKE_SKIPPED: OPENROUTER_API_KEY is not configured")
-        return
+    if not os.getenv("DEEPSEEK_API_KEY", "").strip():
+        payload = {
+            "status": "failed_missing_key",
+            "provider": "DeepSeek official API",
+            "required_secret": "DEEPSEEK_API_KEY",
+        }
+        _write(payload)
+        raise RuntimeError("DEEPSEEK_API_KEY is required for the live official DeepSeek Steward smoke test")
 
-    model = os.getenv("DEEPSEEK_STEWARD_MODEL", DEFAULT_STEWARD_MODEL)
-    agent = Agent(
-        name="deepseek_steward_smoke",
-        client=create_model_client(model),
-        instructions="Return exactly STEWARD_OK and nothing else.",
+    model, output = await generate_official_deepseek_json(
+        "Return one JSON object exactly matching the requested schema.",
+        {
+            "request": "Connectivity smoke test",
+            "required_json": {"status": "STEWARD_OK"},
+        },
     )
-    response = await agent.run("Return exactly STEWARD_OK and nothing else.")
-    output = response.text.strip()
-    if "STEWARD_OK" not in output:
-        raise RuntimeError(f"Unexpected DeepSeek Steward smoke output: {output[:200]}")
+    payload = json.loads(output)
+    if payload.get("status") != "STEWARD_OK":
+        raise RuntimeError(f"Unexpected official DeepSeek Steward smoke output: {output[:500]}")
 
-    payload = {
+    result = {
         "status": "passed",
+        "provider": "DeepSeek official API",
+        "base_url": "https://api.deepseek.com",
         "model": model,
-        "output": output,
+        "output": payload,
     }
-    _write(payload)
-    print(json.dumps(payload, ensure_ascii=False))
+    _write(result)
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == "__main__":

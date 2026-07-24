@@ -5,27 +5,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from expert_team.deepseek_steward import (
     _validate_repair_path,
     run_deepseek_steward,
 )
-
-
-class _FakeResponse:
-    def __init__(self, payload: dict) -> None:
-        self.text = json.dumps(payload, ensure_ascii=False)
-
-
-class _FakeAgent:
-    payload: dict = {}
-
-    def __init__(self, *args, **kwargs) -> None:
-        pass
-
-    async def run(self, request: str) -> _FakeResponse:
-        return _FakeResponse(self.payload)
 
 
 class DeepSeekStewardTests(unittest.TestCase):
@@ -36,7 +21,7 @@ class DeepSeekStewardTests(unittest.TestCase):
                     _validate_repair_path(path)
 
     def test_assist_never_applies_repository_edits(self) -> None:
-        _FakeAgent.payload = {
+        payload = {
             "mode": "ASSIST",
             "status": "READY",
             "diagnosis": "Plan structure is valid.",
@@ -52,20 +37,21 @@ class DeepSeekStewardTests(unittest.TestCase):
             "missing_information": [],
             "message_to_web_gpt": "READY",
         }
+        fake_generate = AsyncMock(return_value=("deepseek-v4-pro", json.dumps(payload, ensure_ascii=False)))
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             marker = root / "marker.txt"
             marker.write_text("unchanged", encoding="utf-8")
-            with patch("expert_team.deepseek_steward.Agent", _FakeAgent), patch(
-                "expert_team.deepseek_steward.create_model_client", return_value=object()
-            ):
+            with patch("expert_team.deepseek_steward.generate_official_deepseek_json", fake_generate):
                 result = asyncio.run(run_deepseek_steward("ASSIST", "{}", root=root))
             self.assertEqual(result["status"], "READY")
+            self.assertEqual(result["steward_model"], "deepseek-v4-pro")
+            self.assertEqual(result["steward_provider"], "DeepSeek official API")
             self.assertEqual(result["repair_application"]["applied_files"], [])
             self.assertEqual(marker.read_text(encoding="utf-8"), "unchanged")
 
     def test_repair_applies_bounded_full_file_edit(self) -> None:
-        _FakeAgent.payload = {
+        payload = {
             "mode": "REPAIR",
             "decision": "EDIT",
             "diagnosis": "A source configuration is stale.",
@@ -76,16 +62,16 @@ class DeepSeekStewardTests(unittest.TestCase):
             "resume": "STOP",
             "message_to_web_gpt": "Wait for verification.",
         }
+        fake_generate = AsyncMock(return_value=("deepseek-v4-pro", json.dumps(payload, ensure_ascii=False)))
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            with patch("expert_team.deepseek_steward.Agent", _FakeAgent), patch(
-                "expert_team.deepseek_steward.create_model_client", return_value=object()
-            ):
+            with patch("expert_team.deepseek_steward.generate_official_deepseek_json", fake_generate):
                 result = asyncio.run(run_deepseek_steward("REPAIR", "{}", root=root))
             target = root / "config/example.json"
             self.assertTrue(target.exists())
             self.assertEqual(target.read_text(encoding="utf-8"), "{\"fixed\": true}\n")
             self.assertEqual(result["repair_application"]["applied_files"], ["config/example.json"])
+            self.assertEqual(result["resume"], "STOP")
 
 
 if __name__ == "__main__":
