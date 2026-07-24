@@ -1,24 +1,50 @@
 openapi: 3.1.0
 
 info:
-  title: test2 Dynamic Expert Team and Automatic DeepSeek Steward Action
-  version: 1.5.0
+  title: test2 Dynamic Expert Team and DeepSeek Top Supervisor Action
+  version: 1.6.0
   description: >-
-    Web GPT commands user tasks. GitHub runs model intelligence, expert teams, and
-    DeepSeek Steward. Normal control flow uses one permanent current-status file.
-    Run, Job, Step, Artifact, and per-operation records are audit-only.
+    Web GPT owns user intent. DeepSeek is the highest technical layer. Every production task
+    gets a durable receipt before dispatch. Technical anomalies route to an independent
+    DeepSeek supervisor. Run, Job, Step, Artifact, and per-operation records are audit-only.
 
 servers:
   - url: https://api.github.com
 
 paths:
+  /repos/a15280020511/test2/issues/15/comments:
+    post:
+      operationId: createOperationReceipt
+      summary: Create durable receipt before production dispatch
+      description: >-
+        First step for every production task. Post a compact JSON receipt containing operation_id,
+        operation, and a short task label. Keep the returned comment id as receipt_comment_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  description: Compact JSON receipt. Never include secrets.
+      responses:
+        "201":
+          description: Durable receipt comment created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationReceiptComment"
+
   /repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json:
     get:
       operationId: getOpenRouterModels
       summary: Read latest GPT-sized OpenRouter model intelligence
       description: >-
-        Call with ref=runtime-results. On first 404 dispatch model_intelligence, then poll
-        getCurrentOperationStatus until that operation succeeds and result_ready=true.
+        Call with ref=runtime-results. On first 404 create a receipt and dispatch model_intelligence.
+        Track through getCurrentOperationStatus. Startup timeout routes to DeepSeek supervisor.
       parameters:
         - name: ref
           in: query
@@ -40,15 +66,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: Snapshot absent; dispatch model_intelligence and use the permanent status endpoint.
+          description: Snapshot absent; create receipt, dispatch refresh, then use permanent status.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
       summary: Read authoritative Execution Plan JSON Schema
       description: >-
-        Call with ref=main. A true technical read failure triggers DeepSeek REPAIR.
-        This endpoint is not used to track queued or running operations.
+        Call with ref=main. Any true technical read or parse failure routes to DeepSeek supervisor.
+        This endpoint is not used to infer queued or running task state.
       parameters:
         - name: ref
           in: query
@@ -73,8 +99,8 @@ paths:
   /repos/a15280020511/test2/contents/DEEPSEEK_STEWARD.md:
     get:
       operationId: getDeepSeekStewardPolicy
-      summary: Read DeepSeek Steward operating policy
-      description: Read mandatory DeepSeek Steward role, repair, provider, and STOP rules.
+      summary: Read highest-level DeepSeek Steward policy
+      description: Read mandatory top-supervisor, repair, provider, durable-receipt, and STOP rules.
       parameters:
         - name: ref
           in: query
@@ -99,8 +125,8 @@ paths:
   /repos/a15280020511/test2/contents/ACTION_RECOVERY.md:
     get:
       operationId: getActionRecoveryPolicy
-      summary: Read mandatory automatic repair and status policy
-      description: Read permanent-control-plane, automatic repair, retry, and STOP rules.
+      summary: Read durable-receipt and automatic recovery policy
+      description: Read mandatory receipt, startup-timeout, top-supervisor, retry, and STOP rules.
       parameters:
         - name: ref
           in: query
@@ -125,10 +151,10 @@ paths:
   /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
     post:
       operationId: dispatchExpertTeamOperation
-      summary: Run model intelligence, expert team, or DeepSeek Steward
+      summary: Dispatch production model intelligence or expert team
       description: >-
-        Dispatch with a unique operation_id. After HTTP 204, poll getCurrentOperationStatus.
-        Never use run lists or missing result files to infer task state.
+        Requires a durable receipt_comment_id created first. After HTTP 204 poll current status.
+        Two consecutive mismatched or idle reads trigger DeepSeek supervisor, not user-task failure.
       requestBody:
         required: true
         content:
@@ -142,7 +168,7 @@ paths:
                   enum: [main]
                 inputs:
                   type: object
-                  required: [operation_id, operation]
+                  required: [operation_id, operation, receipt_comment_id]
                   properties:
                     operation_id:
                       type: string
@@ -150,6 +176,9 @@ paths:
                     operation:
                       type: string
                       enum: [model_intelligence, execute_team, deepseek_steward]
+                    receipt_comment_id:
+                      type: string
+                      description: Comment id returned by createOperationReceipt.
                     plan_json:
                       type: string
                       default: "{}"
@@ -164,18 +193,68 @@ paths:
                     support_packet_json:
                       type: string
                       default: "{}"
-                      description: Stringified Support Packet with available failure evidence.
+                      description: Stringified Support Packet with available evidence.
       responses:
         "204":
-          description: Workflow dispatch accepted; poll getCurrentOperationStatus.
+          description: Production workflow dispatch accepted; start polling permanent current status.
+
+  /repos/a15280020511/test2/actions/workflows/deepseek-supervisor.yml/dispatches:
+    post:
+      operationId: dispatchDeepSeekSupervisor
+      summary: Dispatch highest-level independent DeepSeek technical supervisor
+      description: >-
+        Use for every technical anomaly, including startup timeout, Action-edge, workflow,
+        control-plane, publication, and integration failures. DeepSeek official API only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ref, inputs]
+              properties:
+                ref:
+                  type: string
+                  enum: [main]
+                inputs:
+                  type: object
+                  required: [operation_id, original_operation_id, failure_class, support_packet_json]
+                  properties:
+                    operation_id:
+                      type: string
+                      description: Unique supervisor operation ID.
+                    original_operation_id:
+                      type: string
+                      description: Original user-task operation ID being supervised.
+                    failed_run_id:
+                      type: string
+                      default: ""
+                      description: Known failed production Run ID when available.
+                    receipt_comment_id:
+                      type: string
+                      default: ""
+                      description: Durable receipt comment ID for the original operation.
+                    failure_class:
+                      type: string
+                      description: Technical failure class such as startup_timeout or workflow_failure.
+                    support_packet_json:
+                      type: string
+                      description: Stringified evidence-based DeepSeek REPAIR Support Packet.
+                    retry_dispatch_json:
+                      type: string
+                      default: "{}"
+                      description: Original production dispatch payload for one bounded safe resume.
+      responses:
+        "204":
+          description: Independent DeepSeek supervisor dispatch accepted.
 
   /repos/a15280020511/test2/contents/runtime_results/current_operation_status.json:
     get:
       operationId: getCurrentOperationStatus
       summary: Read permanent current operation control status
       description: >-
-        Primary control-plane read. HTTP 200 is expected. If operation_id differs from the
-        submitted ID, the new task has not started yet; keep polling instead of treating it as failure.
+        Primary control read. HTTP 200 is expected. After production dispatch, two consecutive
+        reads whose operation_id does not match the submitted ID must trigger DeepSeek supervisor.
       parameters:
         - name: ref
           in: query
@@ -197,13 +276,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/OperationStatus"
         "404":
-          description: Control-plane defect; dispatch DeepSeek REPAIR and retry until the permanent file is restored.
+          description: Control-plane defect; immediately route to DeepSeek supervisor.
 
   /repos/a15280020511/test2/actions/runs/{run_id}:
     get:
       operationId: getExpertTeamRun
       summary: Get one workflow run for audit
-      description: Audit-only. Obtain run_id from the matching current status; never use run lists for control.
+      description: Audit-only. Obtain run_id from matching current status; never use run lists for control.
       parameters:
         - name: run_id
           in: path
@@ -222,7 +301,7 @@ paths:
     get:
       operationId: getExpertTeamRunJobs
       summary: Get jobs and steps for audit
-      description: Audit-only. Read jobs and step statuses for one known production run.
+      description: Audit-only. Read jobs and step statuses for one known production or supervisor run.
       parameters:
         - name: run_id
           in: path
@@ -241,7 +320,7 @@ paths:
     get:
       operationId: listExpertTeamRunArtifacts
       summary: List audit artifacts for one known run
-      description: Audit-only. Use run_id from the matching current operation status.
+      description: Audit-only. Use run_id from matching current status or known audit evidence.
       parameters:
         - name: run_id
           in: path
@@ -262,7 +341,7 @@ paths:
       summary: Read final expert-team JSON result
       description: >-
         Read only when current status matches operation_id, status=success, and result_ready=true.
-        Always pass ref=runtime-results.
+        Any contradiction or missing expected result routes to DeepSeek supervisor.
       parameters:
         - name: operation_id
           in: path
@@ -289,15 +368,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExpertTeamResult"
         "404":
-          description: Result is not ready or operation_id is incorrect.
+          description: Result is not ready, operation_id is wrong, or publication needs supervision.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json:
     get:
       operationId: getDeepSeekStewardResult
-      summary: Read DeepSeek Steward ASSIST or REPAIR result
+      summary: Read DeepSeek Steward ASSIST or top-supervisor REPAIR result
       description: >-
-        Read after the matching current operation reaches a terminal state. If official DeepSeek
-        failed, STOP and never use OpenRouter as Steward fallback.
+        Read after matching Steward or supervisor operation reaches a terminal state. Resume only
+        when result says READY. Official DeepSeek failure is STOP; never use OpenRouter fallback.
       parameters:
         - name: operation_id
           in: path
@@ -330,7 +409,7 @@ paths:
     get:
       operationId: getAutoRepairResult
       summary: Read automatic DeepSeek repair evidence
-      description: Read repair evidence after a terminal matching status when auto-repair occurred.
+      description: Read repair evidence after a terminal matching operation when auto-repair occurred.
       parameters:
         - name: operation_id
           in: path
@@ -363,7 +442,7 @@ paths:
     get:
       operationId: getExpertTeamOperationMetadata
       summary: Read published operation metadata
-      description: Optional audit detail read after the matching current operation reaches a terminal state.
+      description: Optional audit detail read after the matching operation reaches a terminal state.
       parameters:
         - name: operation_id
           in: path
@@ -416,6 +495,19 @@ paths:
 
 components:
   schemas:
+    OperationReceiptComment:
+      type: object
+      properties:
+        id:
+          type: integer
+        body:
+          type: string
+        html_url:
+          type: string
+        created_at:
+          type: string
+      additionalProperties: true
+
     ModelIntelligenceSnapshot:
       type: object
       properties:
@@ -473,6 +565,10 @@ components:
           type: string
           enum: [idle, running, repairing, retrying, success, STOP, failure]
         run_id:
+          type: [string, "null"]
+        receipt_comment_id:
+          type: [string, "null"]
+        supervisor_for_operation_id:
           type: [string, "null"]
         result_ready:
           type: boolean
@@ -621,6 +717,10 @@ components:
           properties: {}
           additionalProperties: true
         repair_delivery:
+          type: object
+          properties: {}
+          additionalProperties: true
+        supervisor_resume:
           type: object
           properties: {}
           additionalProperties: true
