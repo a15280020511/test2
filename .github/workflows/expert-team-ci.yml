@@ -56,7 +56,9 @@ jobs:
           grep -F 'scripts.repair_delivery' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'scripts.publish_runtime_result' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'one repair attempt and one retry' ACTION_RECOVERY.md >/dev/null
-          grep -F 'automatically dispatch deepseek_steward' gpt_action_openapi.yaml >/dev/null
+          grep -F 'operationId: dispatchExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
+          grep -F 'enum: [ASSIST, REPAIR]' gpt_action_openapi.yaml >/dev/null
+          grep -F 'DeepSeek REPAIR' gpt_action_openapi.yaml >/dev/null
           grep -F 'operationId: getAutoRepairResult' gpt_action_openapi.yaml >/dev/null
           echo "Automatic DeepSeek repair loop contract OK"
 

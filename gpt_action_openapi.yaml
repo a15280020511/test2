@@ -2,18 +2,11 @@ openapi: 3.1.0
 
 info:
   title: test2 Dynamic Expert Team and Automatic DeepSeek Steward Action
-  version: 1.3.0
+  version: 1.3.1
   description: >-
-    Web GPT is the user-facing task commander. GitHub executes model intelligence,
-    dynamic expert teams, and DeepSeek Steward. DeepSeek Steward is the mandatory
-    repository repair manager and uses only the official DeepSeek API. GitHub-internal
-    model_intelligence and execute_team failures automatically trigger one DeepSeek
-    REPAIR cycle, mandatory verification, one retry of the original operation, and
-    verified repair delivery. For Action-edge failures that occur before a workflow can
-    observe them (4xx/5xx, empty or unparseable responses, missing runtime results),
-    Web GPT MUST automatically dispatch deepseek_steward with steward_mode=REPAIR,
-    wait for READY, then retry the failed Action step once. If the official DeepSeek API
-    is unavailable, STOP the current task. Never use OpenRouter as a Steward fallback.
+    Web GPT commands user tasks. GitHub runs model intelligence, expert teams, and
+    DeepSeek Steward. Internal failures get one DeepSeek repair cycle and one retry.
+    Action-edge failures must be handed to DeepSeek REPAIR. DeepSeek failure is STOP.
 
 servers:
   - url: https://api.github.com
@@ -24,11 +17,9 @@ paths:
       operationId: getOpenRouterModels
       summary: Read latest OpenRouter model intelligence snapshot
       description: >-
-        Always call with ref=runtime-results. On the first 404, dispatch
-        operation=model_intelligence and wait for its Run to succeed, then retry this read
-        once with ref=runtime-results. If the second read fails, automatically dispatch
-        DeepSeek Steward REPAIR with the failed-call evidence. Do not stop before the
-        automatic repair handoff unless DeepSeek itself is unavailable.
+        Call with ref=runtime-results. On first 404 run model_intelligence and retry once.
+        If it still fails, dispatch DeepSeek Steward REPAIR with evidence. After READY,
+        retry once. If DeepSeek is unavailable, STOP.
       parameters:
         - name: ref
           in: query
@@ -50,17 +41,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: >-
-            Snapshot missing. Refresh once with model_intelligence. If the refreshed read
-            still returns 404, trigger DeepSeek Steward REPAIR automatically.
+          description: Snapshot missing; refresh once, then use DeepSeek REPAIR if still missing.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
       summary: Read authoritative Execution Plan JSON Schema
       description: >-
-        Always call with ref=main. Any 4xx/5xx, empty response, or unparseable schema is an
-        automatic DeepSeek Steward REPAIR trigger. After READY, retry this read once.
+        Call with ref=main. Any 4xx/5xx, empty response, or unparseable schema triggers
+        DeepSeek Steward REPAIR. After READY, retry this read once.
       parameters:
         - name: ref
           in: query
@@ -86,6 +75,7 @@ paths:
     get:
       operationId: getDeepSeekStewardPolicy
       summary: Read DeepSeek Steward operating policy
+      description: Read the mandatory DeepSeek Steward role, repair, provider, and STOP rules.
       parameters:
         - name: ref
           in: query
@@ -111,9 +101,7 @@ paths:
     get:
       operationId: getActionRecoveryPolicy
       summary: Read mandatory automatic repair and retry policy
-      description: >-
-        Read this policy when operating test2. Web GPT must automatically hand Action-edge
-        technical failures to DeepSeek Steward REPAIR rather than ending the task immediately.
+      description: Read the mandatory recovery policy for Action-edge failures and retry limits.
       parameters:
         - name: ref
           in: query
@@ -140,14 +128,9 @@ paths:
       operationId: dispatchExpertTeamOperation
       summary: Run model intelligence, expert team, or DeepSeek Steward
       description: >-
-        GitHub internally auto-recovers model_intelligence and execute_team failures: one
-        automatic DeepSeek REPAIR cycle, verification, one retry, then verified delivery.
-        Use deepseek_steward ASSIST for repository/form guidance. For any Action-edge
-        technical failure (4xx/5xx, empty/unparseable required response, unexpectedly missing
-        result after a successful Run), Web GPT MUST automatically dispatch deepseek_steward
-        REPAIR with a Support Packet, wait for completion, read the Steward result, and retry
-        the originally failed Action step once only when resume/status is READY. If the
-        DeepSeek official API is unavailable, STOP. Never substitute an OpenRouter model.
+        Run model_intelligence, execute_team, or deepseek_steward. For Action-edge technical
+        failure, dispatch DeepSeek REPAIR, wait for READY, then retry the failed Action once.
+        If DeepSeek is unavailable, STOP. Never use OpenRouter as Steward fallback.
       requestBody:
         required: true
         content:
@@ -184,10 +167,9 @@ paths:
                       type: string
                       default: "{}"
                       description: >-
-                        Stringified JSON Support Packet. For Action-edge automatic REPAIR,
-                        include the failed operation, HTTP/error response, Run/Job/Step/log
-                        evidence when available, attempts already made, constraints, and the
-                        requested outcome. Never fabricate missing evidence.
+                        Stringified Support Packet with failure evidence, Run/Job/Step/log data
+                        when available, attempts already made, constraints, and requested outcome.
+                        Never fabricate missing evidence.
       responses:
         "204":
           description: Workflow dispatch accepted.
@@ -196,6 +178,7 @@ paths:
     get:
       operationId: listExpertTeamRuns
       summary: List recent production workflow runs
+      description: List recent Expert Team Production workflow_dispatch runs.
       parameters:
         - name: event
           in: query
@@ -229,6 +212,7 @@ paths:
     get:
       operationId: getExpertTeamRun
       summary: Get one workflow run status and conclusion
+      description: Read the status and conclusion of one production workflow run.
       parameters:
         - name: run_id
           in: path
@@ -247,6 +231,7 @@ paths:
     get:
       operationId: getExpertTeamRunJobs
       summary: Get jobs and steps for a workflow run
+      description: Read jobs and step statuses for one production workflow run.
       parameters:
         - name: run_id
           in: path
@@ -265,6 +250,7 @@ paths:
     get:
       operationId: listExpertTeamRunArtifacts
       summary: List audit artifacts produced by a workflow run
+      description: List audit artifacts for one production workflow run.
       parameters:
         - name: run_id
           in: path
@@ -284,9 +270,8 @@ paths:
       operationId: getExpertTeamResult
       summary: Read final expert-team JSON result
       description: >-
-        Always pass ref=runtime-results. If the corresponding Run completed successfully but
-        this result is unexpectedly missing or unparseable, automatically trigger DeepSeek
-        Steward REPAIR, wait for READY, then retry this read once.
+        Call with ref=runtime-results. If a successful Run has no readable result, trigger
+        DeepSeek REPAIR, wait for READY, then retry this read once.
       parameters:
         - name: operation_id
           in: path
@@ -320,9 +305,8 @@ paths:
       operationId: getDeepSeekStewardResult
       summary: Read DeepSeek Steward ASSIST or REPAIR result
       description: >-
-        Always pass ref=runtime-results. Resume the original task only when status/resume is
-        READY. If the Steward operation itself failed because the official DeepSeek API was
-        unavailable, STOP the current task and do not use OpenRouter as a fallback.
+        Call with ref=runtime-results. Resume only when status or resume is READY.
+        If the official DeepSeek API failed, STOP and do not use OpenRouter fallback.
       parameters:
         - name: operation_id
           in: path
@@ -354,7 +338,8 @@ paths:
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json:
     get:
       operationId: getAutoRepairResult
-      summary: Read automatic DeepSeek repair evidence for a recovered production operation
+      summary: Read automatic DeepSeek repair evidence
+      description: Read automatic repair evidence for an operation that required internal recovery.
       parameters:
         - name: operation_id
           in: path
@@ -381,12 +366,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/AutoRepairResult"
         "404":
-          description: This operation did not require automatic repair, or evidence is not published yet.
+          description: No automatic repair evidence exists yet for this operation.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/metadata.json:
     get:
       operationId: getExpertTeamOperationMetadata
       summary: Read published operation metadata
+      description: Read published metadata for a model intelligence, expert team, or Steward operation.
       parameters:
         - name: operation_id
           in: path
@@ -420,8 +406,8 @@ paths:
       operationId: downloadExpertTeamArtifact
       summary: Download optional audit artifact ZIP
       description: >-
-        Artifact download is optional audit evidence. Prefer runtime_results JSON for actual
-        result reading because artifact downloads may redirect to temporary URLs.
+        Download optional audit evidence. Prefer runtime_results JSON for normal result reading
+        because artifact downloads may redirect to temporary URLs.
       parameters:
         - name: artifact_id
           in: path
