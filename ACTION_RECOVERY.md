@@ -7,6 +7,31 @@
 - DeepSeek Steward is the highest technical diagnosis and recovery authority.
 - DeepSeek uses the official DeepSeek API only. Its unavailability is a hard stop.
 
+## Primary one-step submission
+
+Normal Web GPT submission is one structured comment to control Issue `#15` through `submitExpertTeamOperation`.
+
+The comment body is compact JSON containing at least:
+
+- `command: submit_operation`;
+- one unique `operation_id`;
+- `operation`;
+- a short `task_label`;
+- `plan_json` for `execute_team`.
+
+That single synchronous comment is both the durable receipt and the controller trigger. Web GPT must not call the direct production dispatch after posting the same operation comment.
+
+The independent `operation-controller.yml` then:
+
+1. validates and normalizes the comment;
+2. checks the existing per-operation ledger for idempotency;
+3. writes `accepted`;
+4. dispatches the production Worker once;
+5. watches the Worker handoff for approximately 105 seconds;
+6. automatically dispatches DeepSeek Top Supervisor with `startup_timeout` evidence when no Worker-owned state appears.
+
+This startup recovery does not depend on Web GPT noticing stale status or remembering another repair call. Direct `dispatchExpertTeamOperation` remains only an advanced recovery/fallback interface.
+
 ## One paid task at a time
 
 `test2` permits exactly one operation to pass the paid-execution gate at a time.
@@ -20,6 +45,7 @@ Every production Run performs an atomic lock acquisition before dependency insta
 - If the lock is idle or stale, the operation acquires it and may continue.
 - If another operation owns it, the new operation becomes `BUSY`.
 - A `BUSY` operation performs no paid model call, does not enter a hidden queue, does not replace a pending task, and does not cancel the active task.
+- A repeated dispatch with the same active `operation_id` is idempotent and performs no second paid execution.
 - The active operation refreshes lock and status heartbeats during long execution.
 - The lock is released in the final workflow boundary and by the cancellation workflow.
 - A stale lock may be replaced only after its expiry threshold.
@@ -56,11 +82,11 @@ Every state includes the operation ID, Run ID when available, attempt number, ac
 
 ## Durable receipt
 
-Web GPT may create a receipt in Issue #15 before dispatch. The receipt ID is optional at the Action boundary because the production workflow must create it server-side when absent.
+The normal Issue comment returned by `submitExpertTeamOperation` is the durable receipt. Advanced direct production dispatch may omit `receipt_comment_id`; the Worker then creates a server-side receipt.
 
 Missing `receipt_comment_id` must never terminate a user task with entry-point `422`.
 
-A receipt proves acceptance, but the operation ledger proves execution state.
+A receipt proves acceptance, while the operation ledger proves execution state.
 
 ## Budget policy
 
@@ -74,20 +100,23 @@ Default budget for one logical task:
 - default judge output ceiling: 3,200 tokens;
 - default model-call timeout: 240 seconds.
 
-The budget includes the original operation and at most one controlled technical recovery. Web GPT may set a lower or higher budget, but repository policy limits the operator maximum.
+The budget covers the original operation and at most one controlled technical recovery. Web GPT may set another budget, subject to the repository operator maximum.
 
 Before any paid expert call, deterministic code must:
 
 1. enforce the authoritative Execution Plan JSON Schema;
-2. read current bounded model pricing;
+2. read current model pricing, expanding from the compact snapshot to the official catalog when required;
 3. calculate conservative input and maximum output costs for every expert, red team, and judge;
-4. reserve the configured recovery percentage;
-5. stop before inference when worst-case normal cost exceeds the normal allowance;
-6. publish `cost_preflight.json`.
+4. include the primary model's transient retry and every declared fallback retry in the worst case;
+5. reserve the configured recovery percentage;
+6. stop before inference when the worst case exceeds the available phase budget;
+7. publish `cost_preflight.json`.
 
 Prompt requests such as “keep the answer short” are not budget controls. API-level `max_tokens` is mandatory for every model call.
 
 A 402, affordability error, or preflight budget failure must not be retried unchanged. It routes to the DeepSeek Top Supervisor for a lower-cost, lower-token, schema-valid plan that preserves user intent and never increases the user's budget.
+
+A Top-Supervisor execution plan must fit entirely inside the reserved recovery budget. After an internal whole-operation retry or a prior Top-Supervisor recovery Run, the recovery budget is consumed and a second recovery dispatch is prohibited.
 
 ## Model-call resilience
 
@@ -125,7 +154,7 @@ Inside one paid operation:
 1. the original operation runs once;
 2. failure publishes `repairing`;
 3. DeepSeek Steward diagnoses through the official API;
-4. `NO_EDIT + READY` permits one unchanged retry only for a clearly transient provider failure;
+4. `NO_EDIT + READY` permits one unchanged retry only for a clearly transient provider failure and only when a clean pass fits the recovery reserve;
 5. 402, budget, model-selection, or plan changes are escalated to the Top Supervisor rather than retried unchanged;
 6. `EDIT` requires bounded repository changes and verification;
 7. one retry is the maximum;
@@ -133,11 +162,11 @@ Inside one paid operation:
 
 ## Top Supervisor
 
-The independent `deepseek-supervisor.yml` workflow is outside the paid-task lock and uses a separate concurrency group.
+The independent `deepseek-supervisor.yml` workflow is outside the paid-task lock and uses a separate per-original-operation concurrency group.
 
 It may:
 
-- diagnose workflow, provider, integration, control-plane, budget, validation, or publication faults;
+- diagnose workflow, provider, integration, control-plane, budget, validation, publication, and startup faults;
 - authorize a verified repository repair through a pull request;
 - return `NO_EDIT + READY` with a replacement Execution Plan.
 
@@ -147,11 +176,14 @@ Any replacement plan must pass all of the following before redispatch:
 2. the replacement budget does not exceed the original budget;
 3. runtime JSON Schema validation;
 4. semantic plan validation;
-5. current model-price budget preflight;
+5. current model-price recovery-budget preflight;
 6. provenance injection identifying the Supervisor operation and original/effective plan hashes;
-7. duplicate Run checks.
+7. active and successful duplicate-Run checks;
+8. proof that the one recovery budget has not already been consumed.
 
-The Supervisor publishes its final result only after the bounded resume attempt has completed or been blocked.
+Raw matching Run count alone is not a recovery-budget ledger. The Supervisor uses published attempt and effective-plan evidence to determine whether recovery has already been used.
+
+The Supervisor publishes its final result only after the bounded resume attempt has completed, been blocked, or failed.
 
 ## Repair delivery safety
 
@@ -160,6 +192,7 @@ Autonomous repair may not force-push or directly push to `main`.
 - Verification must pass first.
 - A repair branch is created.
 - Delivery is through a pull request only.
+- Workflow, policy, budget, dependency, Action-schema, and repair-control changes require human review and cannot auto-merge.
 - If PR creation or merge is unavailable, the repair remains on the branch and the operation stops for review.
 
 Tests, generated artifacts, runtime results, secrets, and `.git` data are protected repair targets.
@@ -186,21 +219,23 @@ Every operation publishes, when available:
 ## Normal Web GPT flow
 
 1. Generate a unique `operation_id`.
-2. Optionally create the durable receipt.
-3. Dispatch production.
+2. Post one `submitExpertTeamOperation` comment containing the complete structured command.
+3. Do not call direct dispatch for the same operation.
 4. Poll `getOperationState(operation_id)`.
-5. On `BUSY`, report which operation owns the lock. Do not submit another duplicate.
+5. On `BUSY`, report which operation owns the lock. The task was not queued and made no paid call.
 6. On `running`, `repairing`, or `retrying`, continue tracking.
 7. On `success` with `result_ready=true`, read the result, cost preflight, and audit.
 8. On user request, call cancellation.
-9. On technical failure or contradiction, dispatch the DeepSeek Top Supervisor.
+9. Startup timeout and production failure normally escalate automatically. Use manual `dispatchDeepSeekSupervisor` only for an Action-edge contradiction not already supervised.
 
 ## Hard boundaries
 
 - One paid task at a time.
-- One internal diagnosis and one retry.
-- One Top-Supervisor recovery and one bounded redispatch.
+- Duplicate operation IDs are idempotent.
+- No hidden task queue or pending-task replacement.
+- One internal diagnosis and at most one recovery-budgeted retry.
+- One Top-Supervisor recovery and at most one recovery-budgeted redispatch.
 - No unchanged retry for 402 or budget failure.
 - No direct autonomous push to `main`.
 - No provider fallback for DeepSeek Steward.
-- A total GitHub platform outage that prevents both production and Supervisor workflows from starting cannot be repaired by repository code.
+- A total GitHub platform outage that prevents the Controller, production Worker, and Supervisor from starting cannot be repaired by repository code.
