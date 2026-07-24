@@ -1,0 +1,44 @@
+name: Operation Controller
+run-name: controller-${{ github.event.comment.id }}
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: write
+  issues: read
+
+jobs:
+  submit:
+    if: >-
+      github.event.issue.number == 15 &&
+      contains(github.event.comment.body, '"command":"submit_operation"')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Submit idempotent production operation and watch startup
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.operation_controller
+
+      - name: Upload controller evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: operation-controller-${{ github.event.comment.id }}
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
