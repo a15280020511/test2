@@ -159,6 +159,7 @@ def build_compact_model_intelligence_snapshot(
     large descriptions and raw benchmark feeds. Rankings contain model IDs and the
     ``models`` map contains the metadata needed for task-specific model selection.
     """
+    COMPACT_MAX_PER_RANKING = 10  # safeguard against response-too-large errors
     ranking_ids: dict[str, list[str]] = {}
     models: dict[str, dict[str, Any]] = {}
 
@@ -170,7 +171,7 @@ def build_compact_model_intelligence_snapshot(
         if not isinstance(items, list):
             continue
         ranking_ids[str(sort)] = []
-        for item in items:
+        for item in items[:COMPACT_MAX_PER_RANKING]:
             if not isinstance(item, dict):
                 continue
             model_id = str(item.get("id") or "").strip()
@@ -180,39 +181,20 @@ def build_compact_model_intelligence_snapshot(
             if model_id in models:
                 continue
 
-            architecture = item.get("architecture") if isinstance(item.get("architecture"), dict) else {}
+            # Keep only essential fields to avoid GPT Action response size limits
             benchmarks = item.get("benchmarks") if isinstance(item.get("benchmarks"), dict) else {}
             artificial_analysis = (
                 benchmarks.get("artificial_analysis")
                 if isinstance(benchmarks.get("artificial_analysis"), dict)
                 else {}
             )
-            design_arena = benchmarks.get("design_arena") if isinstance(benchmarks.get("design_arena"), list) else []
-            design_rows = [row for row in design_arena if isinstance(row, dict)]
-            best_design = None
-            if design_rows:
-                best = max(
-                    design_rows,
-                    key=lambda row: row.get("elo") if isinstance(row.get("elo"), (int, float)) else -1,
-                )
-                best_design = {
-                    key: best.get(key)
-                    for key in ("arena", "category", "elo", "rank", "win_rate")
-                }
 
             models[model_id] = {
                 "id": model_id,
                 "name": item.get("name"),
                 "context_length": item.get("context_length"),
                 "pricing": item.get("pricing"),
-                "supported_parameters": item.get("supported_parameters"),
-                "input_modalities": architecture.get("input_modalities"),
-                "output_modalities": architecture.get("output_modalities"),
-                "reasoning": item.get("reasoning"),
-                "expiration_date": item.get("expiration_date"),
-                "knowledge_cutoff": item.get("knowledge_cutoff"),
                 "artificial_analysis": artificial_analysis,
-                "best_design_arena": best_design,
             }
 
     return {
