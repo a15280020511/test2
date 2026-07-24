@@ -56,13 +56,30 @@ walk.call(schema, [])
 raise errors.join("\n") unless errors.empty?
 
 control = File.read(".github/workflows/deepseek-control.yml")
-raise "control workflow must use monitored controller" unless control.include?("scripts.cross_repo_control")
+raise "control workflow must use the mandatory priority controller" unless control.include?("scripts.deepseek_priority_control")
+raise "control workflow must not bypass the priority controller" if control.include?("python -m scripts.cross_repo_control")
 raise "control workflow must expose REPAIR" unless control.include?("- REPAIR")
 raise "control workflow must use task-scoped concurrency" unless control.include?("deepseek-control-${{ inputs.task_id }}-${{ inputs.revision }}")
 raise "control workflow monitor timeout is missing" unless control.include?("timeout-minutes: 210")
+raise "control workflow must preserve a diagnostic log" unless control.include?("control.log")
 raise "control workflow must redact bearer authorization tickets" unless control.include?("Redact bearer authorization ticket")
 raise "control workflow must remove the raw ticket before publishing" unless control.include?("payload.pop('control_ticket', None)")
 raise "control workflow must retain only a ticket hash receipt" unless control.include?("control_ticket_receipt")
+
+priority = File.read("scripts/deepseek_priority_control.py")
+required_priority_tokens = [
+  "mandatory_entry_gate",
+  "ENTRY_BLOCKED",
+  "READY requires an effective plan",
+  "automatic_repair",
+  "REPAIR_PR_CREATED",
+  "redact_ticket",
+  "control_ticket_receipt",
+  "redirect_stdout",
+]
+required_priority_tokens.each do |token|
+  raise "priority controller contract missing #{token}" unless priority.include?(token)
+end
 
 rescue_workflow = File.read(".github/workflows/deepseek-rescue.yml")
 raise "rescue workflow must expose force cancellation" unless rescue_workflow.include?("FORCE_CANCEL")
@@ -83,4 +100,4 @@ required_controller_tokens.each do |token|
   raise "controller contract missing #{token}" unless controller.include?(token)
 end
 
-puts "Independent DeepSeek control-plane contract OK"
+puts "Independent DeepSeek-first control-plane contract OK"
