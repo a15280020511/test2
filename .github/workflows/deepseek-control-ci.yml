@@ -1,0 +1,53 @@
+name: DeepSeek Control Plane CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/deepseek-control.yml"
+      - ".github/workflows/deepseek-rescue.yml"
+      - ".github/workflows/deepseek-control-ci.yml"
+      - "scripts/cross_repo_control.py"
+      - "scripts/validate_control_schema.rb"
+      - "deepseek_control_openapi.yaml"
+      - "DEEPSEEK_CONTROL_PLANE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "deepseek-control-ci-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  validate-control-plane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate control contract
+        run: ruby scripts/validate_control_schema.rb
+
+      - name: Compile control script
+        run: python -m py_compile scripts/cross_repo_control.py
+
+      - name: Verify rescue independence
+        run: |
+          if grep -F 'actions/checkout' .github/workflows/deepseek-rescue.yml; then
+            echo 'Emergency rescue must not depend on checkout.'
+            exit 1
+          fi
+          grep -F "python - <<'PY'" .github/workflows/deepseek-rescue.yml >/dev/null
+
+      - name: Verify work repository is the only target
+        run: |
+          grep -F 'TARGET_REPOSITORY = "a15280020511/test"' scripts/cross_repo_control.py >/dev/null
+          if grep -F 'a15280020511/test2/actions/workflows/think-tank.yml' deepseek_control_openapi.yaml; then
+            echo 'Control schema contains an invalid work-repository target.'
+            exit 1
+          fi
