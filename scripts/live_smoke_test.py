@@ -10,6 +10,7 @@ from expert_team.dynamic_team import run_dynamic_team
 from expert_team.model_intelligence import fetch_benchmarks, fetch_catalog_via_sdk, fetch_ranked_models
 
 ARTIFACT = Path("artifacts/live_smoke_result.json")
+MAX_INFERENCE_ATTEMPTS = 2
 
 
 def _write(payload: dict) -> None:
@@ -39,7 +40,7 @@ async def _run() -> None:
         "version": "2",
         "selection_policy": "CI-only smoke fixture; production uses the authoritative schema policy.",
         "task": "Return exactly the text SMOKE_OK and nothing else.",
-        "rationale": "Single-agent connectivity smoke test with a tiny explicit CI budget.",
+        "rationale": "Single-agent connectivity smoke test with one bounded retry for an empty free-route response.",
         "deepseek_entry": {
             "status": "READY",
             "operation_id": "ci-smoke-fixture",
@@ -49,9 +50,9 @@ async def _run() -> None:
             "approval_status": "approved_by_user",
             "tier": "economy",
             "currency": "USD",
-            "max_cost_usd": 0.01,
-            "estimated_cost_usd": {"low": 0.0, "high": 0.01},
-            "max_model_calls": 1,
+            "max_cost_usd": 0.02,
+            "estimated_cost_usd": {"low": 0.0, "high": 0.02},
+            "max_model_calls": 2,
             "max_output_tokens_per_call": 128,
             "approval_reference": "Repository CI smoke fixture; not a production user task.",
         },
@@ -75,11 +76,21 @@ async def _run() -> None:
         "judge": {"enabled": False, "name": "final_judge", "model": "", "instructions": ""},
     }
 
-    result = await run_dynamic_team(plan)
-    output = result["stage_outputs"]["smoke"][0]["output"].strip()
-    if "SMOKE_OK" not in output:
-        raise RuntimeError(f"Unexpected live inference output: {output[:200]}")
+    result = None
+    output = ""
+    attempts: list[dict[str, object]] = []
+    for attempt in range(1, MAX_INFERENCE_ATTEMPTS + 1):
+        result = await run_dynamic_team(plan)
+        output = result["stage_outputs"]["smoke"][0]["output"].strip()
+        attempts.append({"attempt": attempt, "nonempty": bool(output), "matched": "SMOKE_OK" in output})
+        if "SMOKE_OK" in output:
+            break
+        if attempt < MAX_INFERENCE_ATTEMPTS:
+            await asyncio.sleep(2)
+    else:
+        raise RuntimeError(f"Unexpected live inference output after {MAX_INFERENCE_ATTEMPTS} attempts: {output[:200]}")
 
+    assert result is not None
     payload = {
         "status": "passed",
         "catalog_model_count": len(catalog_data),
@@ -87,6 +98,7 @@ async def _run() -> None:
         "benchmark_count": len(benchmarks.get("data", [])),
         "smoke_model": smoke_model,
         "agent_framework_output": output,
+        "inference_attempts": attempts,
         "budget_enforcement": result.get("budget_enforcement"),
     }
     _write(payload)

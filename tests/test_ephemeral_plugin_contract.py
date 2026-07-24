@@ -24,14 +24,26 @@ class EphemeralPluginContractTests(unittest.TestCase):
         manifest = json.loads(Path("plugins/expert-team/plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], "expert-team")
         self.assertEqual(manifest["cleanup"], "always")
-        self.assertEqual(set(manifest["allowed_operations"]), {"model_intelligence", "execute_team"})
-        self.assertEqual(manifest["allowed_modules"], ["scripts.action_entrypoint"])
+        self.assertEqual(
+            set(manifest["allowed_operations"]),
+            {"model_intelligence", "execute_team", "contract_smoke"},
+        )
+        self.assertEqual(
+            manifest["allowed_modules"],
+            ["scripts.action_entrypoint", "scripts.plugin_smoke_entrypoint"],
+        )
 
     def test_runner_has_unconditional_cleanup(self) -> None:
         source = Path("scripts/plugin_runner.py").read_text(encoding="utf-8")
         self.assertIn("finally:", source)
         self.assertIn("shutil.rmtree(temp_root, ignore_errors=True)", source)
         self.assertIn('"cleaned": not temp_root.exists()', source)
+
+    def test_real_smoke_entry_imports_actual_plugin_dependencies(self) -> None:
+        source = Path("scripts/plugin_smoke_entrypoint.py").read_text(encoding="utf-8")
+        self.assertIn("import agent_framework", source)
+        self.assertIn("import openrouter", source)
+        self.assertIn("PLUGIN_IMPORT_OK", source)
 
     def test_deepseek_core_uses_lazy_plugin_imports(self) -> None:
         package_source = Path("expert_team/__init__.py").read_text(encoding="utf-8")

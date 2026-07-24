@@ -4,11 +4,13 @@
   "description": "Temporary Microsoft Agent Framework and OpenRouter execution plug.",
   "requirements_file": "requirements.txt",
   "allowed_modules": [
-    "scripts.action_entrypoint"
+    "scripts.action_entrypoint",
+    "scripts.plugin_smoke_entrypoint"
   ],
   "allowed_operations": [
     "model_intelligence",
-    "execute_team"
+    "execute_team",
+    "contract_smoke"
   ],
   "install_timeout_seconds": 900,
   "run_timeout_seconds": 3600,
