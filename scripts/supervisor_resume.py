@@ -60,6 +60,36 @@ def _matching_runs(repository: str, token: str, original_operation_id: str) -> l
     return matched
 
 
+def _apply_retry_overrides(retry_payload: dict[str, Any], steward_result: dict[str, Any]) -> dict[str, Any]:
+    overrides = steward_result.get("retry_operation_overrides")
+    if not isinstance(overrides, dict) or not overrides:
+        return {}
+
+    inputs = retry_payload.get("inputs")
+    if not isinstance(inputs, dict):
+        raise RuntimeError("retry dispatch payload has no inputs object")
+
+    applied: dict[str, Any] = {}
+    if "plan_json" in overrides:
+        plan_value = overrides.get("plan_json")
+        if isinstance(plan_value, dict):
+            plan_value = json.dumps(plan_value, ensure_ascii=False)
+        if not isinstance(plan_value, str) or not plan_value.strip():
+            raise RuntimeError("DeepSeek retry_operation_overrides.plan_json must be JSON string or object")
+        json.loads(plan_value)
+        inputs["plan_json"] = plan_value
+        applied["plan_json"] = "replaced"
+
+    if "ranking_limit" in overrides:
+        ranking_value = str(overrides.get("ranking_limit") or "").strip()
+        if not ranking_value.isdigit() or int(ranking_value) < 1:
+            raise RuntimeError("DeepSeek retry_operation_overrides.ranking_limit must be a positive integer")
+        inputs["ranking_limit"] = ranking_value
+        applied["ranking_limit"] = ranking_value
+
+    return applied
+
+
 def _plan_resume(
     *,
     supervisor_operation_id: str,
@@ -83,6 +113,7 @@ def _plan_resume(
         "action": "none",
         "reason": "steward_not_ready",
         "matching_runs": [],
+        "applied_retry_overrides": {},
         "dispatch_status": "not_attempted",
     }
 
@@ -99,6 +130,8 @@ def _plan_resume(
         steward_result["supervisor_resume"] = plan
         write_json(result_path, steward_result)
         return plan
+
+    plan["applied_retry_overrides"] = _apply_retry_overrides(retry_payload, steward_result)
 
     runs = _matching_runs(repository, token, original_operation_id)
     plan["matching_runs"] = [
