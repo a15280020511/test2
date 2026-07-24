@@ -35,12 +35,19 @@ def _current_run_id() -> str | None:
     return value or None
 
 
+def _optional_text(explicit: str, env_name: str) -> str | None:
+    value = (explicit or os.getenv(env_name) or "").strip()
+    return value or None
+
+
 def _build_status(
     operation_id: str,
     operation: str,
     phase: str,
     job_status: str = "",
     result_published: str = "",
+    receipt_comment_id: str = "",
+    supervisor_for_operation_id: str = "",
 ) -> dict[str, Any]:
     output_dir = Path("artifacts") / operation_id
     metadata = _read_json(output_dir / "metadata.json")
@@ -87,11 +94,16 @@ def _build_status(
         raise ValueError(f"unsupported status phase: {phase}")
 
     return {
-        "schema_version": "2",
+        "schema_version": "3",
         "operation_id": operation_id,
         "operation": operation,
         "status": status,
         "run_id": _current_run_id(),
+        "receipt_comment_id": _optional_text(receipt_comment_id, "RECEIPT_COMMENT_ID"),
+        "supervisor_for_operation_id": _optional_text(
+            supervisor_for_operation_id,
+            "SUPERVISOR_FOR_OPERATION_ID",
+        ),
         "result_ready": result_ready,
         "result_published": published,
         "repair_status": repair_status,
@@ -146,9 +158,19 @@ def publish_status(
     *,
     job_status: str = "",
     result_published: str = "",
+    receipt_comment_id: str = "",
+    supervisor_for_operation_id: str = "",
 ) -> dict[str, Any]:
     safe_id = safe_operation_id(operation_id)
-    payload = _build_status(safe_id, operation, phase, job_status, result_published)
+    payload = _build_status(
+        safe_id,
+        operation,
+        phase,
+        job_status,
+        result_published,
+        receipt_comment_id,
+        supervisor_for_operation_id,
+    )
     last_error: Exception | None = None
     delays = (1, 2, 4, 8)
     for attempt in range(5):
@@ -171,6 +193,8 @@ def main() -> None:
     parser.add_argument("--phase", choices=("start", "repairing", "retrying", "final"), required=True)
     parser.add_argument("--job-status", default="")
     parser.add_argument("--result-published", default="")
+    parser.add_argument("--receipt-comment-id", default="")
+    parser.add_argument("--supervisor-for-operation-id", default="")
     args = parser.parse_args()
 
     payload = publish_status(
@@ -179,6 +203,8 @@ def main() -> None:
         args.phase,
         job_status=args.job_status,
         result_published=args.result_published,
+        receipt_comment_id=args.receipt_comment_id,
+        supervisor_for_operation_id=args.supervisor_for_operation_id,
     )
     print(json.dumps(payload, ensure_ascii=False))
 
