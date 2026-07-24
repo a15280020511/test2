@@ -2,6 +2,7 @@ require "yaml"
 
 schema = YAML.load_file("gpt_action_openapi.yaml")
 raise "missing openapi" unless schema["openapi"]
+raise "Action schema version must be 1.5.0" unless schema.dig("info", "version") == "1.5.0"
 
 schemas = schema.dig("components", "schemas")
 raise "components.schemas must be an object" unless schemas.is_a?(Hash)
@@ -35,7 +36,7 @@ required_operation_ids = %w[
   getDeepSeekStewardPolicy
   getActionRecoveryPolicy
   dispatchExpertTeamOperation
-  getOperationStatus
+  getCurrentOperationStatus
   getExpertTeamRun
   getExpertTeamRunJobs
   listExpertTeamRunArtifacts
@@ -48,6 +49,7 @@ required_operation_ids = %w[
 missing = required_operation_ids - operation_ids
 raise "missing operationIds: #{missing.join(',')}" unless missing.empty?
 raise "listExpertTeamRuns must not be exposed as a normal control-plane Action" if operation_ids.include?("listExpertTeamRuns")
+raise "getOperationStatus must not remain exposed; use permanent getCurrentOperationStatus" if operation_ids.include?("getOperationStatus")
 
 errors = []
 walk = lambda do |node, path|
@@ -68,7 +70,7 @@ raise errors.join("\n") unless errors.empty?
 
 runtime_paths = [
   "/repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json",
-  "/repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json",
+  "/repos/a15280020511/test2/contents/runtime_results/current_operation_status.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/expert_team_result.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json",
@@ -84,6 +86,14 @@ runtime_paths.each do |path|
   enum = ref.dig("schema", "enum")
   raise "ref must be pinned to runtime-results: #{path}" unless enum == ["runtime-results"]
 end
+
+current_path = "/repos/a15280020511/test2/contents/runtime_results/current_operation_status.json"
+current = schema.dig("paths", current_path, "get")
+raise "permanent current status endpoint missing" unless current
+raise "permanent current status must expose HTTP 200" unless current.dig("responses", "200")
+
+history_path = "/repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json"
+raise "per-operation history status must not be exposed as primary Action control plane" if schema.dig("paths", history_path)
 
 main_paths = [
   "/repos/a15280020511/test2/contents/execution_plan.schema.json",
@@ -101,4 +111,4 @@ main_paths.each do |path|
   raise "ref must be pinned to main: #{path}" unless enum == ["main"]
 end
 
-puts "GPT Action OpenAPI strict contract OK"
+puts "GPT Action OpenAPI strict permanent-control-plane contract OK"
