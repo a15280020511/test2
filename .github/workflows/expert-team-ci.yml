@@ -59,19 +59,41 @@ jobs:
           grep -F 'operationId: dispatchExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
           grep -F 'enum: [ASSIST, REPAIR]' gpt_action_openapi.yaml >/dev/null
           grep -F 'operationId: getAutoRepairResult' gpt_action_openapi.yaml >/dev/null
+          grep -F '"repairing"' scripts/managed_operation.py >/dev/null
+          grep -F '"retrying"' scripts/managed_operation.py >/dev/null
           echo "Automatic DeepSeek repair loop contract OK"
 
-      - name: Validate operation status control plane
+      - name: Validate permanent operation status control plane
         run: |
-          grep -F 'scripts.publish_operation_status' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'operationId: getOperationStatus' gpt_action_openapi.yaml >/dev/null
-          grep -F 'runtime_results/status/{operation_id}.json' gpt_action_openapi.yaml >/dev/null
-          grep -F 'runtime_results/status/<operation_id>.json' ACTION_RECOVERY.md >/dev/null
+          grep -F 'version: 1.5.0' gpt_action_openapi.yaml >/dev/null
+          grep -F 'operationId: getCurrentOperationStatus' gpt_action_openapi.yaml >/dev/null
+          grep -F 'runtime_results/current_operation_status.json' gpt_action_openapi.yaml >/dev/null
+          grep -F 'CURRENT_STATUS_PATH' scripts/publish_operation_status.py >/dev/null
+          grep -F 'result_published' scripts/publish_operation_status.py >/dev/null
+          grep -F -- '--result-published' .github/workflows/expert-team-production.yml >/dev/null
+          if grep -F 'operationId: getOperationStatus' gpt_action_openapi.yaml >/dev/null; then
+            echo "Per-operation status must not remain the primary Action control plane"
+            exit 1
+          fi
           if grep -F 'operationId: listExpertTeamRuns' gpt_action_openapi.yaml >/dev/null; then
             echo "listExpertTeamRuns must not be exposed as the normal control plane"
             exit 1
           fi
-          echo "Operation status control plane OK"
+          git fetch origin runtime-results
+          git show origin/runtime-results:runtime_results/current_operation_status.json > /tmp/current_operation_status.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('/tmp/current_operation_status.json').read_text())
+          required = {'schema_version','operation_id','operation','status','run_id','result_ready','result_published','repair_status','updated_at'}
+          missing = required - payload.keys()
+          if missing:
+              raise SystemExit(f'missing permanent status fields: {sorted(missing)}')
+          if payload['status'] not in {'idle','running','repairing','retrying','success','STOP','failure'}:
+              raise SystemExit(f"invalid permanent status: {payload['status']}")
+          print('Permanent current-operation status file exists and is valid')
+          PY
+          echo "Permanent operation status control plane OK"
 
       - name: Validate tool package guardrails
         run: |
