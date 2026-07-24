@@ -7,11 +7,7 @@ import traceback
 from pathlib import Path
 
 from expert_team.dynamic_team import run_dynamic_team
-from expert_team.model_intelligence import (
-    fetch_benchmarks,
-    fetch_catalog_via_sdk,
-    fetch_ranked_models,
-)
+from expert_team.model_intelligence import fetch_benchmarks, fetch_catalog_via_sdk, fetch_ranked_models
 
 ARTIFACT = Path("artifacts/live_smoke_result.json")
 
@@ -31,20 +27,34 @@ async def _run() -> None:
     catalog_data = catalog.get("data", []) if isinstance(catalog, dict) else []
     if not catalog_data:
         raise RuntimeError("OpenRouter SDK returned an empty model catalog")
-
     intelligence_ranking = fetch_ranked_models("intelligence-high-to-low", limit=3)
     if not intelligence_ranking:
         raise RuntimeError("OpenRouter intelligence ranking returned no models")
-
     benchmarks = fetch_benchmarks()
     if not isinstance(benchmarks.get("data", []), list):
         raise RuntimeError("OpenRouter benchmark response is malformed")
 
     smoke_model = os.getenv("OPENROUTER_SMOKE_MODEL", "openrouter/free")
     plan = {
-        "version": "1",
+        "version": "2",
+        "selection_policy": "CI-only smoke fixture; production uses the authoritative schema policy.",
         "task": "Return exactly the text SMOKE_OK and nothing else.",
-        "rationale": "Single-agent connectivity smoke test.",
+        "rationale": "Single-agent connectivity smoke test with a tiny explicit CI budget.",
+        "deepseek_entry": {
+            "status": "READY",
+            "operation_id": "ci-smoke-fixture",
+            "budget_options_presented": True,
+        },
+        "budget": {
+            "approval_status": "approved_by_user",
+            "tier": "economy",
+            "currency": "USD",
+            "max_cost_usd": 0.01,
+            "estimated_cost_usd": {"low": 0.0, "high": 0.01},
+            "max_model_calls": 1,
+            "max_output_tokens_per_call": 128,
+            "approval_reference": "Repository CI smoke fixture; not a production user task.",
+        },
         "experts": [
             {
                 "name": "smoke_expert",
@@ -61,18 +71,8 @@ async def _run() -> None:
                 "input_from": ["task"],
             }
         ],
-        "red_team": {
-            "enabled": False,
-            "name": "red_team",
-            "model": "",
-            "instructions": "",
-        },
-        "judge": {
-            "enabled": False,
-            "name": "final_judge",
-            "model": "",
-            "instructions": "",
-        },
+        "red_team": {"enabled": False, "name": "red_team", "model": "", "instructions": ""},
+        "judge": {"enabled": False, "name": "final_judge", "model": "", "instructions": ""},
     }
 
     result = await run_dynamic_team(plan)
@@ -87,6 +87,7 @@ async def _run() -> None:
         "benchmark_count": len(benchmarks.get("data", [])),
         "smoke_model": smoke_model,
         "agent_framework_output": output,
+        "budget_enforcement": result.get("budget_enforcement"),
     }
     _write(payload)
     print(json.dumps(payload, ensure_ascii=False))
