@@ -86,6 +86,15 @@ raise "rescue workflow must expose force cancellation" unless rescue_workflow.in
 raise "rescue workflow must remain checkout-independent" if rescue_workflow.include?("actions/checkout")
 raise "rescue workflow must use an independent inline implementation" unless rescue_workflow.include?("python - <<'PY'")
 
+sentinel = File.read(".github/workflows/deepseek-control-failure-sentinel.yml")
+raise "control sentinel must remain checkout-independent" if sentinel.include?("actions/checkout")
+raise "control sentinel requires Actions write for bounded routing" unless sentinel.include?("actions: write")
+raise "control sentinel must watch the production controller" unless sentinel.include?("- DeepSeek Control Plane")
+raise "control sentinel must dispatch the highest DeepSeek supervisor" unless sentinel.include?("deepseek-supervisor.yml/dispatches")
+raise "control sentinel must classify control-repository repair" unless sentinel.include?("CONTROL_REPOSITORY")
+raise "control sentinel retry must be bounded" unless sentinel.include?("run_attempt") && sentinel.include?("< 2")
+raise "control sentinel must not automatically resume paid work" unless sentinel.include?('"retry_dispatch_json": "{}"')
+
 controller = File.read("scripts/cross_repo_control.py")
 required_controller_tokens = [
   "CONTROL_TICKET_SECRET",
