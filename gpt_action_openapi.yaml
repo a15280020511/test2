@@ -1,0 +1,310 @@
+openapi: 3.1.0
+info:
+  title: test2 Dynamic Expert Team Action
+  version: 1.0.0
+  description: >-
+    Lets Web GPT inspect current OpenRouter model rankings, read the expert-team
+    execution-plan schema, dispatch the GitHub expert-team workflow, and inspect
+    workflow runs, jobs, and artifacts. Web GPT is the planner; GitHub executes.
+servers:
+  - url: https://api.github.com
+
+paths:
+  /models:
+    get:
+      operationId: getOpenRouterModels
+      summary: Get current OpenRouter models and rankings
+      description: >-
+        Read the live OpenRouter model catalog. Use sort and task-relevant filters
+        to choose models for experts, red team, and judge. Rankings are evidence,
+        not a universal winner list.
+      servers:
+        - url: https://openrouter.ai/api/v1
+      security: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - intelligence-high-to-low
+              - coding-high-to-low
+              - agentic-high-to-low
+              - design-arena-elo-high-to-low
+              - most-popular
+              - top-weekly
+              - throughput-high-to-low
+              - latency-low-to-high
+              - pricing-low-to-high
+              - pricing-high-to-low
+              - context-high-to-low
+              - newest
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - programming
+              - roleplay
+              - marketing
+              - marketing/seo
+              - technology
+              - science
+              - translation
+              - legal
+              - finance
+              - health
+              - trivia
+              - academia
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 20
+        - name: context
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Minimum context length in tokens.
+        - name: supported_parameters
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated required parameters such as tools or structured_outputs.
+        - name: input_modalities
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated modalities such as text,image,audio,file.
+        - name: output_modalities
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated modalities such as text,image,audio,embeddings.
+        - name: min_intelligence_index
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: min_coding_index
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: min_agentic_index
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: min_tool_success_rate
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+      responses:
+        "200":
+          description: Current OpenRouter model catalog ordered by the requested ranking.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/contents/execution_plan.schema.json:
+    get:
+      operationId: getExecutionPlanSchema
+      summary: Read the authoritative expert-team execution-plan JSON Schema
+      parameters:
+        - name: ref
+          in: query
+          required: false
+          schema:
+            type: string
+            default: main
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            default: application/vnd.github.raw+json
+      responses:
+        "200":
+          description: Raw JSON Schema defining the Web-GPT-authored execution plan.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
+    post:
+      operationId: dispatchExpertTeamOperation
+      summary: Dispatch model-intelligence generation or execute a dynamic expert team
+      description: >-
+        Before execute_team, Web GPT should inspect OpenRouter rankings, read the
+        execution-plan schema, and create a task-specific plan. Use a unique operation_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ref, inputs]
+              properties:
+                ref:
+                  type: string
+                  default: main
+                inputs:
+                  type: object
+                  required: [operation_id, operation]
+                  properties:
+                    operation_id:
+                      type: string
+                      description: Unique correlation ID generated by Web GPT.
+                    operation:
+                      type: string
+                      enum: [model_intelligence, execute_team]
+                    plan_json:
+                      type: string
+                      default: "{}"
+                      description: Stringified Execution Plan JSON. Required for execute_team.
+                    ranking_limit:
+                      type: string
+                      default: "20"
+      responses:
+        "204":
+          description: Workflow dispatch accepted.
+
+  /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/runs:
+    get:
+      operationId: listExpertTeamRuns
+      summary: List recent production expert-team workflow runs
+      parameters:
+        - name: event
+          in: query
+          required: false
+          schema:
+            type: string
+            default: workflow_dispatch
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending]
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Workflow runs.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/actions/runs/{run_id}:
+    get:
+      operationId: getExpertTeamRun
+      summary: Get one workflow run status and conclusion
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow run details.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/actions/runs/{run_id}/jobs:
+    get:
+      operationId: getExpertTeamRunJobs
+      summary: Get jobs and steps for a workflow run
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Jobs and step statuses.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/actions/runs/{run_id}/artifacts:
+    get:
+      operationId: listExpertTeamRunArtifacts
+      summary: List result artifacts produced by a workflow run
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artifacts for the run.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
+    get:
+      operationId: downloadExpertTeamArtifact
+      summary: Download a result artifact ZIP
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artifact ZIP archive.
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "302":
+          description: Redirect to temporary artifact download URL.
+
+components:
+  securitySchemes:
+    githubBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: GitHub fine-grained personal access token
+
+security:
+  - githubBearer: []

@@ -31,6 +31,10 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q expert_team scripts tests
 
+      - name: Validate GPT Action OpenAPI contract
+        run: |
+          ruby -e 'require "yaml"; d=YAML.load_file("gpt_action_openapi.yaml"); raise "missing openapi" unless d["openapi"]; ids=d.fetch("paths").values.flat_map{|p| p.values}.filter_map{|op| op.is_a?(Hash) ? op["operationId"] : nil}; required=%w[getOpenRouterModels getExecutionPlanSchema dispatchExpertTeamOperation listExpertTeamRuns getExpertTeamRun getExpertTeamRunJobs listExpertTeamRunArtifacts downloadExpertTeamArtifact]; missing=required-ids; raise "missing operationIds: #{missing.join(",")}" unless missing.empty?; puts "GPT Action OpenAPI contract OK"'
+
       - name: Run offline contract tests
         run: python -m unittest discover -s tests -v
 
