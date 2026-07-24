@@ -56,19 +56,29 @@ class BudgetControlTests(unittest.TestCase):
 
     def test_default_one_dollar_budget_reserves_thirty_percent(self) -> None:
         result = preflight_execution_plan(plan(), pricing_by_model=self.prices)
+        self.assertEqual(result["execution_phase"], "normal")
         self.assertEqual(result["max_total_usd"], 1.0)
         self.assertEqual(result["normal_execution_budget_usd"], 0.7)
-        self.assertEqual(result["reserved_usd"], 0.3)
+        self.assertEqual(result["reserved_recovery_budget_usd"], 0.3)
+        self.assertEqual(result["available_execution_budget_usd"], 0.7)
+        self.assertTrue(result["includes_primary_transient_retry"])
         self.assertTrue(result["within_budget"])
         self.assertEqual(len(result["items"]), 3)
 
+    def test_deepseek_plan_uses_only_recovery_reserve(self) -> None:
+        payload = plan()
+        payload["provenance"] = {"effective_plan_source": "deepseek_top_supervisor"}
+        result = preflight_execution_plan(payload, pricing_by_model=self.prices)
+        self.assertEqual(result["execution_phase"], "recovery")
+        self.assertEqual(result["available_execution_budget_usd"], 0.3)
+
     def test_over_budget_stops_before_paid_execution(self) -> None:
         expensive = {key: ModelPrice(0.001, 0.002) for key in self.prices}
-        with self.assertRaisesRegex(BudgetPreflightError, "exceeds normal execution budget"):
+        with self.assertRaisesRegex(BudgetPreflightError, "exceeds available budget"):
             preflight_execution_plan(plan(max_total=0.2), pricing_by_model=expensive)
 
     def test_missing_model_price_is_hard_stop(self) -> None:
-        with self.assertRaisesRegex(BudgetPreflightError, "No current bounded pricing metadata"):
+        with self.assertRaisesRegex(BudgetPreflightError, "No current pricing metadata"):
             preflight_execution_plan(plan(), pricing_by_model={})
 
     def test_invalid_operator_budget_is_rejected(self) -> None:
