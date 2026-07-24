@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -39,6 +39,19 @@ jobs:
 
       - name: Validate GPT Action OpenAPI contract
         run: ruby scripts/validate_action_schema.rb
+
+      - name: Validate one-step Controller and startup watchdog
+        run: |
+          grep -F 'operationId: submitExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
+          grep -F 'issue_comment:' .github/workflows/operation-controller.yml >/dev/null
+          grep -F "contains(github.event.comment.body, 'submit_operation')" .github/workflows/operation-controller.yml >/dev/null
+          grep -F 'scripts.operation_controller' .github/workflows/operation-controller.yml >/dev/null
+          grep -F 'startup_timeout' scripts/operation_controller.py >/dev/null
+          grep -F 'MAX_CONTROLLER_INPUT_CHARS = 45_000' scripts/operation_controller.py >/dev/null
+          if grep -F 'operationId: createOperationReceipt' gpt_action_openapi.yaml >/dev/null; then
+            echo "Two-step receipt must not remain the primary entry"
+            exit 1
+          fi
 
       - name: Validate DeepSeek provider separation and bounded output
         run: |
@@ -83,9 +96,10 @@ jobs:
           grep -F 'asyncio.wait_for' expert_team/dynamic_team.py >/dev/null
           grep -F 'reserved_recovery_budget_usd' expert_team/budget.py >/dev/null
           grep -F 'includes_all_declared_fallback_retries' expert_team/budget.py >/dev/null
-          grep -F 'recovery_reserve_allows_whole_retry' scripts/managed_operation.py >/dev/null
-          grep -F 'validate_execution_plan(replacement_plan)' scripts/supervisor_resume.py >/dev/null
-          grep -F 'preflight_execution_plan(replacement_plan)' scripts/supervisor_resume.py >/dev/null
+          grep -F '_recovery_reserve_allows_whole_retry' scripts/managed_operation.py >/dev/null
+          grep -F 'validate_execution_plan(effective_plan)' scripts/supervisor_resume.py >/dev/null
+          grep -F 'preflight_execution_plan(effective_plan, execution_phase="recovery")' scripts/supervisor_resume.py >/dev/null
+          grep -F 'logical_task_recovery_budget_already_consumed' scripts/supervisor_resume.py >/dev/null
 
       - name: Validate DeepSeek recovery and delivery truth
         run: |
@@ -117,8 +131,10 @@ jobs:
             exit 1
           fi
 
-      - name: Validate pinned first-party Actions
+      - name: Validate locked dependencies and pinned Actions
         run: |
+          grep -F -- '-r requirements.lock' requirements.txt >/dev/null
+          grep -F 'agent-framework-core==1.12.1' requirements.lock >/dev/null
           if grep -R -E 'uses: actions/(checkout|setup-python|upload-artifact)@v[0-9]+' .github/workflows; then
             echo "First-party Actions must be pinned to immutable commit SHAs"
             exit 1
