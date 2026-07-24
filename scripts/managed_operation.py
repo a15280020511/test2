@@ -110,7 +110,7 @@ def _publish_transition(operation_id: str, operation: str, phase: str, output_di
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Managed production operation with one automatic DeepSeek repair cycle")
+    parser = argparse.ArgumentParser(description="Managed production operation with bounded technical recovery")
     parser.add_argument("--operation", required=True, choices=("model_intelligence", "execute_team", "deepseek_steward"))
     parser.add_argument("--operation-id", required=True)
     parser.add_argument("--plan-json", default="{}")
@@ -159,15 +159,41 @@ def main() -> None:
         )
         return
 
-    # A GitHub-internal operation failure automatically becomes a DeepSeek REPAIR request.
-    # This remains deliberately limited to one repair cycle and one retry.
+    # A paid expert-team attempt may already have consumed part of the approved budget.
+    # The repository cannot prove otherwise, so it must never perform an automatic retry.
+    # The independent supervisor still receives the failed Run for diagnosis and repair, but
+    # Web GPT must present a new budget and create a new durable approval receipt before a new run.
+    if args.operation == "execute_team":
+        write_json(
+            output_dir / "managed_operation.json",
+            {
+                "status": "STOP",
+                "operation": args.operation,
+                "attempts": 1,
+                "auto_repair_triggered": False,
+                "budget_reapproval_required": True,
+                "new_operation_id_required": True,
+                "new_budget_receipt_required": True,
+                "reason": (
+                    "Paid expert-team execution failed. Automatic retry is prohibited because "
+                    "the first attempt may already have consumed part of the approved budget."
+                ),
+            },
+        )
+        raise RuntimeError(
+            "Paid expert-team execution failed; diagnose through DeepSeek, then obtain a new user-approved "
+            "budget receipt before starting a new operation"
+        )
+
+    # Non-paid operational work such as model intelligence may use one automatic DeepSeek
+    # repair cycle and one retry. This path never applies to execute_team.
     _publish_transition(operation_id, args.operation, "repairing", output_dir)
     repair_id = safe_operation_id(f"{operation_id}-auto-repair")
     supplied_packet = _load_json_object(args.support_packet_json)
     support_packet = {
         "operation_id": operation_id,
         "mode": "REPAIR",
-        "request": "Automatically diagnose and repair the repository integration defect that caused the production operation to fail, then allow one retry.",
+        "request": "Automatically diagnose and repair the repository integration defect that caused the non-paid production operation to fail, then allow one retry.",
         "task": supplied_packet.get("task"),
         "current_state": "Original GitHub production operation failed before completion.",
         "failure_location": f"managed production operation: {args.operation}",
@@ -182,8 +208,9 @@ def main() -> None:
             "Do not maintain or fork an upstream plugin package.",
             "Repair only the local manifest, adapter, workflow, or compatibility boundary.",
             "Only one automatic repair cycle and one retry are allowed.",
+            "This automatic retry path must never be used for execute_team.",
         ],
-        "requested_outcome": "Repair the repository integration defect, pass verification, and make the original operation succeed on one retry.",
+        "requested_outcome": "Repair the repository integration defect, pass verification, and make the non-paid operation succeed on one retry.",
         "original_support_packet": supplied_packet,
     }
 
