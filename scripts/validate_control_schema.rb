@@ -60,6 +60,9 @@ raise "control workflow must use monitored controller" unless control.include?("
 raise "control workflow must expose REPAIR" unless control.include?("- REPAIR")
 raise "control workflow must use task-scoped concurrency" unless control.include?("deepseek-control-${{ inputs.task_id }}-${{ inputs.revision }}")
 raise "control workflow monitor timeout is missing" unless control.include?("timeout-minutes: 210")
+raise "control workflow must redact bearer authorization tickets" unless control.include?("Redact bearer authorization ticket")
+raise "control workflow must remove the raw ticket before publishing" unless control.include?("payload.pop('control_ticket', None)")
+raise "control workflow must retain only a ticket hash receipt" unless control.include?("control_ticket_receipt")
 
 rescue_workflow = File.read(".github/workflows/deepseek-rescue.yml")
 raise "rescue workflow must expose force cancellation" unless rescue_workflow.include?("FORCE_CANCEL")
