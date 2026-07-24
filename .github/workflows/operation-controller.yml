@@ -14,7 +14,7 @@ jobs:
   submit:
     if: >-
       github.event.issue.number == 15 &&
-      contains(github.event.comment.body, '"command":"submit_operation"')
+      contains(github.event.comment.body, 'submit_operation')
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
