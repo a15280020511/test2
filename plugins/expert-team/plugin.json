@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "expert-team",
+  "description": "Temporary Microsoft Agent Framework and OpenRouter execution plug.",
+  "requirements_file": "requirements.txt",
+  "allowed_modules": [
+    "scripts.action_entrypoint"
+  ],
+  "allowed_operations": [
+    "model_intelligence",
+    "execute_team"
+  ],
+  "install_timeout_seconds": 900,
+  "run_timeout_seconds": 3600,
+  "cleanup": "always"
+}
