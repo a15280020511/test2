@@ -99,7 +99,7 @@ jobs:
         run: |
           grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
           grep -F 'DEEPSEEK_API_KEY' expert_team/deepseek_official.py >/dev/null
-          grep -F 'must not fall back to OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
+          grep -F 'must never fall back to OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
           if grep -F 'create_model_client' expert_team/deepseek_steward.py >/dev/null; then
             echo "DeepSeek Steward must not use the OpenRouter expert client"
             exit 1
