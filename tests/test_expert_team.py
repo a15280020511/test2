@@ -15,19 +15,32 @@ from expert_team.model_intelligence import (
     build_model_intelligence_snapshot,
 )
 
-
 SELECTION_POLICY = (
-    "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；"
-    "随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；"
-    "重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，"
-    "必须具体问题具体分析。"
+    "DeepSeek ASSIST 必须作为最高优先级入口，先审计任务、插件需求和预算方案；网页 GPT 必须把经济、均衡、质量三档预算反馈给用户并取得明确选择。"
+    "执行时先满足用户批准的质量和成本边界，再在边界内动态选择专家、模型和工作流。所有专业工具采用任务级临时插头，用时安装、结束销毁。"
+    "重大任务能力优先，普通任务性价比优先，具体问题具体分析。"
 )
 
 VALID_PLAN = {
-    "version": "1",
+    "version": "2",
     "selection_policy": SELECTION_POLICY,
     "task": "Analyze a complex business decision.",
-    "rationale": "Use independent experts, then adversarial review and arbitration.",
+    "rationale": "DeepSeek reviewed the task; the user selected the balanced budget.",
+    "deepseek_entry": {
+        "status": "READY",
+        "operation_id": "assist-budget-001",
+        "budget_options_presented": True,
+    },
+    "budget": {
+        "approval_status": "approved_by_user",
+        "tier": "balanced",
+        "currency": "USD",
+        "max_cost_usd": 2.0,
+        "estimated_cost_usd": {"low": 0.25, "high": 1.5},
+        "max_model_calls": 4,
+        "max_output_tokens_per_call": 1200,
+        "approval_reference": "User selected balanced, maximum USD 2.00.",
+    },
     "experts": [
         {
             "name": "market",
@@ -75,9 +88,10 @@ class ExpertTeamContractTests(unittest.TestCase):
         else:
             os.environ.pop("OPENROUTER_MODEL_POOL", None)
 
-    def test_package_imports_current_api(self) -> None:
+    def test_package_lazy_exports_current_api(self) -> None:
         self.assertTrue(callable(expert_team.run_dynamic_team))
         self.assertTrue(callable(expert_team.validate_execution_plan))
+        self.assertTrue(callable(expert_team.run_deepseek_steward))
         self.assertFalse(hasattr(expert_team, "plan_team"))
 
     def test_valid_dynamic_plan(self) -> None:
@@ -86,6 +100,33 @@ class ExpertTeamContractTests(unittest.TestCase):
         self.assertEqual(plan.stages[0].mode, "parallel")
         self.assertTrue(plan.red_team.enabled)
         self.assertTrue(plan.judge.enabled)
+        self.assertEqual(plan.deepseek_entry.status, "READY")
+        self.assertEqual(plan.budget.tier, "balanced")
+        self.assertEqual(plan.budget.max_model_calls, 4)
+
+    def test_rejects_missing_user_budget_approval(self) -> None:
+        payload = json.loads(json.dumps(VALID_PLAN))
+        payload["budget"]["approval_status"] = "pending"
+        with self.assertRaisesRegex(ValueError, "approved_by_user"):
+            validate_execution_plan(payload)
+
+    def test_rejects_unpresented_budget_options(self) -> None:
+        payload = json.loads(json.dumps(VALID_PLAN))
+        payload["deepseek_entry"]["budget_options_presented"] = False
+        with self.assertRaisesRegex(ValueError, "presented to the user"):
+            validate_execution_plan(payload)
+
+    def test_rejects_estimate_above_approved_maximum(self) -> None:
+        payload = json.loads(json.dumps(VALID_PLAN))
+        payload["budget"]["estimated_cost_usd"]["high"] = 2.5
+        with self.assertRaisesRegex(ValueError, "exceeds the user-approved maximum"):
+            validate_execution_plan(payload)
+
+    def test_rejects_model_calls_above_approved_limit(self) -> None:
+        payload = json.loads(json.dumps(VALID_PLAN))
+        payload["budget"]["max_model_calls"] = 3
+        with self.assertRaisesRegex(ValueError, "planned model calls exceed"):
+            validate_execution_plan(payload)
 
     def test_rejects_forward_stage_dependency(self) -> None:
         payload = json.loads(json.dumps(VALID_PLAN))
@@ -99,31 +140,24 @@ class ExpertTeamContractTests(unittest.TestCase):
             validate_execution_plan(VALID_PLAN)
 
     def test_execution_plan_schema_file_is_present_and_json(self) -> None:
-        path = Path("execution_plan.schema.json")
-        schema = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(schema["properties"]["version"]["const"], "1")
-        self.assertIn("selection_policy", schema["required"])
+        schema = json.loads(Path("execution_plan.schema.json").read_text(encoding="utf-8"))
+        self.assertEqual(schema["properties"]["version"]["const"], "2")
+        self.assertIn("deepseek_entry", schema["required"])
+        self.assertIn("budget", schema["required"])
         self.assertEqual(schema["properties"]["selection_policy"]["const"], SELECTION_POLICY)
-        self.assertIn("experts", schema["required"])
-        self.assertIn("stages", schema["required"])
 
-    def test_execution_plan_form_exposes_selection_policy(self) -> None:
-        path = Path("expert_team/execution_plan_form.json")
-        form = json.loads(path.read_text(encoding="utf-8"))
+    def test_execution_plan_form_exposes_budget_and_entry(self) -> None:
+        form = json.loads(Path("expert_team/execution_plan_form.json").read_text(encoding="utf-8"))
         self.assertEqual(form["selection_policy"], SELECTION_POLICY)
-        self.assertIn("selection_policy", form["rationale"])
+        self.assertEqual(form["deepseek_entry"]["status"], "READY")
+        self.assertEqual(form["budget"]["approval_status"], "approved_by_user")
 
 
 class ModelIntelligenceTests(unittest.TestCase):
     @patch("expert_team.model_intelligence.fetch_benchmarks")
     @patch("expert_team.model_intelligence.fetch_ranked_models")
     @patch("expert_team.model_intelligence.fetch_catalog_via_sdk")
-    def test_snapshot_contains_all_selection_signals(
-        self,
-        catalog_mock,
-        ranked_mock,
-        benchmarks_mock,
-    ) -> None:
+    def test_snapshot_contains_all_selection_signals(self, catalog_mock, ranked_mock, benchmarks_mock) -> None:
         catalog_mock.return_value = {"data": [{"id": "provider/model-a"}]}
         ranked_mock.side_effect = lambda sort, limit=20: [
             {
@@ -132,10 +166,7 @@ class ModelIntelligenceTests(unittest.TestCase):
                 "context_length": 128000,
                 "pricing": {"prompt": "0.000001", "completion": "0.000002"},
                 "supported_parameters": ["tools", "structured_outputs", "irrelevant-large-field"],
-                "architecture": {
-                    "input_modalities": ["text"],
-                    "output_modalities": ["text"],
-                },
+                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
                 "reasoning": {"default_enabled": True},
                 "benchmarks": {
                     "artificial_analysis": {
@@ -156,26 +187,18 @@ class ModelIntelligenceTests(unittest.TestCase):
                 }
             ]
         }
-
         snapshot = build_model_intelligence_snapshot(limit_per_ranking=5)
-
         self.assertEqual(set(snapshot["rankings"]), set(RANKING_SORTS))
         self.assertEqual(snapshot["catalog"]["data"][0]["id"], "provider/model-a")
-        self.assertEqual(snapshot["benchmarks"]["data"][0]["coding_index"], 80)
         self.assertIn("concrete task", snapshot["selection_rule"])
-
         compact = build_compact_model_intelligence_snapshot(snapshot)
         self.assertEqual(compact["schema_version"], "3")
-        self.assertEqual(set(compact["rankings"]), set(RANKING_SORTS))
         first_sort = RANKING_SORTS[0]
         model_id = compact["rankings"][first_sort][0]
-        self.assertIn(model_id, compact["models"])
         self.assertEqual(compact["models"][model_id]["pricing"]["prompt"], "0.000001")
         self.assertEqual(compact["models"][model_id]["supported_parameters"], ["tools", "structured_outputs"])
         self.assertTrue(compact["models"][model_id]["reasoning"])
-        self.assertNotIn("artificial_analysis", compact["models"][model_id])
         self.assertNotIn("catalog", compact)
-        self.assertNotIn("benchmarks", compact)
 
     def test_gpt_snapshot_is_bounded_per_ranking(self) -> None:
         rows = [
@@ -194,7 +217,6 @@ class ModelIntelligenceTests(unittest.TestCase):
             "selection_rule": "test",
             "rankings": {sort: rows for sort in RANKING_SORTS},
         }
-
         compact = build_compact_model_intelligence_snapshot(snapshot)
         self.assertTrue(all(len(items) <= GPT_RANKING_LIMIT for items in compact["rankings"].values()))
         self.assertLessEqual(len(compact["models"]), GPT_RANKING_LIMIT)

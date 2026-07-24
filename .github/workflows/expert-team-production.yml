@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       operation:
-        description: Model intelligence, expert execution, or DeepSeek Steward assistance
+        description: Model intelligence, expert execution, or independent DeepSeek service
         required: true
         type: choice
         options:
@@ -22,7 +22,7 @@ on:
         default: ""
         type: string
       plan_json:
-        description: Execution Plan JSON; required only for execute_team
+        description: Version 2 Execution Plan JSON with DeepSeek entry and user-approved budget
         required: false
         default: "{}"
         type: string
@@ -32,12 +32,13 @@ on:
         default: "20"
         type: string
       steward_mode:
-        description: Main workflow Steward mode; use ASSIST here and top supervisor for REPAIR
+        description: ASSIST is first entry, REVIEW is publication audit, REPAIR is technical repair
         required: false
         default: ASSIST
         type: choice
         options:
           - ASSIST
+          - REVIEW
           - REPAIR
       support_packet_json:
         description: JSON Support Packet for DeepSeek Steward
@@ -58,7 +59,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     outputs:
       receipt_comment_id: ${{ steps.receipt.outputs.receipt_comment_id }}
 
@@ -68,11 +69,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Set up Python control core
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Ensure durable operation receipt
         id: receipt
@@ -87,16 +87,12 @@ jobs:
             echo "receipt_source=provided" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
           RECEIPT_BODY=$(jq -cn \
             --arg operation_id "$OPERATION_ID" \
             --arg operation "$OPERATION" \
             --arg run_id "$GITHUB_RUN_ID" \
             '{operation_id:$operation_id,operation:$operation,task_label:"auto-created by production workflow",run_id:$run_id,source:"server-side-fallback"}')
-          RESPONSE=$(gh api \
-            --method POST \
-            "/repos/${GITHUB_REPOSITORY}/issues/15/comments" \
-            -f body="$RECEIPT_BODY")
+          RESPONSE=$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/15/comments" -f body="$RECEIPT_BODY")
           RECEIPT_ID=$(printf '%s' "$RESPONSE" | jq -r '.id // empty')
           if [ -z "$RECEIPT_ID" ]; then
             echo "Durable receipt creation returned no comment id" >&2
@@ -115,13 +111,30 @@ jobs:
             --receipt-comment-id "${{ steps.receipt.outputs.receipt_comment_id }}" \
             --phase start
 
-      - name: Install dependencies
+      - name: Validate permanent core and plug manifests
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m py_compile \
+            scripts/action_entrypoint.py \
+            scripts/managed_operation.py \
+            scripts/plugin_runner.py \
+            scripts/verify_deepseek_entry.py \
+            expert_team/deepseek_official.py \
+            expert_team/deepseek_steward.py
+          python -m json.tool plugins/expert-team/plugin.json >/dev/null
+          test -s plugins/expert-team/requirements.txt
+          echo "No third-party package is installed into the permanent control environment."
 
       - name: Prepare repository context
         run: git fetch origin runtime-results || true
+
+      - name: Verify real DeepSeek first-entry result and budget options
+        if: ${{ inputs.operation == 'execute_team' }}
+        env:
+          PLAN_JSON: ${{ inputs.plan_json }}
+        run: |
+          python -m scripts.verify_deepseek_entry \
+            --plan-json "$PLAN_JSON" \
+            --operation-id "${{ inputs.operation_id }}"
 
       - name: Execute managed operation with automatic DeepSeek repair
         env:
@@ -143,7 +156,6 @@ jobs:
       - name: Deliver verified DeepSeek repair
         env:
           PYTHONPATH: .
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: python -m scripts.repair_delivery --operation-id "${{ inputs.operation_id }}"
@@ -155,7 +167,7 @@ jobs:
           name: expert-team-${{ inputs.operation_id }}
           path: artifacts/${{ inputs.operation_id }}/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
 
       - name: Publish GPT-readable JSON result
         id: publish_result
@@ -213,7 +225,7 @@ jobs:
             --arg original_plan_json "$ORIGINAL_PLAN_JSON" \
             --arg original_ranking_limit "$ORIGINAL_RANKING_LIMIT" \
             --arg original_support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
-            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Top-level supervisor: diagnose and recover a failed production workflow, including failures outside managed_operation and recoverable provider/resource limits.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or one of its infrastructure steps",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Preserve user intent","Repair repository-side faults when evidence supports them","For recoverable OpenRouter resource or model failures, prefer safe retry_operation_overrides instead of stopping","Resume or redispatch the original operation at most once"],requested_outcome:"Restore repository operation and safely resume the original task."}')
+            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Diagnose and recover a failed production workflow while preserving the independent DeepSeek core and ephemeral-plugin boundary.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or infrastructure step",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Do not maintain or fork upstream plugins","Preserve user-approved budget","Resume at most once"],requested_outcome:"Restore repository integration and safely resume the original task."}')
           PAYLOAD=$(jq -cn \
             --arg operation_id "$SUPERVISOR_ID" \
             --arg original_operation_id "$ORIGINAL_OPERATION_ID" \

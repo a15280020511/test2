@@ -1,0 +1,4 @@
+# Installed only inside a task-scoped temporary virtual environment.
+agent-framework-core>=1.11,<2
+agent-framework-openai>=1.10,<2
+openrouter>=1.0,<2
