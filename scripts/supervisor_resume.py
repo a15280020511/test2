@@ -64,6 +64,7 @@ def _plan_resume(
     *,
     supervisor_operation_id: str,
     original_operation_id: str,
+    failed_run_id: str,
     retry_dispatch_json: str,
     repository: str,
     token: str,
@@ -77,6 +78,7 @@ def _plan_resume(
 
     plan: dict[str, Any] = {
         "original_operation_id": original_operation_id,
+        "known_failed_run_id": failed_run_id or None,
         "steward_resume": resume,
         "action": "none",
         "reason": "steward_not_ready",
@@ -109,7 +111,14 @@ def _plan_resume(
         for run in runs
     ]
 
-    if any(str(run.get("status") or "") in ACTIVE_STATUSES for run in runs):
+    active_runs = [
+        run
+        for run in runs
+        if str(run.get("status") or "") in ACTIVE_STATUSES
+        and str(run.get("id") or "") != failed_run_id
+    ]
+
+    if active_runs:
         plan["reason"] = "matching_run_already_active"
     elif any(str(run.get("conclusion") or "") == "success" for run in runs):
         plan["reason"] = "matching_run_already_succeeded"
@@ -164,6 +173,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=("plan", "execute"), required=True)
     parser.add_argument("--supervisor-operation-id", required=True)
     parser.add_argument("--original-operation-id", default="")
+    parser.add_argument("--failed-run-id", default="")
     parser.add_argument("--retry-dispatch-json", default="{}")
     args = parser.parse_args()
 
@@ -181,6 +191,7 @@ def main() -> None:
         result = _plan_resume(
             supervisor_operation_id=supervisor_operation_id,
             original_operation_id=original_operation_id,
+            failed_run_id=args.failed_run_id.strip(),
             retry_dispatch_json=args.retry_dispatch_json,
             repository=repository,
             token=token,
