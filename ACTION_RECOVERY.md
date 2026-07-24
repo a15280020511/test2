@@ -2,78 +2,88 @@
 
 ## Purpose
 
-`a15280020511/test2` uses DeepSeek Steward as the highest technical control layer.
+`a15280020511/test2` uses DeepSeek Steward as the **highest technical control layer**.
 
 The system separates:
 
-- **Durable receipt plane**: one GitHub issue comment per production operation in control issue `#15`.
-- **Primary control plane**: `runtime_results/current_operation_status.json`.
-- **Historical audit status**: `runtime_results/status/<operation_id>.json`.
-- **Audit plane**: Run, Job, Step, logs, Artifact, metadata, repair evidence, and detailed runtime results.
-- **Top technical supervisor**: `.github/workflows/deepseek-supervisor.yml`, with an independent concurrency group.
+- **Durable receipt plane**: GitHub issue comments in control issue `#15`;
+- **Primary control plane**: `runtime_results/current_operation_status.json`;
+- **Audit plane**: Run, Job, Step, logs, Artifact, metadata, budget evidence and repair evidence;
+- **Independent supervisor**: `.github/workflows/deepseek-supervisor.yml`;
+- **Temporary plugin plane**: task-scoped tool environments that are destroyed after use.
 
-Web GPT owns user intent. DeepSeek Steward owns technical diagnosis and recovery.
+Web GPT owns user intent and all user budget communication. DeepSeek owns technical diagnosis, result review and recovery decisions. GitHub owns deterministic enforcement.
 
 ## Durable operation receipt
 
 For every production operation:
 
 1. Generate one unique `operation_id`.
-2. Web GPT should normally call `createOperationReceipt` first and keep the returned comment `id` as `receipt_comment_id`.
-3. The receipt contains at least `operation_id`, `operation`, and a short task label. Never include secrets.
+2. Web GPT should normally call `createOperationReceipt` first and keep the returned comment ID as `receipt_comment_id`.
+3. Never include secrets.
 4. Dispatch the production workflow with the same `operation_id`.
-5. When Web GPT supplies `receipt_comment_id`, the workflow uses it.
-6. When Web GPT omits `receipt_comment_id`, the production workflow must automatically create the receipt server-side in issue `#15` before publishing running status.
-7. Missing `receipt_comment_id` must never produce an entry-point `422` that ends the user task.
-8. If server-side receipt creation fails, the production job fails and automatically escalates to DeepSeek Top Supervisor.
+5. The workflow uses a supplied receipt when present.
+6. For non-paid operations, if Web GPT omits the receipt, server-side fallback is mandatory.
+7. Missing `receipt_comment_id` for a non-paid operation must never produce an entry-point `422` that ends the user task.
+8. If server-side receipt creation fails, the production job fails and escalates to DeepSeek Top Supervisor.
 
-The receipt is durable evidence that the operation was accepted. Pre-dispatch receipt creation is preferred because it is synchronous, but server-side fallback is mandatory so correctness does not depend on Web GPT remembering an Action call order.
+### Paid expert-team receipt
+
+`execute_team` is different. It must receive a durable JSON receipt created by Web GPT **after** the user selects a budget. No server-side fallback may invent user approval.
+
+The receipt must exactly match the submitted plan:
+
+- execution `operation_id`;
+- DeepSeek ASSIST `operation_id`;
+- budget tier;
+- estimated cost range;
+- maximum cost;
+- maximum model calls;
+- maximum output tokens per call;
+- truthful approval reference.
+
+Any mismatch stops before paid inference.
 
 ## Operation-to-Run correlation
 
-Every production workflow Run uses the GitHub `run-name`:
+Production Run name:
 
-`expert-<operation_id>-<operation>`
+```text
+expert-<operation_id>-<operation>
+```
 
-The DeepSeek supervisor uses:
+Supervisor Run name:
 
-`supervisor-<supervisor_operation_id>-for-<original_operation_id>`
+```text
+supervisor-<supervisor_operation_id>-for-<original_operation_id>
+```
 
-This allows server-side correlation without exposing workflow-run lists to Web GPT.
+This correlation supports server-side duplicate detection without making Run lists the normal Web GPT control path.
 
-## Normal production control flow
+## Normal control flow
 
-After the production dispatch returns HTTP `204`:
+After dispatch returns HTTP `204`:
 
 1. Poll `getCurrentOperationStatus` with `ref=runtime-results`.
-2. HTTP `200` is the normal expected control response.
-3. If returned `operation_id` matches the submitted ID and `status=running`, keep polling.
-4. If it matches and `status=repairing`, DeepSeek is repairing an internal operation failure. Keep polling.
-5. If it matches and `status=retrying`, the repaired operation is on its single internal retry. Keep polling.
-6. If it matches and `status=success` and `result_ready=true`, read the operation-specific result.
-7. If it matches and `status=STOP`, read available evidence and stop. Never substitute another provider for DeepSeek.
-8. If it matches and `status=failure`, route the technical failure to the top supervisor unless a top-supervisor recovery is already active for this original operation.
-
-Do not use workflow-run lists or missing result files as the normal task-state mechanism.
+2. If the returned `operation_id` matches and status is `running`, continue polling.
+3. `repairing` and `retrying` are allowed only for operations eligible for non-paid automatic recovery.
+4. If status is `success` and `result_ready=true`, read the operation result.
+5. If status is `STOP` or `failure`, preserve evidence and route technical diagnosis to DeepSeek.
+6. Do not treat a missing result file or old status as proof that no Run exists.
 
 ## Startup timeout rule
 
-A production dispatch may return HTTP `204` before the new Run has updated the permanent current status.
+After a successful dispatch:
 
-The old behavior of waiting indefinitely on `idle` or an older `operation_id` is forbidden.
-
-After a successful production dispatch:
-
-1. If `getCurrentOperationStatus` is `idle` or contains a different `operation_id`, treat the first read as pending.
-2. Repeat the control read once after a short wait.
-3. If the second consecutive read still does not show the submitted `operation_id`, or roughly 90 seconds have elapsed, automatically dispatch the independent DeepSeek Top Supervisor.
-4. Do not end the user task at this point.
-5. Do not blindly dispatch the original production task again.
-6. The supervisor must inspect GitHub server-side for a Run whose `display_title` contains the original `operation_id`.
-7. If a matching Run is active, do not duplicate it; report that it is already active and continue tracking.
-8. If there is no matching Run, DeepSeek diagnoses the startup/dispatch/control problem and may resume the original dispatch once when safe.
-9. If there is one known failed matching Run, DeepSeek may repair and resume it once.
-10. If two or more matching Runs already exist, automatic redispatch is blocked.
+1. If current status is `idle` or belongs to another operation, treat the first read as pending.
+2. Perform a second consecutive read after a short wait.
+3. If the second consecutive read is still mismatched, or roughly 90 seconds have elapsed, dispatch the independent supervisor.
+4. Do not blindly dispatch the original task again.
+5. The supervisor checks GitHub server-side for matching Runs.
+6. An active matching Run blocks duplication.
+7. Two or more matching Runs block another automatic dispatch.
+8. A missing or known failed non-paid operation may receive one bounded recovery.
+9. A missing `execute_team` Run may be started only when its original budget receipt is still unused and the workflow never began; a failed or possibly-started `execute_team` Run is governed by the paid retry prohibition below.
 
 ## Highest-level DeepSeek supervisor
 
@@ -81,129 +91,135 @@ All technical problems ultimately route to `.github/workflows/deepseek-superviso
 
 The supervisor:
 
-1. Uses a concurrency group separate from `expert-team-production`.
-2. Uses only the official DeepSeek API.
-3. Receives the original `operation_id`, durable receipt ID when available, failure class, Support Packet, and a bounded original dispatch payload.
-4. Runs DeepSeek Steward in `REPAIR` mode.
-5. Applies only bounded repository edits authorized by Steward.
-6. Runs mandatory verification before repair delivery.
-7. Publishes its own status and result through the same permanent control plane.
-8. Checks matching production Runs server-side before any resume.
-9. Redispatches the original production operation at most once when Steward says `READY` and no active/successful/duplicate Run blocks it.
-10. Never recursively launches another top supervisor for its own failure.
+1. runs in a separate concurrency group;
+2. uses only the official DeepSeek API;
+3. receives the original operation, receipt, Run evidence and dispatch payload;
+4. diagnoses repository, plugin, provider, Action-edge and publication failures;
+5. may create a bounded repository repair;
+6. runs verification before repair delivery;
+7. checks duplicate Runs before any resume;
+8. permits at most one **non-paid production redispatch**;
+9. never recursively launches another supervisor for its own failure;
+10. never fabricates or changes user budget approval.
+
+## Paid expert-team retry prohibition
+
+A failed `execute_team` attempt may already have consumed model calls even when GitHub reports failure or no final result.
+
+Therefore:
+
+1. `managed_operation` must not internally retry `execute_team`.
+2. The top supervisor may diagnose the failure and repair repository code.
+3. The top supervisor must not redispatch the old paid operation.
+4. It must not replace models, reduce the plan or reuse the old receipt to create more calls.
+5. The current operation terminates with `STOP` and `budget_reapproval_required=true`.
+6. Web GPT must explain the failed attempt and possible prior spend to the user.
+7. DeepSeek ASSIST must produce a new budget proposal where needed.
+8. The user must explicitly approve the new amount.
+9. Web GPT must create a new durable budget receipt.
+10. A new `operation_id` must be used for the new attempt.
+
+This rule is deterministic and cannot be overridden by DeepSeek output.
+
+## Non-paid internal automatic recovery
+
+Only non-paid operational work, currently `model_intelligence`, may use the internal repair loop:
+
+1. run once;
+2. on failure, publish `repairing`;
+3. call DeepSeek REPAIR through the official API;
+4. if DeepSeek is unavailable, STOP;
+5. when DeepSeek returns an evidenced EDIT, apply the smallest repair;
+6. run verification;
+7. publish `retrying`;
+8. retry exactly once;
+9. preserve evidence whether the retry succeeds or fails.
+
+The phrase “one repair cycle and one retry” applies only to this non-paid path.
 
 ## Automatic escalation from production Workflow
 
-The production workflow must automatically dispatch the independent top supervisor when its main job fails outside the normal successful path.
+The production workflow escalates failures outside a successful path, including:
 
-This includes failures in:
-
-- checkout;
-- Python setup;
-- automatic receipt creation;
-- status publication;
-- dependency installation;
-- repository-context preparation;
-- `managed_operation` after its own internal repair attempt;
-- repair delivery;
+- checkout and Python setup;
+- receipt creation or receipt verification;
+- plugin installation or cleanup;
+- OpenRouter/Agent Framework integration;
+- official DeepSeek integration;
+- status and result publication;
 - Artifact upload;
-- runtime-result publication;
-- final status publication;
-- any other production job step.
+- any other step preventing a trustworthy terminal result.
 
-The escalation job runs separately from the failed production job and passes the original dispatch payload plus the known failed `GITHUB_RUN_ID` to the top supervisor.
+Escalation always permits diagnosis. It permits automatic redispatch only when the deterministic paid/non-paid rules allow it.
 
-When the supervisor later checks matching Runs, the known failed Run ID is not treated as an active Run merely because the parent workflow is still completing its escalation job.
+## Action-edge failures
 
-## GitHub-internal automatic recovery
+Web GPT routes technical anomalies to the supervisor when:
 
-Inside a running `model_intelligence` or `execute_team` operation:
+- current status is `404`, invalid or contradictory;
+- startup remains mismatched after the bounded check;
+- the Action dispatch returns unexpected errors;
+- the Execution Plan or budget receipt cannot be verified;
+- result publication contradicts Run evidence;
+- a plugin fails to install, execute or clean up;
+- any condition prevents a trustworthy terminal result.
 
-1. Run normally.
-2. If it succeeds, finish normally.
-3. If it fails, publish `status=repairing` on a best-effort basis.
-4. Automatically invoke DeepSeek Steward REPAIR through the official DeepSeek API.
-5. If DeepSeek is unavailable, STOP. Never use OpenRouter or another provider as fallback.
-6. If Steward returns an EDIT, apply bounded edits and run verification.
-7. Publish `status=retrying` before the one allowed retry.
-8. Retry the original operation exactly once.
-9. Deliver the verified repair only when verification and retry succeed.
-10. If the retry fails, STOP and preserve evidence.
-
-This internal repair loop is subordinate to the top supervisor. If the production workflow itself still fails, the independent top supervisor receives the failure.
-
-## Action-edge technical failures
-
-Web GPT must route any technical anomaly to the top supervisor, including:
-
-- `getCurrentOperationStatus` returns `404` or unparseable data;
-- pre-dispatch receipt creation fails;
-- production dispatch returns unexpected `4xx/5xx` for any reason other than a stale Builder schema that can be corrected immediately;
-- startup remains `idle` or mismatched for two consecutive control reads or about 90 seconds;
-- Execution Plan Schema cannot be read or parsed;
-- model-intelligence refresh fails after its documented refresh sequence;
-- current status says `success` and `result_ready=true` but the expected result cannot be read;
-- an audit endpoint reveals a technical contradiction;
-- any technical condition prevents a trustworthy terminal result.
-
-Mandatory behavior:
-
-1. Preserve the original user task and original production dispatch payload.
-2. Do not improvise repository code repair in Web GPT.
-3. Build an evidence-based Support Packet.
-4. Dispatch `dispatchDeepSeekSupervisor`.
-5. Track the supervisor through `getCurrentOperationStatus`.
-6. While current status still belongs to the original or an older operation, keep polling until the supervisor operation appears.
-7. Read `getDeepSeekStewardResult` only after the current status matches the supervisor operation and reaches a terminal state.
-8. Resume the original user task only when Steward says `READY`, or when the supervisor confirms an already-active matching production Run.
-9. If official DeepSeek is unavailable, STOP. Never route repair through OpenRouter.
+Web GPT must not improvise code repair. It builds an evidence-based Support Packet and follows the DeepSeek result, subject to deterministic budget gates.
 
 ## Model-intelligence special case
 
-For `getOpenRouterModels`:
+`model_intelligence` is non-paid control support and may use one bounded repair/retry:
 
-1. Always pass `ref=runtime-results`.
-2. On first `404`, create a durable receipt for a unique `model_intelligence` operation when possible.
-3. Dispatch `model_intelligence`; the workflow auto-creates a receipt when none was supplied.
-4. Track via `getCurrentOperationStatus`.
-5. Apply the same two-read/90-second startup timeout rule.
-6. Only after matching `status=success` and `result_ready=true`, retry `getOpenRouterModels` once.
-7. If the refreshed read still fails, dispatch the top supervisor.
+1. read the existing runtime snapshot;
+2. on missing snapshot, dispatch a unique refresh operation;
+3. follow the same two-read/90-second startup rule;
+4. use one bounded non-paid recovery when technically justified;
+5. publish the refreshed snapshot only after the matching operation succeeds.
 
-## Result publication truth rule
+## Result truth rule
 
-`result_ready=true` is allowed only when:
+`result_ready=true` requires both:
 
-1. the operation produced a local readable result; and
-2. the workflow step that publishes the GPT-readable runtime result completed successfully.
+1. a local readable result; and
+2. successful publication of the GPT-readable result.
 
-A local result alone must never mark the remote result ready.
+A local file, successful process exit or successful GitHub Run alone does not prove analytical quality. DeepSeek REVIEW remains the final publication gate for expert-team results.
 
 ## Audit rule
 
-Run, Job, Step, logs, Artifact, historical per-operation status, metadata, receipt comments, and repair evidence are audit records.
+Preserve:
 
-The primary Web GPT control path is:
+- durable receipts;
+- DeepSeek ASSIST and REVIEW results;
+- budget verification;
+- plugin lifecycle evidence;
+- Run, Job, Step and log evidence;
+- Artifacts and repair evidence.
 
-`receipt when available -> production dispatch -> server-side receipt fallback -> permanent current status -> result`
+Normal flow:
 
-On technical anomaly it becomes:
+```text
+receipt -> dispatch -> permanent status -> result -> DeepSeek REVIEW
+```
 
-`available receipt evidence -> DeepSeek Top Supervisor -> verified repair/diagnosis -> bounded resume -> permanent current status -> result`
+Technical anomaly:
 
-Do not expose or use workflow-run lists as the normal Web GPT control mechanism.
+```text
+evidence -> DeepSeek Top Supervisor -> diagnosis/repair ->
+non-paid bounded recovery OR paid STOP and new user approval
+```
 
 ## Safety invariants
 
 - DeepSeek Steward is the highest technical authority inside `test2`.
-- DeepSeek Steward uses only the official DeepSeek API.
+- DeepSeek uses only the official DeepSeek API.
 - DeepSeek unavailability is a hard stop.
-- Never route Steward repair through OpenRouter.
-- No OpenRouter or other-provider fallback is allowed for Steward.
-- Autonomous repairs may not modify `tests/`, `.git/`, `artifacts/`, or `runtime_results/` as source repair targets.
-- Verification must pass before any autonomous repair is delivered.
-- No force push is allowed.
-- No infinite repair, supervisor, or redispatch loop is allowed.
-- One internal repair cycle and one internal retry remain the maximum inside one production operation.
-- One top-supervisor recovery and one bounded production redispatch are the maximum after one failed or missing production attempt.
-- A total GitHub Actions/API platform outage that prevents both production and supervisor workflows from starting cannot be repaired by repository code; preserve available receipt evidence and report a platform hard stop.
+- Never route Steward through OpenRouter.
+- Never modify or fabricate user budget approval.
+- Never automatically retry or redispatch a failed paid expert-team operation.
+- Autonomous repairs may not modify `tests/`, `.git/`, `artifacts/`, `runtime_results/` or Secrets.
+- Verification must pass before repair delivery.
+- No force push and no infinite recovery loop.
+- One internal repair cycle and one internal retry are the maximum for a non-paid operation.
+- One top-supervisor recovery and one bounded non-paid production redispatch are the maximum after a failed or missing non-paid attempt.
+- A GitHub Actions/API outage that prevents both production and supervisor workflows from starting is outside repository repair capability; preserve evidence and report `STOP`.
