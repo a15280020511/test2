@@ -1,0 +1,23 @@
+{
+  "operation_id": "<Web GPT 生成的唯一 ID>",
+  "mode": "ASSIST",
+  "request": "<需要 DeepSeek Steward 协助或维修的问题>",
+  "task": "<当前用户原始任务；没有可留空>",
+  "current_state": "<当前执行到了哪里>",
+  "failure_location": "<REPAIR 时填写具体失败位置；ASSIST 可留空>",
+  "run_id": "<有真实 Run ID 时填写；没有不要编造>",
+  "job_ids": [],
+  "steps": [],
+  "logs_excerpt": "<关键日志摘录；没有不要编造>",
+  "error_type": "<真实错误类型>",
+  "error_message": "<真实错误信息>",
+  "relevant_files": [],
+  "attempts_already_made": [],
+  "constraints": [
+    "Web GPT 负责用户任务与最终决策；DeepSeek Steward 负责仓库技术服务与维修",
+    "ASSIST 不修改代码；REPAIR 只有证据支持仓库缺陷时才修改",
+    "不得伪造缺失证据",
+    "维修必须最小化并通过验证门"
+  ],
+  "requested_outcome": "<希望得到的协助结果；例如 READY/STOP、填表建议、恢复原任务或完成仓库修复>"
+}

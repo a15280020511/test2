@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from expert_team.deepseek_steward import run_deepseek_steward
 from expert_team.dynamic_team import run_dynamic_team, validate_execution_plan
 from expert_team.model_intelligence import (
     build_compact_model_intelligence_snapshot,
@@ -37,11 +38,17 @@ async def _execute_team(plan_json: str) -> dict[str, Any]:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="GitHub Action entrypoint for the dynamic expert team")
-    parser.add_argument("--operation", required=True, choices=("model_intelligence", "execute_team"))
+    parser = argparse.ArgumentParser(description="GitHub Action entrypoint for the dynamic expert system")
+    parser.add_argument(
+        "--operation",
+        required=True,
+        choices=("model_intelligence", "execute_team", "deepseek_steward"),
+    )
     parser.add_argument("--operation-id", required=True)
     parser.add_argument("--plan-json", default="{}")
     parser.add_argument("--ranking-limit", type=int, default=20)
+    parser.add_argument("--steward-mode", choices=("ASSIST", "REPAIR"), default="ASSIST")
+    parser.add_argument("--support-packet-json", default="{}")
     args = parser.parse_args()
 
     operation_id = _safe_operation_id(args.operation_id)
@@ -51,6 +58,8 @@ async def main() -> None:
         "operation": args.operation,
         "status": "running",
     }
+    if args.operation == "deepseek_steward":
+        metadata["steward_mode"] = args.steward_mode
     _write_json(output_dir / "metadata.json", metadata)
 
     try:
@@ -60,10 +69,19 @@ async def main() -> None:
             compact_path = output_dir / "model_intelligence_compact.json"
             _write_json(compact_path, build_compact_model_intelligence_snapshot(result))
             metadata["readable_result_file"] = compact_path.name
-        else:
+        elif args.operation == "execute_team":
             result = await _execute_team(args.plan_json)
             result_path = output_dir / "expert_team_result.json"
             metadata["readable_result_file"] = result_path.name
+        else:
+            result = await run_deepseek_steward(
+                args.steward_mode,
+                args.support_packet_json,
+            )
+            result_path = output_dir / "deepseek_steward_result.json"
+            metadata["readable_result_file"] = result_path.name
+            metadata["steward_decision"] = result.get("decision") or result.get("status")
+            metadata["steward_resume"] = result.get("resume") or result.get("status")
 
         _write_json(result_path, result)
         metadata.update({"status": "success", "result_file": result_path.name})
