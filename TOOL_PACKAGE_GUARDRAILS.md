@@ -1,123 +1,114 @@
-# Tool Package Guardrails Policy
+# 临时工具插头边界
 
-## Purpose
+## 核心规则
 
-This policy defines what `a15280020511/test2` is responsible for when using external tool packages and, equally important, what it is **not** responsible for.
+上游工具包由上游团队维护。`test2` 不建立第二套包维护平台，只维护最薄的本地集成边界。
 
-The repository intentionally relies on mature, authoritative, actively maintained upstream projects. Their maintainers own the package's upstream roadmap, releases, bug fixes, security fixes, and continuing development. `test2` must not duplicate that maintenance burden.
+所有非控制核心的第三方工具必须采用任务级临时插头：
 
-## Core rule
+```text
+需要时安装
+→ 只在当前任务临时环境中运行
+→ 输出日志与结果证据
+→ 无论成功、失败或超时都清理
+→ Runner结束后整体销毁
+```
 
-**Upstream package maintenance belongs to the upstream maintainers. `test2` only owns safe integration, stable execution, fault isolation, evidence, cleanup, and compatibility at the repository boundary.**
+不用时，第三方依赖不得留在DeepSeek永久控制环境中。
 
-Do not build a second package-maintenance platform inside `test2`.
+## 永久核心允许保留
 
-## Upstream selection standard
+- Python标准库；
+- GitHub Workflow和GitHub API调用；
+- 官方DeepSeek HTTP客户端；
+- JSON、HMAC、任务状态、去重、取消、强制取消、日志和Artifact控制；
+- 插件清单验证和临时环境执行器。
 
-Prefer tool packages that are:
+## 必须插件化
 
-- maintained by authoritative, high-quality teams or widely trusted expert communities;
-- actively developed and supported upstream;
-- suitable for long-term use;
-- available from the official upstream repository or official package distribution channel;
-- technically appropriate for the concrete task.
+- Microsoft Agent Framework；
+- OpenRouter SDK；
+- 专业统计、仿真、优化、预测、空间、因果和其他第三方分析工具；
+- 任何不是DeepSeek/GitHub控制面启动所必需的包。
 
-Web GPT chooses tools according to the specific task. Do not hard-code one universal tool stack when different tasks require different capabilities.
+## 插件组成
 
-## What `test2` does NOT own
+每个插件只保留：
 
-`test2` does not take responsibility for:
+```text
+plugins/<name>/plugin.json
+plugins/<name>/requirements.txt
+必要的薄适配器
+最小契约测试
+```
 
-- maintaining an upstream package's source code;
-- reproducing the upstream project's release process;
-- maintaining a permanent fork unless explicitly approved as an exceptional case;
-- building a separate background service to watch, mirror, or continuously rewrite upstream packages;
-- replacing the upstream team's issue tracker, security process, release notes, or development roadmap;
-- modifying upstream package internals merely to make them conform to `test2` preferences.
+不得建立：
 
-The fact that an upstream package has a newer release is not by itself a repository fault.
+- 常驻插件服务器；
+- 插件数据库；
+- 自动fork和长期维护上游源码；
+- 后台持续更新服务；
+- 无边界自动安装任意包；
+- 多套重复的包管理系统。
 
-## What `test2` DOES own
+## 权限与隔离
 
-### 1. Safe integration boundary
+插件只能获得当前任务必需的：
 
-- Install and invoke packages only through controlled repository workflows.
-- Prefer official package names, official distributions, and documented interfaces.
-- Do not silently execute unknown third-party code outside the intended package boundary.
-- Keep repository-specific adapters thin and replaceable.
+- 网络权限；
+- 临时文件目录；
+- 明确传入的非秘密环境变量；
+- 受控结果输出目录。
 
-### 2. Permission and secret boundary
+插件不得：
 
-- A tool package receives only the permissions required for the current task.
-- Repository secrets must never be printed, exposed, copied into artifacts, or written into source files.
-- Packages must not receive write access to protected repository areas unless the workflow explicitly requires and authorizes it.
+- 读取或打印Secrets；
+- 修改 `.git/`；
+- 修改测试、控制工作流、运行结果分支或其他任务文件；
+- 获得仓库写权限，除非经过DeepSeek REPAIR和独立验证；
+- 静默扩展依赖或执行未在清单允许的模块。
 
-### 3. File-system boundary
+## 资源边界
 
-- Do not let tool packages directly modify `.git/`, `tests/`, generated `artifacts/`, `runtime_results/`, or production source without an authorized workflow.
-- Temporary files must stay in task-scoped working locations whenever practical.
-- Source-code changes remain subject to the repository's repair and verification rules.
+每个插件清单必须规定：
 
-### 4. Runtime and resource boundary
+- 允许的模块；
+- 允许的操作；
+- 安装超时；
+- 运行超时；
+- `cleanup: always`。
 
-- Apply task-appropriate timeouts and bounded resource use.
-- A tool package failure, hang, malformed output, or dependency conflict must not be allowed to corrupt unrelated repository state.
-- Failures should be isolated to the current operation whenever possible.
+模型插件还必须服从用户批准的预算：
 
-### 5. Failure isolation
+- 最大费用；
+- 预计费用区间；
+- 最大模型调用次数；
+- 每次最大输出token。
 
-- One package failure must not silently invalidate unrelated tools or previous verified results.
-- Treat package/API failures as explicit operational evidence.
-- Do not fabricate successful execution when a package did not run successfully.
+## 故障责任
 
-### 6. Evidence and observability
+DeepSeek Steward负责：
 
-- Important tool execution must produce enough status, logs, or result evidence to support diagnosis.
-- Distinguish upstream failure, local integration failure, invalid input, and environment failure whenever evidence permits.
-- Results used for decisions must remain traceable to the operation that produced them.
+- 插件清单错误；
+- 薄适配器错误；
+- 仓库内依赖冲突；
+- Workflow集成错误；
+- 上游接口变化导致的本地兼容问题；
+- 插件清理失败；
+- 预算闸门和审计错误。
 
-### 7. Temporary-data cleanup
+DeepSeek Steward不负责：
 
-- Task-scoped temporary data should be deleted after it is no longer needed, except for intentionally retained audit evidence.
-- Do not create a permanent local data platform merely because a package can persist data.
+- 上游项目路线图；
+- 上游发布和安全维护；
+- 重写上游包；
+- 默认建立永久fork；
+- 为了追新版本而不断修改仓库。
 
-### 8. Compatibility responsibility
+上游更新本身不构成仓库故障。只有当前任务确实无法正确运行、安全问题必须处理或新能力被明确要求时，才修复最小本地边界。
 
-DeepSeek Steward owns **repository-side compatibility and integration problems**, including:
+## 选择原则
 
-- incorrect package invocation;
-- broken adapters;
-- incompatible repository configuration;
-- dependency conflicts inside `test2`;
-- workflow integration failures;
-- upstream API/interface changes that require a local adapter change.
+网页 GPT 根据具体任务选择最少必要插件。DeepSeek ASSIST负责审计插件需求和预算，REVIEW负责检查结果和预算，REPAIR只修复本地集成边界。
 
-DeepSeek Steward does **not** become the long-term maintainer of the upstream package itself.
-
-When an upstream release breaks `test2`, repair the smallest repository-side integration surface needed to restore compatibility. Do not fork or rewrite the upstream project by default.
-
-## Update policy
-
-Upstream packages continue to be maintained and updated by their upstream teams.
-
-`test2` does not need its own package-updater or upstream-maintenance subsystem. Repository work is required only when:
-
-- the current integration becomes incompatible;
-- a required security or compatibility change must be adopted;
-- the task explicitly needs a newer upstream capability;
-- the current package version prevents correct repository operation.
-
-In those cases, DeepSeek Steward handles the `test2` compatibility work under the normal repair, verification, and recovery process.
-
-## Role boundary
-
-- **Web GPT**: decides which tool or combination of tools is appropriate for the concrete task and controls task-level intent.
-- **DeepSeek Steward**: manages repository-side tool integration, compatibility, runtime faults, and repair.
-- **GitHub**: provides controlled execution, logs, evidence, verification, and repair delivery.
-- **Upstream maintainers**: own the package itself, including ongoing development, releases, and upstream maintenance.
-
-## Stability principle
-
-Prefer a small number of mature upstream tools with thin integration layers over a large internally maintained tool platform.
-
-**Do not duplicate upstream maintenance. Guard the boundary; do not become the upstream.**
+> 小核心、临时插头、强隔离、用完销毁、上游维护归上游。
