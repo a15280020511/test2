@@ -15,7 +15,7 @@ PUBLISH_FILES = (
     "auto_repair_result.json",
     "auto_repair_manifest.json",
     "managed_operation.json",
-    "model_intelligence_compact.json",
+    "model_intelligence_gpt.json",
 )
 
 
@@ -44,14 +44,14 @@ def main() -> None:
             for filename in PUBLISH_FILES:
                 source = source_dir / filename
                 if source.exists():
-                    target_name = "model_intelligence.json" if filename == "model_intelligence_compact.json" else filename
+                    target_name = "model_intelligence.json" if filename == "model_intelligence_gpt.json" else filename
                     shutil.copy2(source, destination / target_name)
 
-            compact = source_dir / "model_intelligence_compact.json"
-            if compact.exists():
-                latest = worktree / "runtime_results" / "model_intelligence_latest.json"
+            gpt_snapshot = source_dir / "model_intelligence_gpt.json"
+            if gpt_snapshot.exists():
+                latest = worktree / "runtime_results" / "model_intelligence_gpt_latest.json"
                 latest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(compact, latest)
+                shutil.copy2(gpt_snapshot, latest)
 
             run_checked(["git", "-C", str(worktree), "add", "runtime_results"])
             diff = subprocess.run(
