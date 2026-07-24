@@ -1,1 +1,1 @@
-{"schema_version":"2","operation_id":"fuzhou-baolong-hotpot-20260724-9c3b","operation":"execute_team","status":"running","run_id":"30064053521","result_ready":false,"result_published":false,"repair_status":"none","updated_at":"2026-07-24T03:25:41.151192+00:00"}
+{"schema_version":"2","operation_id":"fuzhou-baolong-hotpot-20260724-9c3b","operation":"execute_team","status":"repairing","run_id":"30064053521","result_ready":false,"result_published":false,"repair_status":"repairing","updated_at":"2026-07-24T03:25:51.749255+00:00"}
