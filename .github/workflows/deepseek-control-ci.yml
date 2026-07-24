@@ -1,0 +1,108 @@
+name: DeepSeek Control Plane CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/deepseek-control.yml"
+      - ".github/workflows/deepseek-rescue.yml"
+      - ".github/workflows/deepseek-control-ci.yml"
+      - "scripts/cross_repo_control.py"
+      - "scripts/validate_control_schema.rb"
+      - "deepseek_control_openapi.yaml"
+      - "DEEPSEEK_CONTROL_PLANE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "deepseek-control-ci-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  validate-control-plane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate control contract
+        id: control_contract
+        run: |
+          mkdir -p control-ci-artifacts
+          set +e
+          ruby scripts/validate_control_schema.rb 2>&1 | tee control-ci-artifacts/control-schema-validation.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Compile control script
+        id: compile_control
+        run: |
+          set +e
+          python -m py_compile scripts/cross_repo_control.py 2>&1 | tee control-ci-artifacts/control-script-compile.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Verify rescue independence
+        id: rescue_contract
+        run: |
+          set +e
+          {
+            if grep -F 'actions/checkout' .github/workflows/deepseek-rescue.yml; then
+              echo 'Emergency rescue must not depend on checkout.'
+              exit 1
+            fi
+            grep -F "python - <<'PY'" .github/workflows/deepseek-rescue.yml >/dev/null
+          } 2>&1 | tee control-ci-artifacts/rescue-contract.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Verify work repository is the only target
+        id: target_contract
+        run: |
+          set +e
+          {
+            grep -F 'TARGET_REPOSITORY = "a15280020511/test"' scripts/cross_repo_control.py >/dev/null
+            if grep -F 'a15280020511/test2/actions/workflows/think-tank.yml' deepseek_control_openapi.yaml; then
+              echo 'Control schema contains an invalid work-repository target.'
+              exit 1
+            fi
+          } 2>&1 | tee control-ci-artifacts/target-contract.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload control-plane CI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-control-plane-ci-diagnostics
+          path: control-ci-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Finalize control-plane validation
+        if: always()
+        run: |
+          failed=0
+          for status in \
+            "${{ steps.control_contract.outputs.status }}" \
+            "${{ steps.compile_control.outputs.status }}" \
+            "${{ steps.rescue_contract.outputs.status }}" \
+            "${{ steps.target_contract.outputs.status }}"; do
+            if [[ -z "$status" || "$status" != "0" ]]; then
+              failed=1
+            fi
+          done
+          exit "$failed"

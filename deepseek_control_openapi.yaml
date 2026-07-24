@@ -1,0 +1,332 @@
+openapi: 3.1.0
+
+info:
+  title: Independent DeepSeek Control Plane
+  version: 1.1.0
+  description: >-
+    Mandatory Web GPT entry for controlling a15280020511/test. Web GPT must use this
+    control plane instead of dispatching the work repository directly. START and
+    RESTART monitor the target Run through completion and automatically invoke
+    DeepSeek final review or failure diagnosis. The control plane also supports
+    status, cancel, force-cancel, explicit review, diagnosis, repair PR creation,
+    and isolated rescue.
+
+servers:
+  - url: https://api.github.com
+
+paths:
+  /repos/a15280020511/test2/actions/workflows/deepseek-control.yml/dispatches:
+    post:
+      operationId: dispatchDeepSeekControl
+      summary: Start a monitored DeepSeek control-plane operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ref, inputs]
+              properties:
+                ref:
+                  type: string
+                  enum: [main]
+                inputs:
+                  type: object
+                  required: [operation, task_id]
+                  properties:
+                    operation:
+                      type: string
+                      enum: [START, STATUS, CANCEL, FORCE_CANCEL, RESTART, REVIEW, DIAGNOSE, REPAIR]
+                    task_id:
+                      type: string
+                      minLength: 1
+                    revision:
+                      type: string
+                      default: "1"
+                    task_objective:
+                      type: string
+                      default: ""
+                    task_json:
+                      type: string
+                      default: "{}"
+                    evidence_json:
+                      type: string
+                      default: "{}"
+                    execution_plan_json:
+                      type: string
+                      default: "{}"
+                    target_run_id:
+                      type: string
+                      default: ""
+                    support_context_json:
+                      type: string
+                      default: "{}"
+                    target_repo:
+                      type: string
+                      enum: [a15280020511/test]
+                      default: a15280020511/test
+                  additionalProperties: false
+              additionalProperties: false
+      responses:
+        "204":
+          description: Control operation accepted.
+        "401":
+          description: Authentication failed.
+        "403":
+          description: Actions write permission required.
+        "422":
+          description: Invalid workflow input.
+
+  /repos/a15280020511/test2/actions/workflows/deepseek-rescue.yml/dispatches:
+    post:
+      operationId: dispatchDeepSeekRescue
+      summary: Start an isolated emergency rescue operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ref, inputs]
+              properties:
+                ref:
+                  type: string
+                  enum: [main]
+                inputs:
+                  type: object
+                  required: [operation, target_run_id]
+                  properties:
+                    operation:
+                      type: string
+                      enum: [CANCEL, FORCE_CANCEL, RERUN_FAILED, DIAGNOSE]
+                    target_run_id:
+                      type: string
+                      minLength: 1
+                    support_context_json:
+                      type: string
+                      default: "{}"
+                    target_repo:
+                      type: string
+                      enum: [a15280020511/test]
+                      default: a15280020511/test
+                  additionalProperties: false
+              additionalProperties: false
+      responses:
+        "204":
+          description: Rescue operation accepted.
+
+  /repos/a15280020511/test2/actions/workflows/{workflow_id}/runs:
+    get:
+      operationId: listDeepSeekControlRuns
+      summary: List control or rescue runs
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [deepseek-control.yml, deepseek-rescue.yml]
+        - name: branch
+          in: query
+          required: false
+          schema:
+            type: string
+            default: main
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 10
+      responses:
+        "200":
+          description: Matching workflow runs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowRunsResponse"
+
+  /repos/a15280020511/test2/actions/runs/{run_id}:
+    get:
+      operationId: getDeepSeekControlRun
+      summary: Read one control or rescue run
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow run.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowRun"
+
+  /repos/a15280020511/test2/actions/runs/{run_id}/jobs:
+    get:
+      operationId: getDeepSeekControlRunJobs
+      summary: Read control or rescue jobs and steps
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+      responses:
+        "200":
+          description: Workflow jobs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowJobsResponse"
+
+  /repos/a15280020511/test2/actions/runs/{run_id}/artifacts:
+    get:
+      operationId: listDeepSeekControlArtifacts
+      summary: List control or rescue artifacts
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+      responses:
+        "200":
+          description: Workflow artifacts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowArtifactsResponse"
+
+  /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
+    get:
+      operationId: downloadDeepSeekControlArtifact
+      summary: Download a control or rescue artifact ZIP
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artifact ZIP bytes after redirect.
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "302":
+          description: Temporary artifact-download redirect.
+
+components:
+  schemas:
+    WorkflowRunsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        workflow_runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowRun"
+
+    WorkflowRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        display_title:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type: [string, "null"]
+        html_url:
+          type: string
+        jobs_url:
+          type: string
+        artifacts_url:
+          type: string
+
+    WorkflowJobsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        jobs:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              status:
+                type: string
+              conclusion:
+                type: [string, "null"]
+              steps:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    status:
+                      type: string
+                    conclusion:
+                      type: [string, "null"]
+
+    WorkflowArtifactsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        artifacts:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              size_in_bytes:
+                type: integer
+              expired:
+                type: boolean
+              archive_download_url:
+                type: string
+
+  securitySchemes:
+    githubBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: GitHubToken
+
+security:
+  - githubBearer: []

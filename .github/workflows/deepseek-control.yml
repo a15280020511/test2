@@ -1,0 +1,136 @@
+name: DeepSeek Control Plane
+run-name: "DeepSeek Control · ${{ inputs.task_id }} · r${{ inputs.revision }} · ${{ inputs.operation }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: START, STATUS, CANCEL, FORCE_CANCEL, RESTART, REVIEW, DIAGNOSE, or REPAIR
+        required: true
+        type: choice
+        options:
+          - START
+          - STATUS
+          - CANCEL
+          - FORCE_CANCEL
+          - RESTART
+          - REVIEW
+          - DIAGNOSE
+          - REPAIR
+      task_id:
+        description: Stable task identity
+        required: true
+        type: string
+      revision:
+        description: Positive task revision
+        required: false
+        default: "1"
+        type: string
+      task_objective:
+        description: Authoritative user objective
+        required: false
+        default: ""
+        type: string
+      task_json:
+        description: Raw task JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      evidence_json:
+        description: Raw evidence JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      execution_plan_json:
+        description: Raw execution-plan JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      target_run_id:
+        description: Target test workflow Run ID for status, cancellation, restart, review, diagnosis, or repair
+        required: false
+        default: ""
+        type: string
+      support_context_json:
+        description: Optional structured context for DeepSeek review, diagnosis, or repair
+        required: false
+        default: "{}"
+        type: string
+      target_repo:
+        description: Controlled execution repository
+        required: false
+        default: a15280020511/test
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: "deepseek-control-${{ inputs.task_id }}-${{ inputs.revision }}"
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+    steps:
+      - name: Checkout independent control repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Execute monitored DeepSeek control operation
+        env:
+          CONTROL_PLANE_TOKEN: ${{ secrets.CONTROL_PLANE_TOKEN }}
+          CONTROL_TICKET_SECRET: ${{ secrets.CONTROL_TICKET_SECRET }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          CONTROL_OPERATION: ${{ inputs.operation }}
+          TASK_ID: ${{ inputs.task_id }}
+          TASK_REVISION: ${{ inputs.revision }}
+          TASK_OBJECTIVE: ${{ inputs.task_objective }}
+          TASK_JSON: ${{ inputs.task_json }}
+          EVIDENCE_JSON: ${{ inputs.evidence_json }}
+          EXECUTION_PLAN_JSON: ${{ inputs.execution_plan_json }}
+          TARGET_RUN_ID: ${{ inputs.target_run_id }}
+          SUPPORT_CONTEXT_JSON: ${{ inputs.support_context_json }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/deepseek-control-output
+          python -m scripts.cross_repo_control \
+            --operation "$CONTROL_OPERATION" \
+            --task-id "$TASK_ID" \
+            --revision "$TASK_REVISION" \
+            --task-objective "$TASK_OBJECTIVE" \
+            --task-json "$TASK_JSON" \
+            --evidence-json "$EVIDENCE_JSON" \
+            --execution-plan-json "$EXECUTION_PLAN_JSON" \
+            --target-run-id "$TARGET_RUN_ID" \
+            --support-context-json "$SUPPORT_CONTEXT_JSON" \
+            --target-repo "$TARGET_REPO" \
+            --output-dir /tmp/deepseek-control-output
+
+      - name: Publish control summary
+        if: always()
+        run: |
+          if [[ -f /tmp/deepseek-control-output/control-result.json ]]; then
+            echo '## DeepSeek independent control result' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/deepseek-control-output/control-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload control audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "deepseek-control-${{ inputs.task_id }}-r${{ inputs.revision }}-${{ inputs.operation }}"
+          path: /tmp/deepseek-control-output/
+          if-no-files-found: warn
+          retention-days: 30

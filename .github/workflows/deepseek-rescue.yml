@@ -1,0 +1,208 @@
+name: DeepSeek Emergency Rescue
+run-name: "DeepSeek Rescue · ${{ inputs.operation }} · run ${{ inputs.target_run_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: CANCEL, FORCE_CANCEL, RERUN_FAILED, or DIAGNOSE
+        required: true
+        type: choice
+        options:
+          - CANCEL
+          - FORCE_CANCEL
+          - RERUN_FAILED
+          - DIAGNOSE
+      target_run_id:
+        description: Target workflow Run ID in a15280020511/test
+        required: true
+        type: string
+      support_context_json:
+        description: Optional diagnosis context
+        required: false
+        default: "{}"
+        type: string
+      target_repo:
+        description: Controlled execution repository
+        required: false
+        default: a15280020511/test
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "deepseek-rescue-${{ inputs.target_run_id }}"
+  cancel-in-progress: false
+
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Run isolated emergency operation
+        env:
+          CONTROL_PLANE_TOKEN: ${{ secrets.CONTROL_PLANE_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          RESCUE_OPERATION: ${{ inputs.operation }}
+          TARGET_RUN_ID: ${{ inputs.target_run_id }}
+          SUPPORT_CONTEXT_JSON: ${{ inputs.support_context_json }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/deepseek-rescue-output
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+          from typing import Any
+
+          API = "https://api.github.com"
+          EXPECTED_REPO = "a15280020511/test"
+          OUT = Path("/tmp/deepseek-rescue-output")
+
+          def required(name: str) -> str:
+              value = os.environ.get(name, "").strip()
+              if not value:
+                  raise SystemExit(f"missing required secret or input: {name}")
+              return value
+
+          token = required("CONTROL_PLANE_TOKEN")
+          operation = required("RESCUE_OPERATION").upper()
+          target_repo = os.environ.get("TARGET_REPO", EXPECTED_REPO).strip() or EXPECTED_REPO
+          if target_repo != EXPECTED_REPO:
+              raise SystemExit(f"refusing uncontrolled target repository: {target_repo}")
+          run_text = required("TARGET_RUN_ID")
+          if not run_text.isdigit():
+              raise SystemExit("TARGET_RUN_ID must be an integer")
+          run_id = int(run_text)
+
+          def github(method: str, path: str, payload: dict[str, Any] | None = None, *, binary: bool = False) -> Any:
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              headers = {
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {token}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "deepseek-emergency-rescue",
+              }
+              if data is not None:
+                  headers["Content-Type"] = "application/json"
+              request = urllib.request.Request(f"{API}{path}", data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(request, timeout=120) as response:
+                      raw = response.read()
+                      if binary:
+                          return raw
+                      return json.loads(raw.decode("utf-8")) if raw else {"http_status": response.status}
+              except urllib.error.HTTPError as exc:
+                  body = exc.read().decode("utf-8", errors="replace")
+                  raise RuntimeError(f"GitHub API {method} {path} failed: HTTP {exc.code}: {body[:4000]}") from exc
+
+          def call_deepseek(packet: dict[str, Any]) -> dict[str, Any]:
+              api_key = required("DEEPSEEK_API_KEY")
+              headers = {"Accept": "application/json", "Authorization": f"Bearer {api_key}"}
+              request = urllib.request.Request("https://api.deepseek.com/models", headers=headers)
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  models = json.loads(response.read().decode("utf-8")).get("data", [])
+              candidates = [
+                  str(item.get("id", ""))
+                  for item in models
+                  if str(item.get("id", "")).lower().startswith("deepseek")
+                  or str(item.get("owned_by", "")).lower() == "deepseek"
+              ]
+              if not candidates:
+                  raise RuntimeError("DeepSeek /models returned no usable model")
+              premium = [m for m in candidates if any(t in m.lower() for t in ("pro", "max", "ultra", "expert"))]
+              model = sorted(premium or candidates)[-1]
+              body = json.dumps(
+                  {
+                      "model": model,
+                      "messages": [
+                          {
+                              "role": "system",
+                              "content": (
+                                  "You are an isolated emergency supervisor. Diagnose the supplied GitHub evidence. "
+                                  "Return JSON only with decision RETRY, REPLAN, REPAIR, WAIT, or STOP; root_cause; "
+                                  "evidence[]; required_actions[]; and confidence. Never fabricate missing logs."
+                              ),
+                          },
+                          {"role": "user", "content": json.dumps(packet, ensure_ascii=False, sort_keys=True)},
+                      ],
+                      "response_format": {"type": "json_object"},
+                      "stream": False,
+                  },
+                  ensure_ascii=False,
+              ).encode("utf-8")
+              request = urllib.request.Request(
+                  "https://api.deepseek.com/chat/completions",
+                  data=body,
+                  headers={**headers, "Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=180) as response:
+                  result = json.loads(response.read().decode("utf-8"))
+              parsed = json.loads(result["choices"][0]["message"]["content"])
+              parsed["runtime_model"] = model
+              return parsed
+
+          if operation in {"CANCEL", "FORCE_CANCEL"}:
+              endpoint = "force-cancel" if operation == "FORCE_CANCEL" else "cancel"
+              result = github("POST", f"/repos/{target_repo}/actions/runs/{run_id}/{endpoint}")
+              output = {"status": f"{operation}_REQUESTED", "run_id": run_id, "github_response": result}
+          elif operation == "RERUN_FAILED":
+              result = github("POST", f"/repos/{target_repo}/actions/runs/{run_id}/rerun-failed-jobs")
+              output = {"status": "RERUN_FAILED_REQUESTED", "run_id": run_id, "github_response": result}
+          elif operation == "DIAGNOSE":
+              run = github("GET", f"/repos/{target_repo}/actions/runs/{run_id}")
+              jobs = github("GET", f"/repos/{target_repo}/actions/runs/{run_id}/jobs?per_page=100")
+              log_tails: dict[str, str] = {}
+              for job in jobs.get("jobs", [])[:10]:
+                  try:
+                      raw = github("GET", f"/repos/{target_repo}/actions/jobs/{job['id']}/logs", binary=True)
+                      log_tails[str(job["id"])] = raw.decode("utf-8", errors="replace")[-60000:]
+                  except Exception as exc:  # noqa: BLE001
+                      log_tails[str(job.get("id"))] = f"log retrieval failed: {exc}"
+              context_text = os.environ.get("SUPPORT_CONTEXT_JSON", "{}") or "{}"
+              packet = {
+                  "target_repo": target_repo,
+                  "run": run,
+                  "jobs": jobs,
+                  "job_log_tails": log_tails,
+                  "support_context": json.loads(context_text),
+              }
+              diagnosis = call_deepseek(packet)
+              output = {"status": "DIAGNOSIS_COMPLETED", "run_id": run_id, "deepseek_result": diagnosis}
+          else:
+              raise SystemExit(f"unsupported RESCUE_OPERATION: {operation}")
+
+          output["generated_at"] = int(time.time())
+          (OUT / "rescue-result.json").write_text(
+              json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
+          PY
+
+      - name: Publish rescue summary
+        if: always()
+        run: |
+          if [[ -f /tmp/deepseek-rescue-output/rescue-result.json ]]; then
+            echo '## DeepSeek emergency rescue result' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/deepseek-rescue-output/rescue-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload rescue evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "deepseek-rescue-${{ inputs.target_run_id }}-${{ inputs.operation }}"
+          path: /tmp/deepseek-rescue-output/
+          if-no-files-found: warn
+          retention-days: 30
