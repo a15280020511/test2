@@ -2,12 +2,14 @@ openapi: 3.1.0
 
 info:
   title: Independent DeepSeek Control Plane
-  version: 1.0.0
+  version: 1.1.0
   description: >-
     Mandatory Web GPT entry for controlling a15280020511/test. Web GPT must use this
-    control plane instead of dispatching the work repository directly. It supports
-    signed starts, task-level deduplication, status reads, cancellation, force
-    cancellation, restart, DeepSeek review, diagnosis, and isolated rescue.
+    control plane instead of dispatching the work repository directly. START and
+    RESTART monitor the target Run through completion and automatically invoke
+    DeepSeek final review or failure diagnosis. The control plane also supports
+    status, cancel, force-cancel, explicit review, diagnosis, repair PR creation,
+    and isolated rescue.
 
 servers:
   - url: https://api.github.com
@@ -16,7 +18,7 @@ paths:
   /repos/a15280020511/test2/actions/workflows/deepseek-control.yml/dispatches:
     post:
       operationId: dispatchDeepSeekControl
-      summary: Start a DeepSeek control-plane operation
+      summary: Start a monitored DeepSeek control-plane operation
       requestBody:
         required: true
         content:
@@ -34,7 +36,7 @@ paths:
                   properties:
                     operation:
                       type: string
-                      enum: [START, STATUS, CANCEL, FORCE_CANCEL, RESTART, REVIEW, DIAGNOSE]
+                      enum: [START, STATUS, CANCEL, FORCE_CANCEL, RESTART, REVIEW, DIAGNOSE, REPAIR]
                     task_id:
                       type: string
                       minLength: 1
