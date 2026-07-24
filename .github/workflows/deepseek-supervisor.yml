@@ -82,16 +82,14 @@ jobs:
       - name: Prepare repository context
         run: git fetch origin runtime-results || true
 
-      - name: Run highest-level DeepSeek Steward REPAIR
+      - name: Run highest-level DeepSeek technical supervisor
         env:
           PYTHONPATH: .
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
         run: |
-          python -m scripts.action_entrypoint \
-            --operation deepseek_steward \
+          python -m scripts.top_supervisor_entrypoint \
             --operation-id "${{ inputs.operation_id }}" \
-            --steward-mode REPAIR \
             --support-packet-json "$SUPPORT_PACKET_JSON"
 
       - name: Deliver verified DeepSeek repair
