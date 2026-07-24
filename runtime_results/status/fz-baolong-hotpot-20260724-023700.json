@@ -1,1 +1,1 @@
-{"schema_version":"1","operation_id":"fz-baolong-hotpot-20260724-023700","operation":"execute_team","status":"running","run_id":"30063191616","result_ready":false,"repair_status":"none","updated_at":"2026-07-24T03:02:52.423352+00:00"}
+{"schema_version":"1","operation_id":"fz-baolong-hotpot-20260724-023700","operation":"execute_team","status":"success","run_id":"30063191616","result_ready":true,"repair_status":"none","updated_at":"2026-07-24T03:25:26.073664+00:00"}
