@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/a15280020511/test2/execution_plan.schema.json",
   "title": "Web GPT Dynamic Expert Team Execution Plan",
-  "description": "Web GPT 是任务规划者。必须先读取 OpenRouter 当前模型情报，再依据 selection_policy 针对具体任务动态选择专家、模型和组合方式。若对仓库使用、填表或编排不确定，可调用 DeepSeek Steward ASSIST；若发现任何仓库技术故障，应停止自行修码并交给 DeepSeek Steward REPAIR。",
+  "description": "Web GPT 是任务规划者。必须先读取 OpenRouter 当前模型情报，再依据 selection_policy 针对具体任务动态选择专家、模型和组合方式。所有付费执行必须通过硬预算预检和角色级 token 上限。若发现技术故障，应交给 DeepSeek Steward REPAIR。",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "selection_policy", "task", "rationale", "experts", "stages", "red_team", "judge"],
@@ -16,26 +16,50 @@
     "task": {"type": "string", "minLength": 1},
     "rationale": {
       "type": "string",
-      "description": "说明本次如何依据 selection_policy，结合任务难度、价值、风险、不确定性以及 OpenRouter 当前模型能力、价格、延迟和上下文等信号，决定专家数量、模型与工作流组合。DeepSeek Steward ASSIST 可提供仓库和填表建议，但最终 Execution Plan 仍由 Web GPT 决定。"
+      "minLength": 1,
+      "description": "说明本次如何依据 selection_policy，结合任务难度、风险、OpenRouter 当前能力、价格、延迟和上下文，决定专家数量、模型、token 和工作流。"
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_total_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "default": 1.0,
+          "description": "一个逻辑任务包含一次正常执行与最多一次受控恢复的总美元硬上限。"
+        },
+        "recovery_reserve_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5,
+          "default": 0.3,
+          "description": "为一次 DeepSeek 技术恢复预留的比例。正常执行预算为 max_total_usd × (1-reserve)。"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "original_plan_source": {"type": "string"},
+        "effective_plan_source": {"type": "string"},
+        "original_plan_sha256": {"type": "string"},
+        "supervisor_operation_id": {"type": "string"},
+        "override_reason": {"type": "string"}
+      }
     },
     "experts": {
       "type": "array",
       "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name", "mission", "instructions", "model"],
-        "properties": {
-          "name": {"type": "string", "minLength": 1},
-          "mission": {"type": "string", "minLength": 1},
-          "instructions": {"type": "string", "minLength": 1},
-          "model": {"type": "string", "minLength": 1}
-        }
-      }
+      "maxItems": 12,
+      "items": {"$ref": "#/$defs/agent"}
     },
     "stages": {
       "type": "array",
       "minItems": 1,
+      "maxItems": 12,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -52,6 +76,14 @@
             "type": "array",
             "minItems": 1,
             "items": {"type": "string", "minLength": 1}
+          },
+          "failure_policy": {
+            "enum": ["fail_fast", "continue_with_partial"],
+            "default": "fail_fast"
+          },
+          "minimum_successful_members": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }
@@ -60,6 +92,47 @@
     "judge": {"$ref": "#/$defs/optionalAgent"}
   },
   "$defs": {
+    "agentExecution": {
+      "type": "object",
+      "properties": {
+        "max_completion_tokens": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 16384
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 900,
+          "default": 240
+        },
+        "fallback_models": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "agent": {
+      "allOf": [
+        {"$ref": "#/$defs/agentExecution"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "mission", "instructions", "model"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "mission": {"type": "string", "minLength": 1},
+            "instructions": {"type": "string", "minLength": 1},
+            "model": {"type": "string", "minLength": 1},
+            "max_completion_tokens": {"type": "integer", "minimum": 64, "maximum": 16384, "default": 2200},
+            "timeout_seconds": {"type": "integer", "minimum": 30, "maximum": 900, "default": 240},
+            "fallback_models": {"type": "array", "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          }
+        }
+      ]
+    },
     "optionalAgent": {
       "type": "object",
       "additionalProperties": false,
@@ -68,7 +141,10 @@
         "enabled": {"type": "boolean"},
         "name": {"type": "string", "minLength": 1},
         "model": {"type": "string"},
-        "instructions": {"type": "string"}
+        "instructions": {"type": "string"},
+        "max_completion_tokens": {"type": "integer", "minimum": 64, "maximum": 16384},
+        "timeout_seconds": {"type": "integer", "minimum": 30, "maximum": 900, "default": 240},
+        "fallback_models": {"type": "array", "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
       },
       "allOf": [
         {

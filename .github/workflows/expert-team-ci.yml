@@ -11,124 +11,155 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          mkdir -p artifacts
+          python -m pip freeze > artifacts/requirements-resolved.txt
 
       - name: Compile Python sources
         run: python -m compileall -q expert_team scripts tests
 
+      - name: Validate JSON source documents
+        run: |
+          python -m json.tool execution_plan.schema.json >/dev/null
+          python -m json.tool expert_team/execution_plan_form.json >/dev/null
+
       - name: Validate GPT Action OpenAPI contract
         run: ruby scripts/validate_action_schema.rb
 
-      - name: Validate DeepSeek provider separation and hard stop
+      - name: Validate one-step Controller and startup watchdog
+        run: |
+          grep -F 'operationId: submitExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
+          grep -F 'issue_comment:' .github/workflows/operation-controller.yml >/dev/null
+          grep -F "contains(github.event.comment.body, 'submit_operation')" .github/workflows/operation-controller.yml >/dev/null
+          grep -F 'scripts.operation_controller' .github/workflows/operation-controller.yml >/dev/null
+          grep -F 'startup_timeout' scripts/operation_controller.py >/dev/null
+          grep -F 'MAX_CONTROLLER_INPUT_CHARS = 45_000' scripts/operation_controller.py >/dev/null
+          if grep -F 'operationId: createOperationReceipt' gpt_action_openapi.yaml >/dev/null; then
+            echo "Two-step receipt must not remain the primary entry"
+            exit 1
+          fi
+
+      - name: Validate DeepSeek provider separation and bounded output
         run: |
           grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
           grep -F 'DEEPSEEK_API_KEY' expert_team/deepseek_official.py >/dev/null
+          grep -F 'DEFAULT_MAX_TOKENS = 12000' expert_team/deepseek_official.py >/dev/null
           grep -F 'must not route Steward requests through OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
-          grep -F 'DeepSeek unavailability is a hard stop' DEEPSEEK_STEWARD.md >/dev/null
+          grep -F 'highest technical control layer' DEEPSEEK_STEWARD.md >/dev/null
           if grep -F 'create_model_client' expert_team/deepseek_steward.py >/dev/null; then
             echo "DeepSeek Steward must not use the OpenRouter expert client"
             exit 1
           fi
           if grep -F 'create_model_client' expert_team/deepseek_top_supervisor.py >/dev/null; then
-            echo "DeepSeek top supervisor must not use the OpenRouter expert client"
+            echo "DeepSeek supervisor must not use the OpenRouter expert client"
             exit 1
           fi
-          if grep -F 'return DEFAULT_STEWARD_MODEL' expert_team/deepseek_official.py >/dev/null; then
-            echo "DeepSeek model discovery must not use a fixed-model connectivity fallback"
+
+      - name: Validate single-task idempotency and cancellation
+        run: |
+          grep -F 'Acquire global single-task execution lock' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'Record idempotent duplicate dispatch' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'Record BUSY without starting a paid task' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'steps.lock.outputs.owner_operation_id == inputs.operation_id' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'scripts.single_task_lock acquire' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'scripts.single_task_lock release' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'scripts.cancel_operation' .github/workflows/cancel-operation.yml >/dev/null
+          grep -F 'operationId: cancelExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
+          grep -F 'operationId: getOperationState' gpt_action_openapi.yaml >/dev/null
+          if grep -F 'group: expert-team-production' .github/workflows/expert-team-production.yml >/dev/null; then
+            echo "Production must use the atomic lock, not GitHub pending-run replacement"
             exit 1
           fi
-          echo "DeepSeek provider separation and hard-stop policy OK"
 
-      - name: Validate internal automatic repair loop contract
+      - name: Validate hard total budget and token controls
         run: |
-          grep -F 'scripts.managed_operation' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'scripts.repair_delivery' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'scripts.publish_runtime_result' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'one repair cycle and one retry' scripts/managed_operation.py >/dev/null
-          grep -F 'operationId: getAutoRepairResult' gpt_action_openapi.yaml >/dev/null
-          grep -F '"repairing"' scripts/managed_operation.py >/dev/null
-          grep -F '"retrying"' scripts/managed_operation.py >/dev/null
-          echo "Internal DeepSeek repair loop contract OK"
+          grep -F 'version: 1.7.0' gpt_action_openapi.yaml >/dev/null
+          grep -F 'max_total_usd' execution_plan.schema.json >/dev/null
+          grep -F 'recovery_reserve_ratio' execution_plan.schema.json >/dev/null
+          grep -F 'max_completion_tokens' execution_plan.schema.json >/dev/null
+          grep -F 'preflight_execution_plan(payload)' scripts/action_entrypoint.py >/dev/null
+          grep -F 'options={"max_tokens": max_completion_tokens}' expert_team/dynamic_team.py >/dev/null
+          grep -F 'asyncio.wait_for' expert_team/dynamic_team.py >/dev/null
+          grep -F 'reserved_recovery_budget_usd' expert_team/budget.py >/dev/null
+          grep -F 'includes_all_declared_fallback_retries' expert_team/budget.py >/dev/null
+          grep -F '_recovery_reserve_allows_whole_retry' scripts/managed_operation.py >/dev/null
+          grep -F 'validate_execution_plan(effective_plan)' scripts/supervisor_resume.py >/dev/null
+          grep -F 'preflight_execution_plan(effective_plan, execution_phase="recovery")' scripts/supervisor_resume.py >/dev/null
+          grep -F 'logical_task_recovery_budget_already_consumed' scripts/supervisor_resume.py >/dev/null
 
-      - name: Validate durable receipt and top DeepSeek supervisor
+      - name: Validate DeepSeek recovery and delivery truth
         run: |
-          grep -F 'version: 1.6.0' gpt_action_openapi.yaml >/dev/null
-          grep -F 'operationId: createOperationReceipt' gpt_action_openapi.yaml >/dev/null
-          grep -F 'issues/15/comments' gpt_action_openapi.yaml >/dev/null
-          grep -F 'receipt_comment_id:' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'run-name: expert-' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'Escalate failed production run to DeepSeek Top Supervisor' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'deepseek-supervisor.yml/dispatches' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'group: deepseek-top-supervisor' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'Run highest-level DeepSeek technical supervisor' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'scripts.top_supervisor_entrypoint' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'scripts.enrich_supervisor_packet' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'scripts.supervisor_resume' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'retry_operation_overrides' expert_team/deepseek_top_supervisor.py >/dev/null
-          grep -F 'operationId: dispatchDeepSeekSupervisor' gpt_action_openapi.yaml >/dev/null
-          grep -F 'second consecutive read' ACTION_RECOVERY.md >/dev/null
-          grep -F 'highest technical control layer' DEEPSEEK_STEWARD.md >/dev/null
-          echo "Durable receipt and DeepSeek top-supervisor contract OK"
+          grep -F 'group: deepseek-top-supervisor-' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'Execute one bounded original-operation resume' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'Publish final GPT-readable supervisor result' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F '_safe_unchanged_retry' scripts/managed_operation.py >/dev/null
+          grep -F 'Do not retry an unchanged 402' scripts/managed_operation.py >/dev/null
+          grep -F 'Direct push to main is forbidden' scripts/repair_delivery.py >/dev/null
+          grep -F 'pending_human_review' scripts/repair_delivery.py >/dev/null
+          if grep -F 'HEAD:main' scripts/repair_delivery.py >/dev/null; then
+            echo "Autonomous repair must not bypass PR delivery"
+            exit 1
+          fi
 
-      - name: Validate permanent operation status control plane
+      - name: Validate operation ledger and audit publication
         run: |
-          grep -F 'operationId: getCurrentOperationStatus' gpt_action_openapi.yaml >/dev/null
-          grep -F 'runtime_results/current_operation_status.json' gpt_action_openapi.yaml >/dev/null
-          grep -F 'CURRENT_STATUS_PATH' scripts/publish_operation_status.py >/dev/null
-          grep -F 'result_published' scripts/publish_operation_status.py >/dev/null
-          grep -F 'receipt_comment_id' scripts/publish_operation_status.py >/dev/null
-          grep -F 'supervisor_for_operation_id' scripts/publish_operation_status.py >/dev/null
-          if grep -F 'operationId: getOperationStatus' gpt_action_openapi.yaml >/dev/null; then
-            echo "Per-operation status must not remain the primary Action control plane"
-            exit 1
-          fi
+          grep -F 'runtime_results/operations' scripts/publish_operation_status.py >/dev/null
+          grep -F 'attempts' scripts/publish_operation_status.py >/dev/null
+          grep -F 'heartbeat_at' scripts/publish_operation_status.py >/dev/null
+          grep -F 'operation_audit.json' scripts/publish_runtime_result.py >/dev/null
+          grep -F 'cost_preflight.json' scripts/publish_runtime_result.py >/dev/null
+          grep -F 'model_calls.json' scripts/publish_runtime_result.py >/dev/null
+          grep -F 'operationId: getOperationAudit' gpt_action_openapi.yaml >/dev/null
+          grep -F 'operationId: getOperationCostPreflight' gpt_action_openapi.yaml >/dev/null
           if grep -F 'operationId: listExpertTeamRuns' gpt_action_openapi.yaml >/dev/null; then
-            echo "listExpertTeamRuns must not be exposed as the normal control plane"
+            echo "Run list must not be exposed as normal control"
             exit 1
           fi
+
+      - name: Validate locked dependencies and pinned Actions
+        run: |
+          grep -F -- '-r requirements.lock' requirements.txt >/dev/null
+          grep -F 'agent-framework-core==1.12.1' requirements.lock >/dev/null
+          if grep -R -E 'uses: actions/(checkout|setup-python|upload-artifact)@v[0-9]+' .github/workflows; then
+            echo "First-party Actions must be pinned to immutable commit SHAs"
+            exit 1
+          fi
+
+      - name: Validate permanent current status remains readable
+        run: |
           git fetch origin runtime-results
           git show origin/runtime-results:runtime_results/current_operation_status.json > /tmp/current_operation_status.json
           python - <<'PY'
           import json
           from pathlib import Path
           payload = json.loads(Path('/tmp/current_operation_status.json').read_text())
-          required = {'schema_version','operation_id','operation','status','run_id','receipt_comment_id','supervisor_for_operation_id','result_ready','result_published','repair_status','updated_at'}
+          required = {'schema_version','operation_id','operation','status','run_id','result_ready','result_published','repair_status','updated_at'}
           missing = required - payload.keys()
           if missing:
               raise SystemExit(f'missing permanent status fields: {sorted(missing)}')
-          if payload['status'] not in {'idle','running','repairing','retrying','success','STOP','failure'}:
+          allowed = {'idle','accepted','queued','running','repairing','retrying','BUSY','cancel_requested','cancelled','success','STOP','failure'}
+          if payload['status'] not in allowed:
               raise SystemExit(f"invalid permanent status: {payload['status']}")
-          print('Permanent current-operation status file exists and is valid')
+          print('Permanent current-operation status exists and remains backward-readable')
           PY
-          echo "Permanent operation status control plane OK"
-
-      - name: Validate tool package guardrails
-        run: |
-          grep -F 'Upstream package maintenance belongs to the upstream maintainers' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
-          grep -F 'Do not build a second package-maintenance platform inside `test2`' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
-          grep -F 'DeepSeek Steward owns **repository-side compatibility and integration problems**' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
-          grep -F 'External tool packages are governed by `TOOL_PACKAGE_GUARDRAILS.md`' DEEPSEEK_STEWARD.md >/dev/null
-          grep -F 'DeepSeek Steward owns only the `test2`-side integration' DEEPSEEK_STEWARD.md >/dev/null
-          echo "Tool package guardrail policy OK"
 
       - name: Run offline contract tests
         run: |
-          mkdir -p artifacts
           set +e
           python -m unittest discover -s tests -v 2>&1 | tee artifacts/offline_tests.log
           status=${PIPESTATUS[0]}
@@ -146,16 +177,18 @@ jobs:
         env:
           PYTHONPATH: .
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_STEWARD_MAX_TOKENS: "4096"
         run: python scripts/deepseek_steward_smoke_test.py
 
-      - name: Upload smoke result
+      - name: Upload validation evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: expert-team-smoke-result
           path: |
             artifacts/offline_tests.log
             artifacts/live_smoke_result.json
             artifacts/deepseek_steward_smoke_result.json
+            artifacts/requirements-resolved.txt
           if-no-files-found: warn
           retention-days: 7

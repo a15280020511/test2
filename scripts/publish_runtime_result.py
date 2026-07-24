@@ -6,7 +6,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from scripts.repair_utils import run_checked, safe_operation_id
+from scripts.build_operation_audit import build_audit
+from scripts.repair_utils import run_checked, safe_operation_id, write_json
 
 PUBLISH_FILES = (
     "metadata.json",
@@ -16,6 +17,15 @@ PUBLISH_FILES = (
     "auto_repair_manifest.json",
     "managed_operation.json",
     "model_intelligence_gpt.json",
+    "cost_preflight.json",
+    "effective_execution_plan.json",
+    "model_calls.json",
+    "execution_trace.json",
+    "partial_execution.json",
+    "supervisor_resume.json",
+    "single_task_lock.json",
+    "cancellation_result.json",
+    "operation_audit.json",
 )
 
 
@@ -29,6 +39,18 @@ def main() -> None:
     if not source_dir.exists():
         print("No operation artifact directory exists; nothing to publish.")
         return
+
+    try:
+        write_json(source_dir / "operation_audit.json", build_audit(operation_id))
+    except Exception as exc:
+        write_json(
+            source_dir / "operation_audit.json",
+            {
+                "schema_version": "1",
+                "operation_id": operation_id,
+                "audit_build_error": f"{type(exc).__name__}: {exc}",
+            },
+        )
 
     run_checked(["git", "config", "user.name", "github-actions[bot]"])
     run_checked(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
@@ -49,12 +71,7 @@ def main() -> None:
 
             gpt_snapshot = source_dir / "model_intelligence_gpt.json"
             if gpt_snapshot.exists():
-                # Keep the existing public Action path for backward compatibility, but
-                # publish only the new bounded/minified GPT snapshot there.
-                for latest_name in (
-                    "model_intelligence_latest.json",
-                    "model_intelligence_gpt_latest.json",
-                ):
+                for latest_name in ("model_intelligence_latest.json", "model_intelligence_gpt_latest.json"):
                     latest = worktree / "runtime_results" / latest_name
                     latest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(gpt_snapshot, latest)

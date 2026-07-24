@@ -12,10 +12,7 @@ on:
         description: Model intelligence, expert execution, or DeepSeek Steward assistance
         required: true
         type: choice
-        options:
-          - model_intelligence
-          - execute_team
-          - deepseek_steward
+        options: [model_intelligence, execute_team, deepseek_steward]
       receipt_comment_id:
         description: Optional durable receipt comment ID; workflow creates one when omitted
         required: false
@@ -27,18 +24,16 @@ on:
         default: "{}"
         type: string
       ranking_limit:
-        description: Number of models kept per ranking view for model_intelligence
+        description: Models kept per ranking view for model_intelligence
         required: false
         default: "20"
         type: string
       steward_mode:
-        description: Main workflow Steward mode; use ASSIST here and top supervisor for REPAIR
+        description: Main workflow Steward mode
         required: false
         default: ASSIST
         type: choice
-        options:
-          - ASSIST
-          - REPAIR
+        options: [ASSIST, REPAIR]
       support_packet_json:
         description: JSON Support Packet for DeepSeek Steward
         required: false
@@ -51,31 +46,62 @@ permissions:
   actions: write
   issues: write
 
-concurrency:
-  group: expert-team-production
-  cancel-in-progress: false
-
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
       receipt_comment_id: ${{ steps.receipt.outputs.receipt_comment_id }}
+      lock_acquired: ${{ steps.lock.outputs.acquired }}
+      lock_owner_operation_id: ${{ steps.lock.outputs.owner_operation_id }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
           cache: pip
 
+      - name: Acquire global single-task execution lock
+        id: lock
+        env:
+          PYTHONPATH: .
+        run: |
+          mkdir -p "artifacts/${{ inputs.operation_id }}"
+          python -m scripts.single_task_lock acquire \
+            --operation-id "${{ inputs.operation_id }}" \
+            --run-id "$GITHUB_RUN_ID" \
+            --github-output "$GITHUB_OUTPUT" \
+            | tee "artifacts/${{ inputs.operation_id }}/single_task_lock.json"
+
+      - name: Record idempotent duplicate dispatch
+        if: ${{ steps.lock.outputs.acquired != 'true' && steps.lock.outputs.owner_operation_id == inputs.operation_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          operation_id = os.environ["OPERATION_ID"]
+          target = Path("artifacts") / operation_id / "duplicate_dispatch.json"
+          target.write_text(json.dumps({
+              "operation_id": operation_id,
+              "duplicate_run_id": os.environ["GITHUB_RUN_ID"],
+              "active_run_id": os.environ.get("ACTIVE_RUN_ID"),
+              "status": "DUPLICATE",
+              "paid_execution_started": False
+          }, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+        env:
+          OPERATION_ID: ${{ inputs.operation_id }}
+          ACTIVE_RUN_ID: ${{ steps.lock.outputs.owner_run_id }}
+
       - name: Ensure durable operation receipt
         id: receipt
+        if: ${{ steps.lock.outputs.acquired == 'true' || steps.lock.outputs.owner_operation_id != inputs.operation_id }}
         env:
           GH_TOKEN: ${{ github.token }}
           PROVIDED_RECEIPT_COMMENT_ID: ${{ inputs.receipt_comment_id }}
@@ -87,25 +113,19 @@ jobs:
             echo "receipt_source=provided" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
           RECEIPT_BODY=$(jq -cn \
             --arg operation_id "$OPERATION_ID" \
             --arg operation "$OPERATION" \
             --arg run_id "$GITHUB_RUN_ID" \
             '{operation_id:$operation_id,operation:$operation,task_label:"auto-created by production workflow",run_id:$run_id,source:"server-side-fallback"}')
-          RESPONSE=$(gh api \
-            --method POST \
-            "/repos/${GITHUB_REPOSITORY}/issues/15/comments" \
-            -f body="$RECEIPT_BODY")
+          RESPONSE=$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/15/comments" -f body="$RECEIPT_BODY")
           RECEIPT_ID=$(printf '%s' "$RESPONSE" | jq -r '.id // empty')
-          if [ -z "$RECEIPT_ID" ]; then
-            echo "Durable receipt creation returned no comment id" >&2
-            exit 1
-          fi
+          test -n "$RECEIPT_ID" || { echo "Durable receipt creation returned no comment id" >&2; exit 1; }
           echo "receipt_comment_id=$RECEIPT_ID" >> "$GITHUB_OUTPUT"
           echo "receipt_source=server-side-fallback" >> "$GITHUB_OUTPUT"
 
-      - name: Publish running operation status
+      - name: Publish accepted operation ledger record
+        if: ${{ steps.lock.outputs.acquired == 'true' || steps.lock.outputs.owner_operation_id != inputs.operation_id }}
         env:
           PYTHONPATH: .
         run: |
@@ -113,34 +133,75 @@ jobs:
             --operation-id "${{ inputs.operation_id }}" \
             --operation "${{ inputs.operation }}" \
             --receipt-comment-id "${{ steps.receipt.outputs.receipt_comment_id }}" \
-            --phase start
+            --phase accepted \
+            --active-step single_task_gate \
+            --current-policy never
+
+      - name: Record BUSY without starting a paid task
+        if: ${{ steps.lock.outputs.acquired != 'true' && steps.lock.outputs.owner_operation_id != inputs.operation_id }}
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "${{ inputs.operation }}" \
+            --receipt-comment-id "${{ steps.receipt.outputs.receipt_comment_id }}" \
+            --phase busy \
+            --active-step single_task_gate \
+            --detail "Another operation owns the single-task lock: ${{ steps.lock.outputs.owner_operation_id }}" \
+            --current-policy never
+
+      - name: Publish running operation status
+        if: ${{ steps.lock.outputs.acquired == 'true' }}
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "${{ inputs.operation }}" \
+            --receipt-comment-id "${{ steps.receipt.outputs.receipt_comment_id }}" \
+            --phase start \
+            --active-step dependency_setup \
+            --current-policy always
 
       - name: Install dependencies
+        if: ${{ steps.lock.outputs.acquired == 'true' }}
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Prepare repository context
+        if: ${{ steps.lock.outputs.acquired == 'true' }}
         run: git fetch origin runtime-results || true
 
       - name: Execute managed operation with automatic DeepSeek repair
+        if: ${{ steps.lock.outputs.acquired == 'true' }}
         env:
           PYTHONPATH: .
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_STEWARD_MAX_TOKENS: "8000"
+          EXPERT_TEAM_MAX_BUDGET_USD: "10"
           PLAN_JSON: ${{ inputs.plan_json }}
           SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
           RECEIPT_COMMENT_ID: ${{ steps.receipt.outputs.receipt_comment_id }}
         run: |
-          python -m scripts.managed_operation \
-            --operation "${{ inputs.operation }}" \
+          python -m scripts.run_with_heartbeat \
             --operation-id "${{ inputs.operation_id }}" \
-            --plan-json "$PLAN_JSON" \
-            --ranking-limit "${{ inputs.ranking_limit }}" \
-            --steward-mode "${{ inputs.steward_mode }}" \
-            --support-packet-json "$SUPPORT_PACKET_JSON"
+            --operation "${{ inputs.operation }}" \
+            --run-id "$GITHUB_RUN_ID" \
+            --active-step managed_operation \
+            --interval-seconds 120 \
+            -- python -m scripts.managed_operation \
+              --operation "${{ inputs.operation }}" \
+              --operation-id "${{ inputs.operation_id }}" \
+              --plan-json "$PLAN_JSON" \
+              --ranking-limit "${{ inputs.ranking_limit }}" \
+              --steward-mode "${{ inputs.steward_mode }}" \
+              --support-packet-json "$SUPPORT_PACKET_JSON"
 
       - name: Deliver verified DeepSeek repair
+        if: ${{ steps.lock.outputs.acquired == 'true' && success() }}
         env:
           PYTHONPATH: .
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -148,24 +209,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python -m scripts.repair_delivery --operation-id "${{ inputs.operation_id }}"
 
-      - name: Upload result artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: expert-team-${{ inputs.operation_id }}
-          path: artifacts/${{ inputs.operation_id }}/
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Publish GPT-readable JSON result
+      - name: Publish GPT-readable result and preliminary audit
         id: publish_result
-        if: always()
+        if: ${{ always() && (steps.lock.outputs.acquired == 'true' || steps.lock.outputs.owner_operation_id != inputs.operation_id) }}
         env:
           PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
         run: python -m scripts.publish_runtime_result --operation-id "${{ inputs.operation_id }}"
 
+      - name: Release global single-task execution lock
+        id: release_lock
+        if: ${{ always() && steps.lock.outputs.acquired == 'true' }}
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.single_task_lock release \
+            --operation-id "${{ inputs.operation_id }}" \
+            --run-id "$GITHUB_RUN_ID"
+
       - name: Publish final operation status
-        if: always()
+        if: ${{ always() && steps.lock.outputs.acquired == 'true' }}
         env:
           PYTHONPATH: .
         run: |
@@ -174,8 +237,26 @@ jobs:
             --operation "${{ inputs.operation }}" \
             --receipt-comment-id "${{ steps.receipt.outputs.receipt_comment_id }}" \
             --phase final \
+            --active-step completed \
             --job-status "${{ job.status }}" \
-            --result-published "${{ steps.publish_result.outcome }}"
+            --result-published "${{ steps.publish_result.outcome }}" \
+            --current-policy if-owner
+
+      - name: Build final local operation audit
+        if: ${{ always() && steps.lock.outputs.acquired == 'true' }}
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.build_operation_audit --operation-id "${{ inputs.operation_id }}"
+
+      - name: Upload complete result artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: expert-team-${{ inputs.operation_id }}
+          path: artifacts/${{ inputs.operation_id }}/
+          if-no-files-found: error
+          retention-days: 7
 
   escalate_to_deepseek:
     name: Escalate failed production run to DeepSeek Top Supervisor
@@ -213,13 +294,13 @@ jobs:
             --arg original_plan_json "$ORIGINAL_PLAN_JSON" \
             --arg original_ranking_limit "$ORIGINAL_RANKING_LIMIT" \
             --arg original_support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
-            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Top-level supervisor: diagnose and recover a failed production workflow, including failures outside managed_operation and recoverable provider/resource limits.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or one of its infrastructure steps",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Preserve user intent","Repair repository-side faults when evidence supports them","For recoverable OpenRouter resource or model failures, prefer safe retry_operation_overrides instead of stopping","Resume or redispatch the original operation at most once"],requested_outcome:"Restore repository operation and safely resume the original task."}')
+            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Diagnose and recover a failed production workflow, including lock, budget, provider, validation, publication, and integration faults.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or infrastructure",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Preserve user intent","Respect the original logical-task budget","Validate every replacement plan","Resume at most once"],requested_outcome:"Restore the operation through safe validated budget-compliant recovery."}')
           PAYLOAD=$(jq -cn \
             --arg operation_id "$SUPERVISOR_ID" \
             --arg original_operation_id "$ORIGINAL_OPERATION_ID" \
             --arg failed_run_id "$GITHUB_RUN_ID" \
             --arg receipt_comment_id "$ORIGINAL_RECEIPT_COMMENT_ID" \
-            --arg failure_class "workflow_failure" \
+            --arg failure_class workflow_failure \
             --arg support_packet_json "$SUPPORT_PACKET_JSON" \
             --arg retry_dispatch_json "$RETRY_DISPATCH_JSON" \
             '{ref:"main",inputs:{operation_id:$operation_id,original_operation_id:$original_operation_id,failed_run_id:$failed_run_id,receipt_comment_id:$receipt_comment_id,failure_class:$failure_class,support_packet_json:$support_packet_json,retry_dispatch_json:$retry_dispatch_json}}')

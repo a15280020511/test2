@@ -1,12 +1,11 @@
 openapi: 3.1.0
 
 info:
-  title: test2 Dynamic Expert Team and DeepSeek Top Supervisor Action
-  version: 1.6.0
+  title: test2 Single-Task Expert Team and DeepSeek Supervisor Action
+  version: 1.7.0
   description: >-
-    Web GPT owns user intent. DeepSeek is the highest technical layer. Every production task
-    gets a durable receipt before dispatch. Technical anomalies route to an independent
-    DeepSeek supervisor. Run, Job, Step, Artifact, and per-operation records are audit-only.
+    Normal submission is one structured Issue comment. GitHub creates the receipt, dispatches the
+    Worker, enforces one paid task, budgets calls, watches startup, and escalates faults to DeepSeek.
 
 servers:
   - url: https://api.github.com
@@ -14,11 +13,11 @@ servers:
 paths:
   /repos/a15280020511/test2/issues/15/comments:
     post:
-      operationId: createOperationReceipt
-      summary: Create durable receipt before production dispatch
+      operationId: submitExpertTeamOperation
+      summary: Submit one complete operation through the durable controller
       description: >-
-        First step for every production task. Post a compact JSON receipt containing operation_id,
-        operation, and a short task label. Keep the returned comment id as receipt_comment_id.
+        Primary entry. Post compact JSON in body with command=submit_operation, operation_id,
+        operation, task_label, and plan_json. Do not call direct dispatch after this returns 201.
       requestBody:
         required: true
         content:
@@ -29,10 +28,12 @@ paths:
               properties:
                 body:
                   type: string
-                  description: Compact JSON receipt. Never include secrets.
+                  description: >-
+                    Compact JSON command. plan_json and support_packet_json may be embedded objects.
+                    Default task budget is USD 1.00 with 30 percent reserved for recovery.
       responses:
         "201":
-          description: Durable receipt comment created.
+          description: Durable submission comment created; Operation Controller continues asynchronously.
           content:
             application/json:
               schema:
@@ -41,82 +42,49 @@ paths:
   /repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json:
     get:
       operationId: getOpenRouterModels
-      summary: Read latest GPT-sized OpenRouter model intelligence
+      summary: Read bounded current OpenRouter model intelligence
       description: >-
-        Call with ref=runtime-results. On first 404 create a receipt and dispatch model_intelligence.
-        Track through getCurrentOperationStatus. Startup timeout routes to DeepSeek supervisor.
+        Call with ref=runtime-results. Use current pricing and capabilities when planning. When absent,
+        submit one model_intelligence command through submitExpertTeamOperation.
       parameters:
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Bounded model intelligence snapshot for Web GPT planning.
+          description: Bounded model planning snapshot.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: Snapshot absent; create receipt, dispatch refresh, then use permanent status.
+          description: Snapshot absent; submit model_intelligence and track getOperationState.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
-      summary: Read authoritative Execution Plan JSON Schema
-      description: >-
-        Call with ref=main. Any true technical read or parse failure routes to DeepSeek supervisor.
-        This endpoint is not used to infer queued or running task state.
+      summary: Read the hard Execution Plan JSON Schema
+      description: Read with ref=main. Runtime enforces it before every paid expert call and recovery.
       parameters:
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [main]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/MainRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Raw Execution Plan JSON Schema.
+          description: Execution Plan JSON Schema.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExecutionPlanSchemaDocument"
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/contents/DEEPSEEK_STEWARD.md:
     get:
       operationId: getDeepSeekStewardPolicy
-      summary: Read highest-level DeepSeek Steward policy
-      description: Read mandatory top-supervisor, repair, provider, durable-receipt, and STOP rules.
+      summary: Read the highest-level DeepSeek technical policy
       parameters:
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [main]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/MainRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: DeepSeek Steward policy document.
+          description: DeepSeek policy text.
           content:
             text/plain:
               schema:
@@ -125,24 +93,13 @@ paths:
   /repos/a15280020511/test2/contents/ACTION_RECOVERY.md:
     get:
       operationId: getActionRecoveryPolicy
-      summary: Read durable-receipt and automatic recovery policy
-      description: Read mandatory receipt, startup-timeout, top-supervisor, retry, and STOP rules.
+      summary: Read control, budget, cancellation, and recovery policy
       parameters:
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [main]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/MainRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Automatic recovery and control-plane policy.
+          description: Recovery policy text.
           content:
             text/plain:
               schema:
@@ -151,10 +108,10 @@ paths:
   /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
     post:
       operationId: dispatchExpertTeamOperation
-      summary: Dispatch production model intelligence or expert team
+      summary: Advanced direct production dispatch
       description: >-
-        Requires a durable receipt_comment_id created first. After HTTP 204 poll current status.
-        Two consecutive mismatched or idle reads trigger DeepSeek supervisor, not user-task failure.
+        Internal recovery or advanced fallback only. Normal Web GPT uses submitExpertTeamOperation.
+        Never call both for one operation_id. Poll getOperationState after HTTP 204.
       requestBody:
         required: true
         content:
@@ -168,21 +125,19 @@ paths:
                   enum: [main]
                 inputs:
                   type: object
-                  required: [operation_id, operation, receipt_comment_id]
+                  required: [operation_id, operation]
                   properties:
                     operation_id:
                       type: string
-                      description: Unique correlation ID generated by Web GPT.
                     operation:
                       type: string
                       enum: [model_intelligence, execute_team, deepseek_steward]
                     receipt_comment_id:
                       type: string
-                      description: Comment id returned by createOperationReceipt.
+                      default: ""
                     plan_json:
                       type: string
                       default: "{}"
-                      description: Stringified Execution Plan JSON for execute_team.
                     ranking_limit:
                       type: string
                       default: "20"
@@ -193,18 +148,48 @@ paths:
                     support_packet_json:
                       type: string
                       default: "{}"
-                      description: Stringified Support Packet with available evidence.
       responses:
         "204":
-          description: Production workflow dispatch accepted; start polling permanent current status.
+          description: Direct dispatch accepted; poll getOperationState.
+
+  /repos/a15280020511/test2/actions/workflows/cancel-operation.yml/dispatches:
+    post:
+      operationId: cancelExpertTeamOperation
+      summary: Cancel a queued or running operation by operation_id
+      description: >-
+        User cancellation. Server finds matching active Runs, cancels them, releases the lock, and
+        records cancelled. A user cancellation never triggers DeepSeek repair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ref, inputs]
+              properties:
+                ref:
+                  type: string
+                  enum: [main]
+                inputs:
+                  type: object
+                  required: [operation_id]
+                  properties:
+                    operation_id:
+                      type: string
+                    reason:
+                      type: string
+                      default: user_requested
+      responses:
+        "204":
+          description: Cancellation accepted; poll getOperationState.
 
   /repos/a15280020511/test2/actions/workflows/deepseek-supervisor.yml/dispatches:
     post:
       operationId: dispatchDeepSeekSupervisor
-      summary: Dispatch highest-level independent DeepSeek technical supervisor
+      summary: Dispatch the independent DeepSeek technical supervisor
       description: >-
-        Use for every technical anomaly, including startup timeout, Action-edge, workflow,
-        control-plane, publication, and integration failures. DeepSeek official API only.
+        Manual Action-edge fallback. The Operation Controller and failed production Workflow normally
+        escalate automatically. DeepSeek preserves intent and the original logical-task budget.
       requestBody:
         required: true
         content:
@@ -222,76 +207,71 @@ paths:
                   properties:
                     operation_id:
                       type: string
-                      description: Unique supervisor operation ID.
                     original_operation_id:
                       type: string
-                      description: Original user-task operation ID being supervised.
                     failed_run_id:
                       type: string
                       default: ""
-                      description: Known failed production Run ID when available.
                     receipt_comment_id:
                       type: string
                       default: ""
-                      description: Durable receipt comment ID for the original operation.
                     failure_class:
                       type: string
-                      description: Technical failure class such as startup_timeout or workflow_failure.
                     support_packet_json:
                       type: string
-                      description: Stringified evidence-based DeepSeek REPAIR Support Packet.
                     retry_dispatch_json:
                       type: string
                       default: "{}"
-                      description: Original production dispatch payload for one bounded safe resume.
       responses:
         "204":
-          description: Independent DeepSeek supervisor dispatch accepted.
+          description: Supervisor dispatch accepted.
 
-  /repos/a15280020511/test2/contents/runtime_results/current_operation_status.json:
+  /repos/a15280020511/test2/contents/runtime_results/operations/{operation_id}/state.json:
     get:
-      operationId: getCurrentOperationStatus
-      summary: Read permanent current operation control status
+      operationId: getOperationState
+      summary: Read authoritative state for one operation
       description: >-
-        Primary control read. HTTP 200 is expected. After production dispatch, two consecutive
-        reads whose operation_id does not match the submitted ID must trigger DeepSeek supervisor.
+        Primary control endpoint. Poll the submitted operation_id. BUSY means another operation owns
+        the only paid-task lock; no queue or paid call was created for this task.
       parameters:
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Permanent small current-operation status object.
+          description: Per-operation control state.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OperationStatus"
         "404":
-          description: Control-plane defect; immediately route to DeepSeek supervisor.
+          description: Controller ledger not visible yet; retry briefly before manual supervision.
+
+  /repos/a15280020511/test2/contents/runtime_results/current_operation_status.json:
+    get:
+      operationId: getCurrentOperationStatus
+      summary: Read current active-operation dashboard
+      description: Dashboard only. Use getOperationState for the submitted operation and cancellation.
+      parameters:
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
+      responses:
+        "200":
+          description: Current active-operation dashboard.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationStatus"
 
   /repos/a15280020511/test2/actions/runs/{run_id}:
     get:
       operationId: getExpertTeamRun
-      summary: Get one workflow run for audit
-      description: Audit-only. Obtain run_id from matching current status; never use run lists for control.
+      summary: Read one known Run for audit
       parameters:
-        - name: run_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/RunId"
       responses:
         "200":
-          description: Workflow run details.
+          description: Run details.
           content:
             application/json:
               schema:
@@ -300,182 +280,149 @@ paths:
   /repos/a15280020511/test2/actions/runs/{run_id}/jobs:
     get:
       operationId: getExpertTeamRunJobs
-      summary: Get jobs and steps for audit
-      description: Audit-only. Read jobs and step statuses for one known production or supervisor run.
+      summary: Read Jobs and Steps for one known Run
       parameters:
-        - name: run_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/RunId"
       responses:
         "200":
-          description: Jobs and step statuses.
+          description: Jobs and steps.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobsResponse"
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/actions/runs/{run_id}/artifacts:
     get:
       operationId: listExpertTeamRunArtifacts
-      summary: List audit artifacts for one known run
-      description: Audit-only. Use run_id from matching current status or known audit evidence.
+      summary: List artifacts for one known Run
       parameters:
-        - name: run_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/RunId"
       responses:
         "200":
-          description: Artifacts for the Run.
+          description: Run artifacts.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ArtifactsResponse"
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/expert_team_result.json:
     get:
       operationId: getExpertTeamResult
-      summary: Read final expert-team JSON result
-      description: >-
-        Read only when current status matches operation_id, status=success, and result_ready=true.
-        Any contradiction or missing expected result routes to DeepSeek supervisor.
+      summary: Read final expert-team result
       parameters:
-        - name: operation_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Expert-team execution result.
+          description: Expert-team result.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExpertTeamResult"
+                $ref: "#/components/schemas/FreeObject"
         "404":
-          description: Result is not ready, operation_id is wrong, or publication needs supervision.
+          description: Result is not published or operation is not successful.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json:
     get:
       operationId: getDeepSeekStewardResult
-      summary: Read DeepSeek Steward ASSIST or top-supervisor REPAIR result
-      description: >-
-        Read after matching Steward or supervisor operation reaches a terminal state. Resume only
-        when result says READY. Official DeepSeek failure is STOP; never use OpenRouter fallback.
+      summary: Read DeepSeek Steward or Supervisor result
       parameters:
-        - name: operation_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: DeepSeek Steward result.
+          description: DeepSeek result.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeepSeekStewardResult"
-        "404":
-          description: Steward result is not ready or operation_id is incorrect.
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json:
     get:
       operationId: getAutoRepairResult
-      summary: Read automatic DeepSeek repair evidence
-      description: Read repair evidence after a terminal matching operation when auto-repair occurred.
+      summary: Read internal DeepSeek diagnosis and retry evidence
       parameters:
-        - name: operation_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Automatic repair result and delivery state.
+          description: Internal repair evidence.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AutoRepairResult"
-        "404":
-          description: No automatic repair evidence exists for this operation.
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/metadata.json:
     get:
       operationId: getExpertTeamOperationMetadata
-      summary: Read published operation metadata
-      description: Optional audit detail read after the matching operation reaches a terminal state.
+      summary: Read operation metadata
       parameters:
-        - name: operation_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: ref
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [runtime-results]
-        - name: Accept
-          in: header
-          required: false
-          schema:
-            type: string
-            default: application/vnd.github.raw+json
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
           description: Operation metadata.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OperationMetadata"
-        "404":
-          description: Metadata is not ready or operation_id is incorrect.
+                $ref: "#/components/schemas/FreeObject"
+
+  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/cost_preflight.json:
+    get:
+      operationId: getOperationCostPreflight
+      summary: Read worst-case budget preflight
+      parameters:
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
+      responses:
+        "200":
+          description: Budget, reserve, model prices, token ceilings, retries, and fallbacks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FreeObject"
+
+  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/operation_audit.json:
+    get:
+      operationId: getOperationAudit
+      summary: Read consolidated operation audit
+      parameters:
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
+      responses:
+        "200":
+          description: Attempts, Runs, provenance, budget, calls, recovery, and result audit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FreeObject"
+
+  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/cancellation_result.json:
+    get:
+      operationId: getCancellationResult
+      summary: Read cancellation evidence
+      parameters:
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/RuntimeRef"
+        - $ref: "#/components/parameters/RawAccept"
+      responses:
+        "200":
+          description: Matching Runs, cancel actions, and lock-release result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FreeObject"
 
   /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
     get:
       operationId: downloadExpertTeamArtifact
-      summary: Download optional audit artifact ZIP
-      description: Optional audit evidence. Prefer runtime-result JSON for normal result reading.
+      summary: Download an audit artifact ZIP
       parameters:
         - name: artifact_id
           in: path
@@ -484,17 +431,57 @@ paths:
             type: integer
       responses:
         "200":
-          description: Artifact ZIP archive.
+          description: Artifact ZIP.
           content:
             application/zip:
               schema:
                 type: string
                 format: binary
         "302":
-          description: Redirect to temporary artifact download URL.
+          description: Redirect to a temporary artifact URL.
 
 components:
+  parameters:
+    RuntimeRef:
+      name: ref
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [runtime-results]
+    MainRef:
+      name: ref
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [main]
+    RawAccept:
+      name: Accept
+      in: header
+      required: false
+      schema:
+        type: string
+        default: application/vnd.github.raw+json
+    OperationId:
+      name: operation_id
+      in: path
+      required: true
+      schema:
+        type: string
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
   schemas:
+    FreeObject:
+      type: object
+      properties: {}
+      additionalProperties: true
+
     OperationReceiptComment:
       type: object
       properties:
@@ -519,34 +506,13 @@ components:
           type: string
         selection_rule:
           type: string
+        ranking_limit:
+          type: integer
         rankings:
           type: object
           properties: {}
           additionalProperties: true
         models:
-          type: object
-          properties: {}
-          additionalProperties: true
-      additionalProperties: true
-
-    ExecutionPlanSchemaDocument:
-      type: object
-      properties:
-        $schema:
-          type: string
-        $id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        required:
-          type: array
-          items:
-            type: string
-        properties:
           type: object
           properties: {}
           additionalProperties: true
@@ -563,9 +529,11 @@ components:
           type: [string, "null"]
         status:
           type: string
-          enum: [idle, running, repairing, retrying, success, STOP, failure]
+          enum: [idle, accepted, queued, running, repairing, retrying, BUSY, cancel_requested, cancelled, success, STOP, failure]
         run_id:
           type: [string, "null"]
+        attempt:
+          type: integer
         receipt_comment_id:
           type: [string, "null"]
         supervisor_for_operation_id:
@@ -576,8 +544,18 @@ components:
           type: boolean
         repair_status:
           type: string
+        active_step:
+          type: [string, "null"]
+        heartbeat_at:
+          type: string
         updated_at:
           type: string
+        cancel_requested:
+          type: boolean
+        busy_owner_operation_id:
+          type: [string, "null"]
+        busy_owner_run_id:
+          type: [string, "null"]
       additionalProperties: true
 
     WorkflowRun:
@@ -593,194 +571,9 @@ components:
           type: string
         conclusion:
           type: [string, "null"]
-        event:
-          type: string
         run_number:
           type: integer
         html_url:
-          type: string
-      additionalProperties: true
-
-    JobsResponse:
-      type: object
-      properties:
-        total_count:
-          type: integer
-        jobs:
-          type: array
-          items:
-            $ref: "#/components/schemas/WorkflowJob"
-      additionalProperties: true
-
-    WorkflowJob:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        status:
-          type: string
-        conclusion:
-          type: [string, "null"]
-        steps:
-          type: array
-          items:
-            $ref: "#/components/schemas/WorkflowStep"
-      additionalProperties: true
-
-    WorkflowStep:
-      type: object
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-        conclusion:
-          type: [string, "null"]
-        number:
-          type: integer
-      additionalProperties: true
-
-    ArtifactsResponse:
-      type: object
-      properties:
-        total_count:
-          type: integer
-        artifacts:
-          type: array
-          items:
-            $ref: "#/components/schemas/Artifact"
-      additionalProperties: true
-
-    Artifact:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        size_in_bytes:
-          type: integer
-        expired:
-          type: boolean
-        archive_download_url:
-          type: string
-      additionalProperties: true
-
-    ExpertTeamResult:
-      type: object
-      properties:
-        plan_source:
-          type: string
-        plan:
-          type: object
-          properties: {}
-          additionalProperties: true
-        stage_outputs:
-          type: object
-          properties: {}
-          additionalProperties: true
-        red_team_output:
-          type: [string, "null"]
-        final_answer:
-          type: [string, "null"]
-      additionalProperties: true
-
-    DeepSeekStewardResult:
-      type: object
-      properties:
-        mode:
-          type: string
-        status:
-          type: string
-        decision:
-          type: string
-        diagnosis:
-          type: string
-        confidence:
-          type: number
-        guidance:
-          type: array
-          items:
-            type: string
-        message_to_web_gpt:
-          type: string
-        resume:
-          type: string
-        steward_model:
-          type: string
-        steward_provider:
-          type: string
-        repair_application:
-          type: object
-          properties: {}
-          additionalProperties: true
-        repair_delivery:
-          type: object
-          properties: {}
-          additionalProperties: true
-        supervisor_resume:
-          type: object
-          properties: {}
-          additionalProperties: true
-      additionalProperties: true
-
-    AutoRepairResult:
-      type: object
-      properties:
-        mode:
-          type: string
-        decision:
-          type: string
-        diagnosis:
-          type: string
-        confidence:
-          type: number
-        resume:
-          type: string
-        steward_model:
-          type: string
-        steward_provider:
-          type: string
-        verification:
-          type: string
-        retry:
-          type: object
-          properties: {}
-          additionalProperties: true
-        repair_application:
-          type: object
-          properties: {}
-          additionalProperties: true
-        repair_delivery:
-          type: object
-          properties: {}
-          additionalProperties: true
-      additionalProperties: true
-
-    OperationMetadata:
-      type: object
-      properties:
-        operation_id:
-          type: string
-        operation:
-          type: string
-        steward_mode:
-          type: string
-        status:
-          type: string
-        result_file:
-          type: string
-        readable_result_file:
-          type: string
-        steward_decision:
-          type: string
-        steward_resume:
-          type: string
-        error_type:
-          type: string
-        error:
           type: string
       additionalProperties: true
 

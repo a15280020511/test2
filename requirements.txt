@@ -1,7 +1,2 @@
-# Expert-team execution core
-agent-framework-core>=1.11,<2
-agent-framework-openai>=1.10,<2
-
-# OpenRouter official Python SDK: read-only model intelligence/catalog layer.
-# Keep inference for the expert team on Microsoft Agent Framework to avoid dual runtimes.
-openrouter>=1.0,<2
+# Production and CI install the exact dependency graph validated in requirements.lock.
+-r requirements.lock

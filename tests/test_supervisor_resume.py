@@ -9,6 +9,28 @@ from unittest.mock import patch
 
 from scripts.supervisor_resume import _plan_resume
 
+SELECTION_POLICY = (
+    "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；"
+    "随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；"
+    "重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，必须具体问题具体分析。"
+)
+
+
+def base_plan(task: str = "same task") -> dict:
+    return {
+        "version": "1",
+        "selection_policy": SELECTION_POLICY,
+        "task": task,
+        "rationale": "original",
+        "budget": {"max_total_usd": 1.0, "recovery_reserve_ratio": 0.3},
+        "experts": [
+            {"name": "expert", "mission": "analyze", "instructions": "use evidence", "model": "provider/model-a"}
+        ],
+        "stages": [{"id": "s1", "mode": "parallel", "members": ["expert"], "input_from": ["task"]}],
+        "red_team": {"enabled": False, "name": "red", "model": "", "instructions": ""},
+        "judge": {"enabled": False, "name": "judge", "model": "", "instructions": ""},
+    }
+
 
 class SupervisorResumeTests(unittest.TestCase):
     def _run_plan(
@@ -16,6 +38,8 @@ class SupervisorResumeTests(unittest.TestCase):
         runs: list[dict],
         failed_run_id: str = "",
         retry_operation_overrides: dict | None = None,
+        original_plan: dict | None = None,
+        recovery_consumed: bool = False,
     ) -> dict:
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
@@ -28,6 +52,7 @@ class SupervisorResumeTests(unittest.TestCase):
                         {
                             "resume": "READY",
                             "decision": "NO_EDIT",
+                            "diagnosis": "budget recovery",
                             "retry_operation_overrides": retry_operation_overrides or {},
                         }
                     ),
@@ -40,12 +65,32 @@ class SupervisorResumeTests(unittest.TestCase):
                             "operation_id": "op-1",
                             "operation": "execute_team",
                             "receipt_comment_id": "55",
-                            "plan_json": "{}",
+                            "plan_json": json.dumps(original_plan or base_plan()),
                             "ranking_limit": "20",
                         },
                     }
                 )
-                with patch("scripts.supervisor_resume._matching_runs", return_value=runs):
+                with (
+                    patch("scripts.supervisor_resume._matching_runs", return_value=runs),
+                    patch(
+                        "scripts.supervisor_resume._published_recovery_evidence",
+                        return_value={
+                            "consumed": recovery_consumed,
+                            "managed_attempts": 2 if recovery_consumed else 1,
+                            "effective_plan_source": "deepseek_top_supervisor" if recovery_consumed else "web_gpt",
+                            "reason": "test",
+                        },
+                    ),
+                    patch(
+                        "scripts.supervisor_resume.preflight_execution_plan",
+                        return_value={
+                            "within_budget": True,
+                            "execution_phase": "recovery",
+                            "estimated_worst_case_usd": 0.2,
+                            "available_execution_budget_usd": 0.3,
+                        },
+                    ),
+                ):
                     plan = _plan_resume(
                         supervisor_operation_id="sup-1",
                         original_operation_id="op-1",
@@ -58,25 +103,41 @@ class SupervisorResumeTests(unittest.TestCase):
                 os.chdir(previous)
         return plan
 
-    def test_missing_run_allows_one_resume(self) -> None:
+    def test_missing_run_allows_one_recovery_resume(self) -> None:
         plan = self._run_plan([])
         self.assertEqual(plan["action"], "dispatch")
+        self.assertEqual(plan["reason"], "validated_recovery_budget_available")
+        self.assertEqual(
+            plan["applied_retry_overrides"]["plan_json"],
+            "unchanged_validated_recovery_budget_compliant",
+        )
 
-    def test_deepseek_plan_override_is_applied_before_resume(self) -> None:
-        replacement_plan = {
-            "task": "same task",
-            "rationale": "lower-cost technical retry",
-            "experts": [],
-            "stages": [],
-        }
+    def test_deepseek_plan_override_is_validated_and_provenance_added(self) -> None:
+        original_plan = base_plan()
+        replacement_plan = json.loads(json.dumps(original_plan))
+        replacement_plan["rationale"] = "lower-cost technical retry"
+        replacement_plan["experts"][0]["max_completion_tokens"] = 512
         plan = self._run_plan(
             [],
             retry_operation_overrides={"plan_json": replacement_plan, "ranking_limit": "8"},
+            original_plan=original_plan,
         )
         payload = plan["retry_dispatch_payload"]
+        effective = json.loads(payload["inputs"]["plan_json"])
         self.assertEqual(payload["inputs"]["ranking_limit"], "8")
-        self.assertEqual(json.loads(payload["inputs"]["plan_json"]), replacement_plan)
-        self.assertEqual(plan["applied_retry_overrides"]["plan_json"], "replaced")
+        self.assertEqual(effective["provenance"]["effective_plan_source"], "deepseek_top_supervisor")
+        self.assertEqual(effective["provenance"]["supervisor_operation_id"], "sup-1")
+        self.assertEqual(
+            plan["applied_retry_overrides"]["plan_json"],
+            "replaced_validated_recovery_budget_compliant",
+        )
+
+    def test_replacement_cannot_change_user_task(self) -> None:
+        original = base_plan("original task")
+        replacement = json.loads(json.dumps(original))
+        replacement["task"] = "changed task"
+        with self.assertRaisesRegex(RuntimeError, "changed the user's substantive task"):
+            self._run_plan([], retry_operation_overrides={"plan_json": replacement}, original_plan=original)
 
     def test_active_matching_run_blocks_duplicate(self) -> None:
         plan = self._run_plan(
@@ -92,15 +153,22 @@ class SupervisorResumeTests(unittest.TestCase):
         )
         self.assertEqual(plan["action"], "dispatch")
 
-    def test_two_matching_runs_block_third_dispatch(self) -> None:
+    def test_raw_failed_run_count_does_not_consume_budget(self) -> None:
         plan = self._run_plan(
             [
                 {"id": 100, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"},
                 {"id": 101, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"},
             ]
         )
+        self.assertEqual(plan["action"], "dispatch")
+
+    def test_actual_prior_recovery_blocks_second_recovery_budget(self) -> None:
+        plan = self._run_plan(
+            [{"id": 100, "status": "completed", "conclusion": "failure", "display_title": "expert-op-1-execute_team"}],
+            recovery_consumed=True,
+        )
         self.assertEqual(plan["action"], "none")
-        self.assertEqual(plan["reason"], "bounded_retry_limit_reached")
+        self.assertEqual(plan["reason"], "logical_task_recovery_budget_already_consumed")
 
 
 if __name__ == "__main__":

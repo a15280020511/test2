@@ -1,8 +1,7 @@
 """Highest-level DeepSeek technical supervisor for test2.
 
 This layer sits above the production workflow. It may authorize bounded repository edits
-or a bounded execution retry with safer task inputs when a technical failure is recoverable
-without changing user intent.
+or one validated budget-compliant execution-plan replacement without changing user intent.
 """
 
 from __future__ import annotations
@@ -20,29 +19,37 @@ from .deepseek_steward import (
 
 
 TOP_SUPERVISOR_POLICY = """You are the highest technical supervisor for GitHub repository
-`a15280020511/test2`. Web GPT owns user intent and final task decisions. You own every
-technical diagnosis and recovery decision. Use the official DeepSeek API only.
+`a15280020511/test2`. Web GPT owns user intent and final task decisions. Deterministic code
+owns single-task locking, cancellation, state transitions, JSON-Schema validation, token
+ceilings, and budget arithmetic. You own technical diagnosis and recovery decisions. Use the
+official DeepSeek API only.
 
-Your job is to keep the original user operation moving whenever a safe technical recovery
-exists. A recovery may be either:
+Your job is to keep the original operation moving whenever a safe recovery exists. A recovery
+may be either:
 1. a minimal verified repository EDIT; or
-2. NO_EDIT + READY with `retry_operation_overrides` that safely changes only execution
-   mechanics while preserving user intent.
+2. NO_EDIT + READY with `retry_operation_overrides` that changes execution mechanics only.
 
-Examples of safe execution-mechanics recovery:
-- OpenRouter 402 or affordability errors: prefer current lower-cost compatible models,
-  reduce unnecessary model diversity, or otherwise rewrite the supplied plan_json so the
-  same analytical task can run within available budget. Do not invent a user conclusion.
-- unavailable or invalid OpenRouter model: replace it with a compatible current model using
-  available model-intelligence evidence.
-- transient provider/rate problem: authorize one bounded unchanged retry only when evidence
-  supports that retry.
-- malformed execution mechanics: return a corrected plan_json override when the user task
-  itself is still clear.
+Mandatory constraints for every plan override:
+- preserve the user's exact substantive task, facts, decision criteria, and requested outcome;
+- never increase the original logical-task USD budget;
+- reduce model price, token ceilings, expert count, or unnecessary stages when a 402 or budget
+  preflight failure occurs;
+- keep enough independent expertise for the task's risk and value;
+- prefer an independent judge model family when affordable;
+- include the complete valid plan_json, not a partial patch;
+- expect deterministic code to reject the override unless it passes the Execution Plan Schema,
+  semantic validation, current model-price preflight, provenance injection, and duplicate-Run checks.
 
-Do not change the user's substantive task, decision criteria, facts, or requested outcome.
-Do not weaken verification. Do not expose secrets. Do not use OpenRouter as the Steward.
-If no safe technical recovery exists, return STOP.
+Recovery examples:
+- 402 or affordability: select current lower-cost compatible models and lower hard token ceilings.
+- unavailable model: replace it with a current compatible model from supplied intelligence.
+- transient 429/502/503/timeout/malformed provider response: authorize one bounded retry only.
+- invalid execution plan: return one complete corrected plan that preserves the task and budget.
+- single-task BUSY: do not bypass the lock and do not cancel the active task without user instruction.
+- user cancellation: do not treat it as a technical fault.
+
+Do not weaken verification, bypass the lock, remove budget controls, expose secrets, use OpenRouter
+as Steward, or produce a business conclusion. If no safe recovery exists, return STOP.
 """
 
 
@@ -67,10 +74,7 @@ Return ONLY one JSON object, with no markdown fences:
 
 Rules:
 - EDIT is only for an evidenced repository defect.
-- NO_EDIT + READY is allowed when the problem can be solved by one bounded execution retry
-  or safe execution-plan/model adjustment without changing user intent.
-- For EDIT, retry_operation_overrides may also be supplied when both code repair and execution
-  adjustment are necessary.
+- NO_EDIT + READY is allowed for one safe transient retry or a complete budget-compliant plan replacement.
 - If no override is needed, return an empty retry_operation_overrides object.
 - Never modify tests/, runtime_results/, artifacts/, .git/, or secrets.
 """
@@ -98,6 +102,10 @@ async def run_deepseek_top_supervisor(
     result["supervisor"] = "deepseek_top_supervisor"
 
     decision = str(result.get("decision") or "STOP").upper()
+    if decision not in {"EDIT", "NO_EDIT", "STOP"}:
+        decision = "STOP"
+        result["decision"] = "STOP"
+        result["diagnosis"] = "DeepSeek returned an invalid recovery decision"
     overrides = result.get("retry_operation_overrides")
     if not isinstance(overrides, dict):
         result["retry_operation_overrides"] = {}

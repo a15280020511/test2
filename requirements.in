@@ -1,0 +1,4 @@
+agent-framework-core==1.12.1
+agent-framework-openai==1.11.0
+openrouter==1.0.18
+jsonschema==4.26.0

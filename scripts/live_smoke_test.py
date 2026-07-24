@@ -14,6 +14,11 @@ from expert_team.model_intelligence import (
 )
 
 ARTIFACT = Path("artifacts/live_smoke_result.json")
+SELECTION_POLICY = (
+    "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；"
+    "随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；"
+    "重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，必须具体问题具体分析。"
+)
 
 
 def _write(payload: dict) -> None:
@@ -43,14 +48,19 @@ async def _run() -> None:
     smoke_model = os.getenv("OPENROUTER_SMOKE_MODEL", "openrouter/free")
     plan = {
         "version": "1",
+        "selection_policy": SELECTION_POLICY,
         "task": "Return exactly the text SMOKE_OK and nothing else.",
-        "rationale": "Single-agent connectivity smoke test.",
+        "rationale": "Use one low-cost model with the smallest hard output ceiling for a connectivity test.",
+        "budget": {"max_total_usd": 0.05, "recovery_reserve_ratio": 0.0},
         "experts": [
             {
                 "name": "smoke_expert",
                 "mission": "Verify Agent Framework can reach OpenRouter.",
                 "instructions": "Return exactly SMOKE_OK and nothing else.",
                 "model": smoke_model,
+                "max_completion_tokens": 64,
+                "timeout_seconds": 120,
+                "fallback_models": [],
             }
         ],
         "stages": [
@@ -59,6 +69,8 @@ async def _run() -> None:
                 "mode": "sequential",
                 "members": ["smoke_expert"],
                 "input_from": ["task"],
+                "failure_policy": "fail_fast",
+                "minimum_successful_members": 1,
             }
         ],
         "red_team": {
