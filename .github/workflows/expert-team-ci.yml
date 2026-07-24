@@ -38,10 +38,14 @@ jobs:
         run: |
           grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
           grep -F 'DEEPSEEK_API_KEY' expert_team/deepseek_official.py >/dev/null
-          grep -F 'must never fall back to OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
+          grep -F 'must not route Steward requests through OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
           grep -F 'DeepSeek unavailability is a hard stop' DEEPSEEK_STEWARD.md >/dev/null
           if grep -F 'create_model_client' expert_team/deepseek_steward.py >/dev/null; then
             echo "DeepSeek Steward must not use the OpenRouter expert client"
+            exit 1
+          fi
+          if grep -F 'create_model_client' expert_team/deepseek_top_supervisor.py >/dev/null; then
+            echo "DeepSeek top supervisor must not use the OpenRouter expert client"
             exit 1
           fi
           if grep -F 'return DEFAULT_STEWARD_MODEL' expert_team/deepseek_official.py >/dev/null; then
@@ -71,8 +75,11 @@ jobs:
           grep -F 'Escalate failed production run to DeepSeek Top Supervisor' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'deepseek-supervisor.yml/dispatches' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'group: deepseek-top-supervisor' .github/workflows/deepseek-supervisor.yml >/dev/null
-          grep -F 'Run highest-level DeepSeek Steward REPAIR' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'Run highest-level DeepSeek technical supervisor' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'scripts.top_supervisor_entrypoint' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'scripts.enrich_supervisor_packet' .github/workflows/deepseek-supervisor.yml >/dev/null
           grep -F 'scripts.supervisor_resume' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'retry_operation_overrides' expert_team/deepseek_top_supervisor.py >/dev/null
           grep -F 'operationId: dispatchDeepSeekSupervisor' gpt_action_openapi.yaml >/dev/null
           grep -F 'two consecutive control reads' ACTION_RECOVERY.md >/dev/null
           grep -F 'highest technical control layer' DEEPSEEK_STEWARD.md >/dev/null
