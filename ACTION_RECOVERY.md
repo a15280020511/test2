@@ -83,7 +83,7 @@ After a successful dispatch:
 6. An active matching Run blocks duplication.
 7. Two or more matching Runs block another automatic dispatch.
 8. A missing or known failed non-paid operation may receive one bounded recovery.
-9. A missing `execute_team` Run may be started only when its original budget receipt is still unused and the workflow never began; a failed or possibly-started `execute_team` Run is governed by the paid retry prohibition below.
+9. Any missing, failed or possibly-started `execute_team` operation is blocked from automatic supervisor redispatch because the system cannot prove zero spend. Web GPT must obtain a new user-approved budget receipt and use a new `operation_id` before another paid attempt.
 
 ## Highest-level DeepSeek supervisor
 
