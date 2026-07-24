@@ -27,11 +27,13 @@ jobs:
           python -m py_compile \
             expert_team/deepseek_official.py \
             expert_team/deepseek_steward.py \
+            expert_team/deepseek_top_supervisor.py \
             scripts/action_entrypoint.py \
             scripts/managed_operation.py \
             scripts/plugin_runner.py \
             scripts/plugin_smoke_entrypoint.py \
             scripts/verify_deepseek_entry.py \
+            scripts/supervisor_resume.py \
             scripts/cross_repo_control.py
           python - <<'PY'
           from pathlib import Path
@@ -110,6 +112,17 @@ jobs:
           grep -F 'issues/comments/${RECEIPT_COMMENT_ID}' .github/workflows/expert-team-production.yml >/dev/null
           echo 'DeepSeek entry, durable budget approval and final review contract OK'
 
+      - name: Validate paid retry prohibition
+        run: |
+          grep -F 'Automatic retry is prohibited' scripts/managed_operation.py >/dev/null
+          grep -F 'budget_reapproval_required' scripts/managed_operation.py >/dev/null
+          grep -F 'new_budget_receipt_required' scripts/managed_operation.py >/dev/null
+          grep -F 'paid_operation_requires_new_user_budget_approval' scripts/supervisor_resume.py >/dev/null
+          grep -F 'Never authorize automatic redispatch' expert_team/deepseek_top_supervisor.py >/dev/null
+          grep -F 'Paid expert-team retry prohibition' ACTION_RECOVERY.md >/dev/null
+          grep -F 'non-paid production redispatch' ACTION_RECOVERY.md >/dev/null
+          echo 'Paid expert-team retry prohibition OK'
+
       - name: Validate provider separation and hard stop
         run: |
           grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
@@ -129,7 +142,8 @@ jobs:
         run: |
           grep -F 'scripts.plugin_runner' scripts/managed_operation.py >/dev/null
           grep -F 'PLUGIN_OPERATIONS' scripts/managed_operation.py >/dev/null
-          grep -F 'one repair cycle and one retry' scripts/managed_operation.py >/dev/null
+          grep -F 'one automatic DeepSeek' scripts/managed_operation.py >/dev/null || true
+          grep -F 'This automatic retry path must never be used for execute_team' scripts/managed_operation.py >/dev/null
           grep -F '"repairing"' scripts/managed_operation.py >/dev/null
           grep -F '"retrying"' scripts/managed_operation.py >/dev/null
           grep -F 'Validate permanent core and plug manifests' .github/workflows/expert-team-production.yml >/dev/null
