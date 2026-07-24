@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: test2 Dynamic Expert Team Action
-  version: 1.0.0
+  version: 1.0.1
   description: >-
     Lets Web GPT inspect current OpenRouter model rankings, read the expert-team
     execution-plan schema, dispatch the GitHub expert-team workflow, and inspect
@@ -119,8 +119,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/OpenRouterModelsResponse"
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
@@ -145,8 +144,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/ExecutionPlanSchemaDocument"
 
   /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
     post:
@@ -218,8 +216,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/WorkflowRunsResponse"
 
   /repos/a15280020511/test2/actions/runs/{run_id}:
     get:
@@ -237,8 +234,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/WorkflowRun"
 
   /repos/a15280020511/test2/actions/runs/{run_id}/jobs:
     get:
@@ -256,8 +252,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/JobsResponse"
 
   /repos/a15280020511/test2/actions/runs/{run_id}/artifacts:
     get:
@@ -275,8 +270,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/ArtifactsResponse"
 
   /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
     get:
@@ -300,6 +294,171 @@ paths:
           description: Redirect to temporary artifact download URL.
 
 components:
+  schemas:
+    OpenRouterModelsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenRouterModel"
+      additionalProperties: true
+
+    OpenRouterModel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        context_length:
+          type: integer
+        created:
+          type: integer
+      additionalProperties: true
+
+    ExecutionPlanSchemaDocument:
+      type: object
+      properties:
+        $schema:
+          type: string
+        $id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        required:
+          type: array
+          items:
+            type: string
+        properties:
+          type: object
+          properties:
+            version:
+              type: object
+              properties:
+                const:
+                  type: string
+              additionalProperties: true
+            selection_policy:
+              type: object
+              properties:
+                type:
+                  type: string
+                const:
+                  type: string
+                description:
+                  type: string
+              additionalProperties: true
+          additionalProperties: true
+      additionalProperties: true
+
+    WorkflowRunsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        workflow_runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowRun"
+      additionalProperties: true
+
+    WorkflowRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        display_title:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type: string
+        event:
+          type: string
+        run_number:
+          type: integer
+        html_url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      additionalProperties: true
+
+    JobsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowJob"
+      additionalProperties: true
+
+    WorkflowJob:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStep"
+      additionalProperties: true
+
+    WorkflowStep:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type: string
+        number:
+          type: integer
+      additionalProperties: true
+
+    ArtifactsResponse:
+      type: object
+      properties:
+        total_count:
+          type: integer
+        artifacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artifact"
+      additionalProperties: true
+
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        size_in_bytes:
+          type: integer
+        expired:
+          type: boolean
+        archive_download_url:
+          type: string
+      additionalProperties: true
+
   securitySchemes:
     githubBearer:
       type: http
