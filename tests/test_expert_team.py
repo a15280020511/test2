@@ -9,6 +9,7 @@ from unittest.mock import patch
 import expert_team
 from expert_team.dynamic_team import validate_execution_plan
 from expert_team.model_intelligence import (
+    GPT_RANKING_LIMIT,
     RANKING_SORTS,
     build_compact_model_intelligence_snapshot,
     build_model_intelligence_snapshot,
@@ -130,7 +131,7 @@ class ModelIntelligenceTests(unittest.TestCase):
                 "name": "Winner",
                 "context_length": 128000,
                 "pricing": {"prompt": "0.000001", "completion": "0.000002"},
-                "supported_parameters": ["tools", "structured_outputs"],
+                "supported_parameters": ["tools", "structured_outputs", "irrelevant-large-field"],
                 "architecture": {
                     "input_modalities": ["text"],
                     "output_modalities": ["text"],
@@ -164,13 +165,41 @@ class ModelIntelligenceTests(unittest.TestCase):
         self.assertIn("concrete task", snapshot["selection_rule"])
 
         compact = build_compact_model_intelligence_snapshot(snapshot)
+        self.assertEqual(compact["schema_version"], "3")
         self.assertEqual(set(compact["rankings"]), set(RANKING_SORTS))
         first_sort = RANKING_SORTS[0]
         model_id = compact["rankings"][first_sort][0]
         self.assertIn(model_id, compact["models"])
-        self.assertEqual(compact["models"][model_id]["artificial_analysis"]["coding_index"], 80)
+        self.assertEqual(compact["models"][model_id]["pricing"]["prompt"], "0.000001")
+        self.assertEqual(compact["models"][model_id]["supported_parameters"], ["tools", "structured_outputs"])
+        self.assertTrue(compact["models"][model_id]["reasoning"])
+        self.assertNotIn("artificial_analysis", compact["models"][model_id])
         self.assertNotIn("catalog", compact)
         self.assertNotIn("benchmarks", compact)
+
+    def test_gpt_snapshot_is_bounded_per_ranking(self) -> None:
+        rows = [
+            {
+                "id": f"provider/model-{index}",
+                "context_length": 1000 + index,
+                "pricing": {"prompt": "0.1", "completion": "0.2", "image": "999"},
+                "supported_parameters": ["tools", "structured_outputs", "many-extra-fields"],
+                "architecture": {"input_modalities": ["text"]},
+            }
+            for index in range(GPT_RANKING_LIMIT + 10)
+        ]
+        snapshot = {
+            "generated_at": "now",
+            "source": "test",
+            "selection_rule": "test",
+            "rankings": {sort: rows for sort in RANKING_SORTS},
+        }
+
+        compact = build_compact_model_intelligence_snapshot(snapshot)
+        self.assertTrue(all(len(items) <= GPT_RANKING_LIMIT for items in compact["rankings"].values()))
+        self.assertLessEqual(len(compact["models"]), GPT_RANKING_LIMIT)
+        encoded = json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
+        self.assertLess(len(encoded.encode("utf-8")), 50_000)
 
 
 if __name__ == "__main__":

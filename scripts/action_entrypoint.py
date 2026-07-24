@@ -26,6 +26,14 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _write_minified_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+
 async def _execute_team(plan_json: str) -> dict[str, Any]:
     try:
         payload = json.loads(plan_json)
@@ -66,9 +74,9 @@ async def main() -> None:
         if args.operation == "model_intelligence":
             result = build_model_intelligence_snapshot(limit_per_ranking=args.ranking_limit)
             result_path = output_dir / "model_intelligence.json"
-            compact_path = output_dir / "model_intelligence_compact.json"
-            _write_json(compact_path, build_compact_model_intelligence_snapshot(result))
-            metadata["readable_result_file"] = compact_path.name
+            gpt_path = output_dir / "model_intelligence_gpt.json"
+            _write_minified_json(gpt_path, build_compact_model_intelligence_snapshot(result))
+            metadata["readable_result_file"] = gpt_path.name
         elif args.operation == "execute_team":
             result = await _execute_team(args.plan_json)
             result_path = output_dir / "expert_team_result.json"
