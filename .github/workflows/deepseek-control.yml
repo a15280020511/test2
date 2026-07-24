@@ -42,7 +42,7 @@ on:
         default: "{}"
         type: string
       execution_plan_json:
-        description: Raw execution-plan JSON for START or RESTART
+        description: Raw candidate execution-plan JSON for the mandatory DeepSeek entry gate
         required: false
         default: "{}"
         type: string
@@ -52,7 +52,7 @@ on:
         default: ""
         type: string
       support_context_json:
-        description: Optional structured context for DeepSeek review, diagnosis, or repair
+        description: Optional structured context for DeepSeek entry, review, diagnosis, or repair
         required: false
         default: "{}"
         type: string
@@ -85,7 +85,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Execute monitored DeepSeek control operation
+      - name: Execute mandatory DeepSeek-first monitored operation
         env:
           CONTROL_PLANE_TOKEN: ${{ secrets.CONTROL_PLANE_TOKEN }}
           CONTROL_TICKET_SECRET: ${{ secrets.CONTROL_TICKET_SECRET }}
@@ -103,7 +103,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/deepseek-control-output
-          python -m scripts.cross_repo_control \
+          set +e
+          python -m scripts.deepseek_priority_control \
             --operation "$CONTROL_OPERATION" \
             --task-id "$TASK_ID" \
             --revision "$TASK_REVISION" \
@@ -114,9 +115,13 @@ jobs:
             --target-run-id "$TARGET_RUN_ID" \
             --support-context-json "$SUPPORT_CONTEXT_JSON" \
             --target-repo "$TARGET_REPO" \
-            --output-dir /tmp/deepseek-control-output
+            --output-dir /tmp/deepseek-control-output \
+            2>&1 | tee /tmp/deepseek-control-output/control.log
+          CONTROL_RC=${PIPESTATUS[0]}
+          set -e
+          exit "$CONTROL_RC"
 
-      - name: Redact bearer authorization ticket
+      - name: Redact bearer authorization ticket defensively
         if: always()
         run: |
           python - <<'PY'
