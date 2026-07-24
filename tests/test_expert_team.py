@@ -8,7 +8,11 @@ from unittest.mock import patch
 
 import expert_team
 from expert_team.dynamic_team import validate_execution_plan
-from expert_team.model_intelligence import RANKING_SORTS, build_model_intelligence_snapshot
+from expert_team.model_intelligence import (
+    RANKING_SORTS,
+    build_compact_model_intelligence_snapshot,
+    build_model_intelligence_snapshot,
+)
 
 
 SELECTION_POLICY = (
@@ -120,7 +124,27 @@ class ModelIntelligenceTests(unittest.TestCase):
         benchmarks_mock,
     ) -> None:
         catalog_mock.return_value = {"data": [{"id": "provider/model-a"}]}
-        ranked_mock.side_effect = lambda sort, limit=20: [{"id": f"{sort}/winner"}]
+        ranked_mock.side_effect = lambda sort, limit=20: [
+            {
+                "id": f"{sort}/winner",
+                "name": "Winner",
+                "context_length": 128000,
+                "pricing": {"prompt": "0.000001", "completion": "0.000002"},
+                "supported_parameters": ["tools", "structured_outputs"],
+                "architecture": {
+                    "input_modalities": ["text"],
+                    "output_modalities": ["text"],
+                },
+                "reasoning": {"default_enabled": True},
+                "benchmarks": {
+                    "artificial_analysis": {
+                        "intelligence_index": 70,
+                        "coding_index": 80,
+                        "agentic_index": 75,
+                    }
+                },
+            }
+        ]
         benchmarks_mock.return_value = {
             "data": [
                 {
@@ -138,6 +162,15 @@ class ModelIntelligenceTests(unittest.TestCase):
         self.assertEqual(snapshot["catalog"]["data"][0]["id"], "provider/model-a")
         self.assertEqual(snapshot["benchmarks"]["data"][0]["coding_index"], 80)
         self.assertIn("concrete task", snapshot["selection_rule"])
+
+        compact = build_compact_model_intelligence_snapshot(snapshot)
+        self.assertEqual(set(compact["rankings"]), set(RANKING_SORTS))
+        first_sort = RANKING_SORTS[0]
+        model_id = compact["rankings"][first_sort][0]
+        self.assertIn(model_id, compact["models"])
+        self.assertEqual(compact["models"][model_id]["artificial_analysis"]["coding_index"], 80)
+        self.assertNotIn("catalog", compact)
+        self.assertNotIn("benchmarks", compact)
 
 
 if __name__ == "__main__":
