@@ -5,28 +5,34 @@ from pathlib import Path
 
 
 class AutomaticRecoveryContractTests(unittest.TestCase):
-    def test_production_workflow_uses_managed_operation_and_repair_delivery(self) -> None:
+    def test_production_workflow_uses_managed_operation_and_status_publication(self) -> None:
         text = Path(".github/workflows/expert-team-production.yml").read_text(encoding="utf-8")
         self.assertIn("scripts.managed_operation", text)
         self.assertIn("scripts.repair_delivery", text)
         self.assertIn("scripts.publish_runtime_result", text)
+        self.assertIn("scripts.publish_operation_status", text)
+        self.assertIn("--phase start", text)
+        self.assertIn("--phase final", text)
         self.assertIn("DEEPSEEK_API_KEY", text)
 
-    def test_recovery_policy_has_single_retry_and_deepseek_hard_stop(self) -> None:
+    def test_recovery_policy_has_single_retry_hard_stop_and_status_control_plane(self) -> None:
         text = Path("ACTION_RECOVERY.md").read_text(encoding="utf-8")
         self.assertIn("one repair attempt and one retry", text)
         self.assertIn("DeepSeek unavailability is a hard stop", text)
         self.assertIn("Never route Steward repair through OpenRouter", text)
+        self.assertIn("runtime_results/status/<operation_id>.json", text)
+        self.assertIn("listExpertTeamRuns` is not part of normal control flow", text)
 
-    def test_action_schema_requires_runtime_results_ref_and_repair_route(self) -> None:
+    def test_action_schema_uses_operation_status_not_run_list(self) -> None:
         text = Path("gpt_action_openapi.yaml").read_text(encoding="utf-8")
-        self.assertIn("version: 1.3.1", text)
+        self.assertIn("version: 1.4.0", text)
         self.assertIn("operationId: dispatchExpertTeamOperation", text)
+        self.assertIn("operationId: getOperationStatus", text)
         self.assertIn("operationId: getAutoRepairResult", text)
         self.assertIn("operationId: getActionRecoveryPolicy", text)
         self.assertIn("enum: [runtime-results]", text)
         self.assertIn("enum: [ASSIST, REPAIR]", text)
-        self.assertIn("DeepSeek REPAIR", text)
+        self.assertNotIn("operationId: listExpertTeamRuns", text)
 
     def test_managed_operation_limits_repair_to_one_cycle(self) -> None:
         text = Path("scripts/managed_operation.py").read_text(encoding="utf-8")
