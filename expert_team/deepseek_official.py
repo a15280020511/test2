@@ -3,6 +3,11 @@
 The expert marketplace remains on OpenRouter. DeepSeek Steward is intentionally
 isolated from OpenRouter and talks directly to https://api.deepseek.com with the
 DEEPSEEK_API_KEY repository secret.
+
+Hard rule: Steward must discover and use the strongest available official DeepSeek
+model. If the official DeepSeek API cannot be reached or model discovery fails, the
+Steward operation fails immediately. It never falls back to OpenRouter or another
+provider.
 """
 
 from __future__ import annotations
@@ -17,6 +22,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 DEEPSEEK_API_BASE = "https://api.deepseek.com"
+# Informational current strongest known baseline. This constant is NOT a connectivity
+# fallback: default operation still requires successful official /models discovery.
 DEFAULT_STEWARD_MODEL = "deepseek-v4-pro"
 DEFAULT_MAX_TOKENS = 65536
 _MODEL_VERSION_RE = re.compile(r"^deepseek-v(?P<version>\d+(?:\.\d+)*)(?:-(?P<tier>[a-z0-9-]+))?$")
@@ -120,26 +127,29 @@ def _strength_key(model_id: str) -> tuple[int, int, int, int, str]:
 
 @lru_cache(maxsize=1)
 def select_strongest_official_model() -> str:
-    """Select the strongest available official DeepSeek model by default.
+    """Select the strongest available official DeepSeek model.
 
-    DEEPSEEK_STEWARD_MODEL is an explicit operator override. Without an override,
-    the official model list is inspected at runtime. If model discovery itself is
-    temporarily unavailable, the current strongest official baseline V4-Pro is used.
+    DEEPSEEK_STEWARD_MODEL is an explicit operator override. In normal operation no
+    override is set, so the official model list must be read successfully at runtime.
+    Failure to reach DeepSeek, authenticate, or obtain a usable model list is fatal and
+    ends the Steward task. There is deliberately no OpenRouter or fixed-model fallback.
     """
     override = os.getenv("DEEPSEEK_STEWARD_MODEL", "").strip()
     if override:
         return override
 
-    try:
-        models = [model for model in list_official_models() if model.startswith("deepseek-")]
-        if models:
-            return max(models, key=_strength_key)
-    except RuntimeError:
-        pass
-    return DEFAULT_STEWARD_MODEL
+    models = [model for model in list_official_models() if model.startswith("deepseek-")]
+    if not models:
+        raise RuntimeError(
+            "DeepSeek official /models returned no usable DeepSeek model IDs. "
+            "Steward task stopped; no fallback provider is allowed."
+        )
+    return max(models, key=_strength_key)
 
 
 def _generate_json_sync(system_prompt: str, payload: dict[str, Any]) -> tuple[str, str]:
+    # Strongest-model discovery is a mandatory DeepSeek-official preflight. Any failure
+    # propagates and terminates the current Steward task before inference begins.
     model = select_strongest_official_model()
     messages = [
         {

@@ -5,7 +5,6 @@ import unittest
 from unittest.mock import patch
 
 from expert_team.deepseek_official import (
-    DEFAULT_STEWARD_MODEL,
     _api_key,
     select_strongest_official_model,
 )
@@ -38,13 +37,23 @@ class DeepSeekOfficialTests(unittest.TestCase):
         select_strongest_official_model.cache_clear()
         self.assertEqual(select_strongest_official_model(), "deepseek-v4-flash")
 
-    def test_model_discovery_failure_uses_current_strongest_baseline(self) -> None:
+    def test_model_discovery_failure_is_fatal(self) -> None:
         select_strongest_official_model.cache_clear()
         with patch(
             "expert_team.deepseek_official.list_official_models",
-            side_effect=RuntimeError("temporary failure"),
+            side_effect=RuntimeError("DeepSeek official API connection failed"),
         ):
-            self.assertEqual(select_strongest_official_model(), DEFAULT_STEWARD_MODEL)
+            with self.assertRaisesRegex(RuntimeError, "connection failed"):
+                select_strongest_official_model()
+
+    def test_no_usable_official_model_is_fatal(self) -> None:
+        select_strongest_official_model.cache_clear()
+        with patch(
+            "expert_team.deepseek_official.list_official_models",
+            return_value=["other-provider/model"],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no usable DeepSeek model IDs"):
+                select_strongest_official_model()
 
     def test_official_api_key_is_required(self) -> None:
         os.environ.pop("DEEPSEEK_API_KEY", None)

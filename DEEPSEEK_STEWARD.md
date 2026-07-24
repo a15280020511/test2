@@ -19,6 +19,7 @@ Web GPT remains the user-facing task commander. DeepSeek Steward owns repository
 - Microsoft Agent Framework remains the expert-team execution runtime.
 - OpenRouter remains the expert-team model marketplace and inference endpoint.
 - DeepSeek Steward must use the **official DeepSeek API** at `https://api.deepseek.com`; it must not route Steward requests through OpenRouter.
+- If the official DeepSeek service is unavailable or unusable, the current DeepSeek Steward operation must fail and stop. No OpenRouter or other-provider substitution is allowed.
 - GitHub remains the execution, evidence, logging, validation, and repair-delivery center.
 
 ## ASSIST mode
@@ -79,7 +80,8 @@ DeepSeek Steward is authorized to repair repository code directly through the co
 - Never deliver a repair to `main` before the verification gate passes.
 - Do not fabricate a successful repair when verification fails.
 - Do not modify unrelated files merely to make a repair look comprehensive.
-- External/transient failures should normally return `STOP` or `NO_EDIT`, not produce speculative repository edits.
+- External/transient repository failures should normally return `STOP` or `NO_EDIT`, not produce speculative repository edits.
+- DeepSeek provider failures are terminal for the current Steward operation: stop immediately and do not substitute OpenRouter or any other provider.
 
 ## Support Packet
 
@@ -115,8 +117,10 @@ Default model policy:
 1. Unless `DEEPSEEK_STEWARD_MODEL` is explicitly set, query the official DeepSeek `/models` endpoint at runtime.
 2. Select the strongest available official DeepSeek model using version first and capability tier second.
 3. For the current official V4 model set, this selects `deepseek-v4-pro` over `deepseek-v4-flash`.
-4. If model discovery is temporarily unavailable, use `deepseek-v4-pro` as the current strongest baseline.
-5. Steward requests run with thinking enabled and `reasoning_effort=max` by default.
+4. Successful official model discovery is mandatory. If `/models` cannot be reached, authentication fails, the response is invalid, or no usable DeepSeek model is returned, the current Steward task fails immediately.
+5. A DeepSeek inference connection/API failure also fails the current Steward task immediately.
+6. There is no fixed-model connectivity fallback and no OpenRouter/other-provider fallback.
+7. Steward requests run with thinking enabled and `reasoning_effort=max` by default.
 
 The environment variable `DEEPSEEK_STEWARD_MODEL` remains an explicit operator override. Normal operation should leave it unset so the strongest-model policy can select automatically.
 
@@ -130,9 +134,10 @@ When Web GPT encounters a repository technical error:
 4. Wait for the Steward operation Run to complete.
 5. Read the Steward result.
 6. Resume the original task only when the Steward result says `READY`.
+7. If the DeepSeek Steward operation itself fails because the official DeepSeek API is unavailable, report `STOP` and end the current task; do not continue through OpenRouter.
 
 When Web GPT only needs usage or form guidance, dispatch `steward_mode=ASSIST`.
 
 ## Core principle
 
-**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance through DeepSeek's official API.**
+**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance through DeepSeek's official API. DeepSeek unavailability is a hard stop, never a trigger for provider fallback.**
