@@ -1,0 +1,7 @@
+{
+  "operation_id": "fuzhou-hotpot-model-intel-20260724-8f3c1a",
+  "operation": "model_intelligence",
+  "status": "success",
+  "readable_result_file": "model_intelligence_compact.json",
+  "result_file": "model_intelligence.json"
+}
