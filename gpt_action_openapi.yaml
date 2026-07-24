@@ -2,11 +2,11 @@ openapi: 3.1.0
 
 info:
   title: test2 Dynamic Expert Team and Automatic DeepSeek Steward Action
-  version: 1.3.1
+  version: 1.4.0
   description: >-
     Web GPT commands user tasks. GitHub runs model intelligence, expert teams, and
-    DeepSeek Steward. Internal failures get one DeepSeek repair cycle and one retry.
-    Action-edge failures must be handed to DeepSeek REPAIR. DeepSeek failure is STOP.
+    DeepSeek Steward. Control flow uses a small status file keyed by operation_id.
+    Run, Job, Step, and Artifact endpoints are audit-only.
 
 servers:
   - url: https://api.github.com
@@ -15,11 +15,10 @@ paths:
   /repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json:
     get:
       operationId: getOpenRouterModels
-      summary: Read latest OpenRouter model intelligence snapshot
+      summary: Read latest GPT-sized OpenRouter model intelligence
       description: >-
-        Call with ref=runtime-results. On first 404 run model_intelligence and retry once.
-        If it still fails, dispatch DeepSeek Steward REPAIR with evidence. After READY,
-        retry once. If DeepSeek is unavailable, STOP.
+        Call with ref=runtime-results. On first 404 dispatch model_intelligence, then poll
+        getOperationStatus. Retry this read only after status=success and result_ready=true.
       parameters:
         - name: ref
           in: query
@@ -35,21 +34,21 @@ paths:
             default: application/vnd.github.raw+json
       responses:
         "200":
-          description: Latest compact OpenRouter model intelligence snapshot.
+          description: Bounded model intelligence snapshot for Web GPT planning.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: Snapshot missing; refresh once, then use DeepSeek REPAIR if still missing.
+          description: Snapshot absent; dispatch model_intelligence and use getOperationStatus.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
       summary: Read authoritative Execution Plan JSON Schema
       description: >-
-        Call with ref=main. Any 4xx/5xx, empty response, or unparseable schema triggers
-        DeepSeek Steward REPAIR. After READY, retry this read once.
+        Call with ref=main. A true technical read failure triggers DeepSeek REPAIR. Do not
+        treat a queued operation-status 404 as a schema failure.
       parameters:
         - name: ref
           in: query
@@ -75,7 +74,7 @@ paths:
     get:
       operationId: getDeepSeekStewardPolicy
       summary: Read DeepSeek Steward operating policy
-      description: Read the mandatory DeepSeek Steward role, repair, provider, and STOP rules.
+      description: Read mandatory DeepSeek Steward role, repair, provider, and STOP rules.
       parameters:
         - name: ref
           in: query
@@ -100,8 +99,8 @@ paths:
   /repos/a15280020511/test2/contents/ACTION_RECOVERY.md:
     get:
       operationId: getActionRecoveryPolicy
-      summary: Read mandatory automatic repair and retry policy
-      description: Read the mandatory recovery policy for Action-edge failures and retry limits.
+      summary: Read mandatory automatic repair and status policy
+      description: Read control-plane, automatic repair, retry, and queued-status rules.
       parameters:
         - name: ref
           in: query
@@ -117,7 +116,7 @@ paths:
             default: application/vnd.github.raw+json
       responses:
         "200":
-          description: Automatic recovery policy document.
+          description: Automatic recovery and control-plane policy.
           content:
             text/plain:
               schema:
@@ -128,9 +127,8 @@ paths:
       operationId: dispatchExpertTeamOperation
       summary: Run model intelligence, expert team, or DeepSeek Steward
       description: >-
-        Run model_intelligence, execute_team, or deepseek_steward. For Action-edge technical
-        failure, dispatch DeepSeek REPAIR, wait for READY, then retry the failed Action once.
-        If DeepSeek is unavailable, STOP. Never use OpenRouter as Steward fallback.
+        Dispatch with a unique operation_id. After HTTP 204, use getOperationStatus only.
+        Do not list workflow runs to locate the task. DeepSeek failure is STOP.
       requestBody:
         required: true
         content:
@@ -166,53 +164,51 @@ paths:
                     support_packet_json:
                       type: string
                       default: "{}"
-                      description: >-
-                        Stringified Support Packet with failure evidence, Run/Job/Step/log data
-                        when available, attempts already made, constraints, and requested outcome.
-                        Never fabricate missing evidence.
+                      description: Stringified Support Packet with available failure evidence.
       responses:
         "204":
-          description: Workflow dispatch accepted.
+          description: Workflow dispatch accepted; start polling getOperationStatus.
 
-  /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/runs:
+  /repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json:
     get:
-      operationId: listExpertTeamRuns
-      summary: List recent production workflow runs
-      description: List recent Expert Team Production workflow_dispatch runs.
+      operationId: getOperationStatus
+      summary: Read lightweight operation control status
+      description: >-
+        Primary control-plane read. After accepted dispatch, a temporary 404 means queued or
+        not yet started; retry later. Use run_id from this status for optional audit calls.
       parameters:
-        - name: event
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ref
           in: query
+          required: true
+          schema:
+            type: string
+            enum: [runtime-results]
+        - name: Accept
+          in: header
           required: false
           schema:
             type: string
-            default: workflow_dispatch
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending]
-        - name: per_page
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
+            default: application/vnd.github.raw+json
       responses:
         "200":
-          description: Workflow runs.
+          description: Small operation status object.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkflowRunsResponse"
+                $ref: "#/components/schemas/OperationStatus"
+        "404":
+          description: After dispatch acceptance, treat as queued or not yet started and retry.
 
   /repos/a15280020511/test2/actions/runs/{run_id}:
     get:
       operationId: getExpertTeamRun
-      summary: Get one workflow run status and conclusion
-      description: Read the status and conclusion of one production workflow run.
+      summary: Get one workflow run for audit
+      description: Audit-only. Obtain run_id from getOperationStatus; do not use run lists for control flow.
       parameters:
         - name: run_id
           in: path
@@ -230,8 +226,8 @@ paths:
   /repos/a15280020511/test2/actions/runs/{run_id}/jobs:
     get:
       operationId: getExpertTeamRunJobs
-      summary: Get jobs and steps for a workflow run
-      description: Read jobs and step statuses for one production workflow run.
+      summary: Get jobs and steps for audit
+      description: Audit-only. Read jobs and step statuses for one known production run.
       parameters:
         - name: run_id
           in: path
@@ -249,8 +245,8 @@ paths:
   /repos/a15280020511/test2/actions/runs/{run_id}/artifacts:
     get:
       operationId: listExpertTeamRunArtifacts
-      summary: List audit artifacts produced by a workflow run
-      description: List audit artifacts for one production workflow run.
+      summary: List audit artifacts for one known run
+      description: Audit-only. Use run_id from getOperationStatus.
       parameters:
         - name: run_id
           in: path
@@ -270,8 +266,8 @@ paths:
       operationId: getExpertTeamResult
       summary: Read final expert-team JSON result
       description: >-
-        Call with ref=runtime-results. If a successful Run has no readable result, trigger
-        DeepSeek REPAIR, wait for READY, then retry this read once.
+        Read only after getOperationStatus reports status=success and result_ready=true.
+        Always pass ref=runtime-results.
       parameters:
         - name: operation_id
           in: path
@@ -298,15 +294,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExpertTeamResult"
         "404":
-          description: Result is not published yet or operation_id is incorrect.
+          description: Result is not ready or operation_id is incorrect.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json:
     get:
       operationId: getDeepSeekStewardResult
       summary: Read DeepSeek Steward ASSIST or REPAIR result
       description: >-
-        Call with ref=runtime-results. Resume only when status or resume is READY.
-        If the official DeepSeek API failed, STOP and do not use OpenRouter fallback.
+        Read after getOperationStatus reaches a terminal state. If official DeepSeek failed,
+        STOP and never use OpenRouter as Steward fallback.
       parameters:
         - name: operation_id
           in: path
@@ -333,13 +329,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeepSeekStewardResult"
         "404":
-          description: Steward result is not published yet or operation_id is incorrect.
+          description: Steward result is not ready or operation_id is incorrect.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json:
     get:
       operationId: getAutoRepairResult
       summary: Read automatic DeepSeek repair evidence
-      description: Read automatic repair evidence for an operation that required internal recovery.
+      description: Read repair evidence after a terminal operation status when auto-repair occurred.
       parameters:
         - name: operation_id
           in: path
@@ -366,13 +362,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/AutoRepairResult"
         "404":
-          description: No automatic repair evidence exists yet for this operation.
+          description: No automatic repair evidence exists for this operation.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/metadata.json:
     get:
       operationId: getExpertTeamOperationMetadata
       summary: Read published operation metadata
-      description: Read published metadata for a model intelligence, expert team, or Steward operation.
+      description: Optional detail read after getOperationStatus reaches a terminal state.
       parameters:
         - name: operation_id
           in: path
@@ -399,15 +395,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/OperationMetadata"
         "404":
-          description: Metadata is not published yet or operation_id is incorrect.
+          description: Metadata is not ready or operation_id is incorrect.
 
   /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
     get:
       operationId: downloadExpertTeamArtifact
       summary: Download optional audit artifact ZIP
-      description: >-
-        Download optional audit evidence. Prefer runtime_results JSON for normal result reading
-        because artifact downloads may redirect to temporary URLs.
+      description: Optional audit evidence. Prefer runtime-result JSON for normal result reading.
       parameters:
         - name: artifact_id
           in: path
@@ -471,15 +465,26 @@ components:
           additionalProperties: true
       additionalProperties: true
 
-    WorkflowRunsResponse:
+    OperationStatus:
       type: object
       properties:
-        total_count:
-          type: integer
-        workflow_runs:
-          type: array
-          items:
-            $ref: "#/components/schemas/WorkflowRun"
+        schema_version:
+          type: string
+        operation_id:
+          type: string
+        operation:
+          type: string
+        status:
+          type: string
+          enum: [running, success, STOP, failure]
+        run_id:
+          type: [string, "null"]
+        result_ready:
+          type: boolean
+        repair_status:
+          type: string
+        updated_at:
+          type: string
       additionalProperties: true
 
     WorkflowRun:
