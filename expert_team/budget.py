@@ -28,7 +28,6 @@ class ModelPrice:
 
 
 def estimate_tokens(text: str) -> int:
-    """Conservative language-agnostic estimate; one token per three UTF-8 bytes."""
     raw = (text or "").encode("utf-8")
     return max(1, math.ceil(len(raw) / 3))
 
@@ -70,10 +69,7 @@ def agent_limits(payload: dict[str, Any], role: str) -> tuple[int, int]:
 
 
 def _load_snapshot() -> dict[str, Any]:
-    candidates = [
-        Path("runtime_results/model_intelligence_latest.json"),
-        Path("model_intelligence_latest.json"),
-    ]
+    candidates = [Path("runtime_results/model_intelligence_latest.json"), Path("model_intelligence_latest.json")]
     for path in candidates:
         if path.exists():
             value = json.loads(path.read_text(encoding="utf-8"))
@@ -112,9 +108,8 @@ def pricing_from_snapshot(snapshot: dict[str, Any]) -> dict[str, ModelPrice]:
             completion = float(pricing.get("completion"))
         except (TypeError, ValueError):
             continue
-        if prompt < 0 or completion < 0:
-            continue
-        prices[str(model_id)] = ModelPrice(prompt, completion)
+        if prompt >= 0 and completion >= 0:
+            prices[str(model_id)] = ModelPrice(prompt, completion)
     return prices
 
 
@@ -134,9 +129,8 @@ def _pricing_from_catalog_rows(rows: Any) -> dict[str, ModelPrice]:
             completion = float(pricing.get("completion"))
         except (TypeError, ValueError):
             continue
-        if prompt < 0 or completion < 0:
-            continue
-        prices[model_id] = ModelPrice(prompt, completion)
+        if prompt >= 0 and completion >= 0:
+            prices[model_id] = ModelPrice(prompt, completion)
     return prices
 
 
@@ -169,10 +163,7 @@ def _selected_model_ids(plan: dict[str, Any]) -> set[str]:
 def _load_current_prices(required_models: set[str]) -> tuple[dict[str, ModelPrice], list[str]]:
     prices = pricing_from_snapshot(_load_snapshot())
     sources = ["runtime_results/model_intelligence_latest.json"]
-    missing = required_models - prices.keys()
-    if missing:
-        # The GPT-sized snapshot is intentionally bounded. Fetch the current official catalog
-        # only when a submitted model is outside that compact planning view.
+    if required_models - prices.keys():
         from expert_team.model_intelligence import fetch_catalog_via_sdk
 
         catalog = fetch_catalog_via_sdk()
@@ -182,9 +173,7 @@ def _load_current_prices(required_models: set[str]) -> tuple[dict[str, ModelPric
 
 
 def _budget_settings(plan: dict[str, Any]) -> tuple[float, float, float, float]:
-    payload = plan.get("budget")
-    if payload is None:
-        payload = {}
+    payload = plan.get("budget") or {}
     if not isinstance(payload, dict):
         raise BudgetPreflightError("budget must be an object")
     try:
@@ -197,9 +186,7 @@ def _budget_settings(plan: dict[str, Any]) -> tuple[float, float, float, float]:
         raise BudgetPreflightError(f"budget.max_total_usd must be > 0 and <= {operator_max:.2f}")
     if reserve_ratio < 0 or reserve_ratio > 0.50:
         raise BudgetPreflightError("budget.recovery_reserve_ratio must be between 0 and 0.50")
-    normal = max_total * (1.0 - reserve_ratio)
-    recovery = max_total * reserve_ratio
-    return max_total, reserve_ratio, normal, recovery
+    return max_total, reserve_ratio, max_total * (1.0 - reserve_ratio), max_total * reserve_ratio
 
 
 def _call_cost(price: ModelPrice, input_tokens: int, output_tokens: int) -> float:
@@ -222,68 +209,66 @@ def _price_role(
             f"No current pricing metadata for model {model}; choose a current model or refresh model intelligence"
         )
     primary_single = _call_cost(primary, input_tokens, output_tokens)
-    attempts = [
-        {
-            "model": model,
-            "attempts": 2,
-            "prompt_price_per_token": primary.prompt_per_token,
-            "completion_price_per_token": primary.completion_per_token,
-            "estimated_cost_usd": round(primary_single * 2, 6),
-        }
-    ]
+    attempts = [{
+        "model": model,
+        "attempts": 2,
+        "prompt_price_per_token": primary.prompt_per_token,
+        "completion_price_per_token": primary.completion_per_token,
+        "estimated_cost_usd": round(primary_single * 2, 6),
+    }]
     worst_case = primary_single * 2
     for fallback in fallback_models:
         fallback_price = prices.get(fallback)
         if fallback_price is None:
-            raise BudgetPreflightError(
-                f"No current pricing metadata for fallback model {fallback}; choose a current fallback model"
-            )
-        fallback_cost = _call_cost(fallback_price, input_tokens, output_tokens)
-        attempts.append(
-            {
-                "model": fallback,
-                "attempts": 1,
-                "prompt_price_per_token": fallback_price.prompt_per_token,
-                "completion_price_per_token": fallback_price.completion_per_token,
-                "estimated_cost_usd": round(fallback_cost, 6),
-            }
-        )
-        worst_case += fallback_cost
-    return (
-        {
-            "role": role,
-            "name": name,
-            "primary_model": model,
-            "fallback_models": fallback_models,
-            "estimated_input_tokens": input_tokens,
-            "max_completion_tokens": output_tokens,
-            "attempt_plan": attempts,
-            "single_clean_call_usd": round(primary_single, 6),
-            "estimated_worst_case_usd": round(worst_case, 6),
-        },
-        primary_single,
-        worst_case,
-    )
+            raise BudgetPreflightError(f"No current pricing metadata for fallback model {fallback}")
+        fallback_single = _call_cost(fallback_price, input_tokens, output_tokens)
+        attempts.append({
+            "model": fallback,
+            "attempts": 2,
+            "prompt_price_per_token": fallback_price.prompt_per_token,
+            "completion_price_per_token": fallback_price.completion_per_token,
+            "estimated_cost_usd": round(fallback_single * 2, 6),
+        })
+        worst_case += fallback_single * 2
+    return ({
+        "role": role,
+        "name": name,
+        "primary_model": model,
+        "fallback_models": fallback_models,
+        "estimated_input_tokens": input_tokens,
+        "max_completion_tokens": output_tokens,
+        "attempt_plan": attempts,
+        "single_clean_call_usd": round(primary_single, 6),
+        "estimated_worst_case_usd": round(worst_case, 6),
+    }, primary_single, worst_case)
+
+
+def _resolve_execution_phase(plan: dict[str, Any], requested: str) -> str:
+    if requested in {"normal", "recovery"}:
+        return requested
+    if requested != "auto":
+        raise BudgetPreflightError("execution_phase must be auto, normal, or recovery")
+    provenance = plan.get("provenance")
+    source = str(provenance.get("effective_plan_source") or "") if isinstance(provenance, dict) else ""
+    return "recovery" if source == "deepseek_top_supervisor" else "normal"
 
 
 def preflight_execution_plan(
     plan: dict[str, Any],
     *,
     pricing_by_model: dict[str, ModelPrice] | None = None,
-    execution_phase: str = "normal",
+    execution_phase: str = "auto",
 ) -> dict[str, Any]:
-    if execution_phase not in {"normal", "recovery"}:
-        raise BudgetPreflightError("execution_phase must be normal or recovery")
+    phase = _resolve_execution_phase(plan, execution_phase)
     max_total, reserve_ratio, normal_budget, recovery_budget = _budget_settings(plan)
     if pricing_by_model is None:
         prices, pricing_sources = _load_current_prices(_selected_model_ids(plan))
     else:
         prices = pricing_by_model
         pricing_sources = ["injected deterministic test pricing"]
-
-    available = normal_budget if execution_phase == "normal" else recovery_budget
+    available = normal_budget if phase == "normal" else recovery_budget
     if available <= 0:
-        raise BudgetPreflightError(f"No budget is reserved for {execution_phase} execution")
+        raise BudgetPreflightError(f"No budget is reserved for {phase} execution")
 
     task = str(plan.get("task") or "")
     rationale = str(plan.get("rationale") or "")
@@ -304,12 +289,11 @@ def preflight_execution_plan(
         input_tokens = base_tokens + estimate_tokens(
             str(raw.get("mission") or "") + "\n" + str(raw.get("instructions") or "")
         )
-        fallbacks = [str(item).strip() for item in raw.get("fallback_models", []) if str(item).strip()]
         item, single, worst = _price_role(
             role="expert",
             name=str(raw.get("name") or "expert"),
             model=str(raw.get("model") or ""),
-            fallback_models=fallbacks,
+            fallback_models=[str(item).strip() for item in raw.get("fallback_models", []) if str(item).strip()],
             input_tokens=input_tokens,
             output_tokens=max_tokens,
             prices=prices,
@@ -322,12 +306,11 @@ def preflight_execution_plan(
     red_output_tokens = 0
     if isinstance(red_team, dict) and bool(red_team.get("enabled")):
         red_output_tokens, _ = agent_limits(red_team, "red_team")
-        fallbacks = [str(item).strip() for item in red_team.get("fallback_models", []) if str(item).strip()]
         item, single, worst = _price_role(
             role="red_team",
             name=str(red_team.get("name") or "red_team"),
             model=str(red_team.get("model") or ""),
-            fallback_models=fallbacks,
+            fallback_models=[str(item).strip() for item in red_team.get("fallback_models", []) if str(item).strip()],
             input_tokens=base_tokens + expert_output_total + estimate_tokens(str(red_team.get("instructions") or "")),
             output_tokens=red_output_tokens,
             prices=prices,
@@ -339,12 +322,11 @@ def preflight_execution_plan(
     judge = plan.get("judge")
     if isinstance(judge, dict) and bool(judge.get("enabled")):
         judge_tokens, _ = agent_limits(judge, "judge")
-        fallbacks = [str(item).strip() for item in judge.get("fallback_models", []) if str(item).strip()]
         item, single, worst = _price_role(
             role="judge",
             name=str(judge.get("name") or "final_judge"),
             model=str(judge.get("model") or ""),
-            fallback_models=fallbacks,
+            fallback_models=[str(item).strip() for item in judge.get("fallback_models", []) if str(item).strip()],
             input_tokens=base_tokens + expert_output_total + red_output_tokens + estimate_tokens(str(judge.get("instructions") or "")),
             output_tokens=judge_tokens,
             prices=prices,
@@ -356,7 +338,7 @@ def preflight_execution_plan(
     estimated = round(worst_case_total, 6)
     summary = {
         "schema_version": "2",
-        "execution_phase": execution_phase,
+        "execution_phase": phase,
         "max_total_usd": round(max_total, 4),
         "recovery_reserve_ratio": reserve_ratio,
         "normal_execution_budget_usd": round(normal_budget, 4),
@@ -365,15 +347,15 @@ def preflight_execution_plan(
         "single_clean_pass_estimated_usd": round(single_clean_total, 6),
         "estimated_worst_case_usd": estimated,
         "includes_primary_transient_retry": True,
-        "includes_all_declared_fallbacks": True,
+        "includes_all_declared_fallback_retries": True,
         "within_budget": estimated <= available,
         "pricing_sources": pricing_sources,
         "items": items,
     }
     if estimated > available:
         raise BudgetPreflightError(
-            f"{execution_phase.capitalize()} worst-case model cost ${estimated:.4f} exceeds available "
-            f"budget ${available:.4f}; DeepSeek Top Supervisor must lower hard token limits, "
-            "reduce unnecessary calls, or select lower-cost compatible models"
+            f"{phase.capitalize()} worst-case model cost ${estimated:.4f} exceeds available budget "
+            f"${available:.4f}; DeepSeek Top Supervisor must lower token limits, reduce calls, "
+            "or select lower-cost compatible models"
         )
     return summary
