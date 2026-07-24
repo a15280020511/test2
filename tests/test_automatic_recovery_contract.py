@@ -42,7 +42,7 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         text = Path("ACTION_RECOVERY.md").read_text(encoding="utf-8")
         self.assertIn("highest technical control layer", text)
         self.assertIn("Durable operation receipt", text)
-        self.assertIn("two consecutive control reads", text)
+        self.assertIn("second consecutive read", text)
         self.assertIn("deepseek-supervisor.yml", text)
         self.assertIn("one bounded production redispatch", text)
         self.assertIn("runtime_results/current_operation_status.json", text)
