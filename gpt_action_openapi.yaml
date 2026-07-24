@@ -2,11 +2,11 @@ openapi: 3.1.0
 
 info:
   title: test2 Dynamic Expert Team and Automatic DeepSeek Steward Action
-  version: 1.4.0
+  version: 1.5.0
   description: >-
     Web GPT commands user tasks. GitHub runs model intelligence, expert teams, and
-    DeepSeek Steward. Control flow uses a small status file keyed by operation_id.
-    Run, Job, Step, and Artifact endpoints are audit-only.
+    DeepSeek Steward. Normal control flow uses one permanent current-status file.
+    Run, Job, Step, Artifact, and per-operation records are audit-only.
 
 servers:
   - url: https://api.github.com
@@ -18,7 +18,7 @@ paths:
       summary: Read latest GPT-sized OpenRouter model intelligence
       description: >-
         Call with ref=runtime-results. On first 404 dispatch model_intelligence, then poll
-        getOperationStatus. Retry this read only after status=success and result_ready=true.
+        getCurrentOperationStatus until that operation succeeds and result_ready=true.
       parameters:
         - name: ref
           in: query
@@ -40,15 +40,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: Snapshot absent; dispatch model_intelligence and use getOperationStatus.
+          description: Snapshot absent; dispatch model_intelligence and use the permanent status endpoint.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
       summary: Read authoritative Execution Plan JSON Schema
       description: >-
-        Call with ref=main. A true technical read failure triggers DeepSeek REPAIR. Do not
-        treat a queued operation-status 404 as a schema failure.
+        Call with ref=main. A true technical read failure triggers DeepSeek REPAIR.
+        This endpoint is not used to track queued or running operations.
       parameters:
         - name: ref
           in: query
@@ -100,7 +100,7 @@ paths:
     get:
       operationId: getActionRecoveryPolicy
       summary: Read mandatory automatic repair and status policy
-      description: Read control-plane, automatic repair, retry, and queued-status rules.
+      description: Read permanent-control-plane, automatic repair, retry, and STOP rules.
       parameters:
         - name: ref
           in: query
@@ -127,8 +127,8 @@ paths:
       operationId: dispatchExpertTeamOperation
       summary: Run model intelligence, expert team, or DeepSeek Steward
       description: >-
-        Dispatch with a unique operation_id. After HTTP 204, use getOperationStatus only.
-        Do not list workflow runs to locate the task. DeepSeek failure is STOP.
+        Dispatch with a unique operation_id. After HTTP 204, poll getCurrentOperationStatus.
+        Never use run lists or missing result files to infer task state.
       requestBody:
         required: true
         content:
@@ -167,21 +167,16 @@ paths:
                       description: Stringified Support Packet with available failure evidence.
       responses:
         "204":
-          description: Workflow dispatch accepted; start polling getOperationStatus.
+          description: Workflow dispatch accepted; poll getCurrentOperationStatus.
 
-  /repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json:
+  /repos/a15280020511/test2/contents/runtime_results/current_operation_status.json:
     get:
-      operationId: getOperationStatus
-      summary: Read lightweight operation control status
+      operationId: getCurrentOperationStatus
+      summary: Read permanent current operation control status
       description: >-
-        Primary control-plane read. After accepted dispatch, a temporary 404 means queued or
-        not yet started; retry later. Use run_id from this status for optional audit calls.
+        Primary control-plane read. HTTP 200 is expected. If operation_id differs from the
+        submitted ID, the new task has not started yet; keep polling instead of treating it as failure.
       parameters:
-        - name: operation_id
-          in: path
-          required: true
-          schema:
-            type: string
         - name: ref
           in: query
           required: true
@@ -196,19 +191,19 @@ paths:
             default: application/vnd.github.raw+json
       responses:
         "200":
-          description: Small operation status object.
+          description: Permanent small current-operation status object.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OperationStatus"
         "404":
-          description: After dispatch acceptance, treat as queued or not yet started and retry.
+          description: Control-plane defect; dispatch DeepSeek REPAIR and retry until the permanent file is restored.
 
   /repos/a15280020511/test2/actions/runs/{run_id}:
     get:
       operationId: getExpertTeamRun
       summary: Get one workflow run for audit
-      description: Audit-only. Obtain run_id from getOperationStatus; do not use run lists for control flow.
+      description: Audit-only. Obtain run_id from the matching current status; never use run lists for control.
       parameters:
         - name: run_id
           in: path
@@ -246,7 +241,7 @@ paths:
     get:
       operationId: listExpertTeamRunArtifacts
       summary: List audit artifacts for one known run
-      description: Audit-only. Use run_id from getOperationStatus.
+      description: Audit-only. Use run_id from the matching current operation status.
       parameters:
         - name: run_id
           in: path
@@ -266,7 +261,7 @@ paths:
       operationId: getExpertTeamResult
       summary: Read final expert-team JSON result
       description: >-
-        Read only after getOperationStatus reports status=success and result_ready=true.
+        Read only when current status matches operation_id, status=success, and result_ready=true.
         Always pass ref=runtime-results.
       parameters:
         - name: operation_id
@@ -301,8 +296,8 @@ paths:
       operationId: getDeepSeekStewardResult
       summary: Read DeepSeek Steward ASSIST or REPAIR result
       description: >-
-        Read after getOperationStatus reaches a terminal state. If official DeepSeek failed,
-        STOP and never use OpenRouter as Steward fallback.
+        Read after the matching current operation reaches a terminal state. If official DeepSeek
+        failed, STOP and never use OpenRouter as Steward fallback.
       parameters:
         - name: operation_id
           in: path
@@ -335,7 +330,7 @@ paths:
     get:
       operationId: getAutoRepairResult
       summary: Read automatic DeepSeek repair evidence
-      description: Read repair evidence after a terminal operation status when auto-repair occurred.
+      description: Read repair evidence after a terminal matching status when auto-repair occurred.
       parameters:
         - name: operation_id
           in: path
@@ -368,7 +363,7 @@ paths:
     get:
       operationId: getExpertTeamOperationMetadata
       summary: Read published operation metadata
-      description: Optional detail read after getOperationStatus reaches a terminal state.
+      description: Optional audit detail read after the matching current operation reaches a terminal state.
       parameters:
         - name: operation_id
           in: path
@@ -471,15 +466,17 @@ components:
         schema_version:
           type: string
         operation_id:
-          type: string
+          type: [string, "null"]
         operation:
-          type: string
+          type: [string, "null"]
         status:
           type: string
-          enum: [running, success, STOP, failure]
+          enum: [idle, running, repairing, retrying, success, STOP, failure]
         run_id:
           type: [string, "null"]
         result_ready:
+          type: boolean
+        result_published:
           type: boolean
         repair_status:
           type: string
