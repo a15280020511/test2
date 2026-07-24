@@ -1,0 +1,19 @@
+{
+  "mode": "REPAIR",
+  "decision": "STOP",
+  "diagnosis": "OpenRouter 402 credit limit exceeded: the operation requested up to 65536 tokens but only 47424 could be afforded. This is an external service resource limit, not a repository defect.",
+  "confidence": 0.98,
+  "edits": [],
+  "delete_files": [],
+  "verification": [],
+  "resume": "STOP",
+  "message_to_web_gpt": "The production operation failed due to insufficient OpenRouter credits. The repository code is not defective. No code edit can resolve this. Escalate to the DeepSeek Top Supervisor to adjust the execution plan (e.g., lower-cost models) or add credits.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  }
+}
