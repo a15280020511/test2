@@ -6,9 +6,28 @@ raise "missing openapi" unless schema["openapi"]
 schemas = schema.dig("components", "schemas")
 raise "components.schemas must be an object" unless schemas.is_a?(Hash)
 
-operation_ids = schema.fetch("paths").values.flat_map do |path_item|
-  path_item.values.filter_map { |operation| operation.is_a?(Hash) ? operation["operationId"] : nil }
+http_methods = %w[get post put patch delete options head trace]
+operation_ids = []
+description_errors = []
+
+schema.fetch("paths").each do |path, path_item|
+  next unless path_item.is_a?(Hash)
+
+  path_item.each do |method, operation|
+    next unless http_methods.include?(method.to_s.downcase)
+    next unless operation.is_a?(Hash)
+
+    operation_id = operation["operationId"]
+    operation_ids << operation_id if operation_id
+
+    description = operation["description"]
+    if description.is_a?(String) && description.length > 300
+      description_errors << "#{method.upcase} #{path} operationId=#{operation_id}: description length #{description.length} exceeds 300"
+    end
+  end
 end
+
+raise description_errors.join("\n") unless description_errors.empty?
 
 required_operation_ids = %w[
   getOpenRouterModels
