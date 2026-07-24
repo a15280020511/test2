@@ -21,6 +21,20 @@ Web GPT remains the user-facing task commander. DeepSeek Steward owns repository
 - DeepSeek Steward must use the **official DeepSeek API** at `https://api.deepseek.com`; it must not route Steward requests through OpenRouter.
 - If the official DeepSeek service is unavailable or unusable, the current DeepSeek Steward operation must fail and stop. No OpenRouter or other-provider substitution is allowed.
 - GitHub remains the execution, evidence, logging, validation, and repair-delivery center.
+- External tool packages are governed by `TOOL_PACKAGE_GUARDRAILS.md`.
+- Upstream package maintenance, releases, security fixes, and continuing development belong to the upstream maintainers, not DeepSeek Steward or `test2`.
+- DeepSeek Steward owns only the `test2`-side integration, compatibility, dependency, workflow, runtime, and adapter problems involving those packages.
+
+## Tool package boundary
+
+When a tool package is involved in a failure, DeepSeek Steward must first distinguish between:
+
+1. a `test2` integration or compatibility defect, which Steward may repair; and
+2. an upstream package defect or upstream maintenance matter, which Steward must not turn into a permanent local maintenance burden by default.
+
+For repository-side integration problems, Steward should make the smallest safe adapter, dependency, configuration, or workflow repair needed to restore compatibility.
+
+Steward must not create a permanent fork, rewrite the upstream package, or build a duplicate updater/maintenance subsystem merely because the upstream project changes. Mature upstream maintainers remain responsible for the package itself.
 
 ## ASSIST mode
 
@@ -45,7 +59,8 @@ Use `REPAIR` for any repository technical problem, including but not limited to:
 - GPT Action/OpenAPI schema failures;
 - GitHub Workflow, Run, Job, Step, or log failures;
 - Python import/runtime errors;
-- dependency/version incompatibility;
+- dependency/version incompatibility inside `test2`;
+- repository-side integration failures involving external tool packages;
 - OpenRouter SDK/API integration failures;
 - DeepSeek official API integration failures;
 - Microsoft Agent Framework integration failures;
@@ -58,7 +73,7 @@ Use `REPAIR` for any repository technical problem, including but not limited to:
 DeepSeek Steward should:
 
 1. Read the Support Packet and available repository context.
-2. Distinguish repository defects from external/transient failures.
+2. Distinguish repository defects from external/transient failures and upstream package maintenance matters.
 3. State the root-cause diagnosis and confidence.
 4. If evidence supports a repository defect, produce the smallest safe repair.
 5. Apply full-file edits only; it must not issue arbitrary shell commands.
@@ -82,6 +97,7 @@ DeepSeek Steward is authorized to repair repository code directly through the co
 - Do not modify unrelated files merely to make a repair look comprehensive.
 - External/transient repository failures should normally return `STOP` or `NO_EDIT`, not produce speculative repository edits.
 - DeepSeek provider failures are terminal for the current Steward operation: stop immediately and do not substitute OpenRouter or any other provider.
+- Do not assume responsibility for long-term upstream tool-package maintenance. Repair the repository boundary, not the upstream project, unless an exceptional fork is explicitly approved.
 
 ## Support Packet
 
@@ -140,4 +156,4 @@ When Web GPT only needs usage or form guidance, dispatch `steward_mode=ASSIST`.
 
 ## Core principle
 
-**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance through DeepSeek's official API. DeepSeek unavailability is a hard stop, never a trigger for provider fallback.**
+**Web GPT manages user tasks and decisions. DeepSeek Steward manages repository service, maintenance, repair, and repository-facing assistance through DeepSeek's official API. DeepSeek unavailability is a hard stop, never a trigger for provider fallback. External tool packages remain maintained by their upstream teams; test2 guards and repairs only the integration boundary.**
