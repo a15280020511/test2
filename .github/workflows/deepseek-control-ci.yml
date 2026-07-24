@@ -6,8 +6,10 @@ on:
     paths:
       - ".github/workflows/deepseek-control.yml"
       - ".github/workflows/deepseek-rescue.yml"
+      - ".github/workflows/deepseek-control-failure-sentinel.yml"
       - ".github/workflows/deepseek-control-ci.yml"
       - "scripts/cross_repo_control.py"
+      - "scripts/deepseek_priority_control.py"
       - "scripts/validate_control_schema.rb"
       - "deepseek_control_openapi.yaml"
       - "DEEPSEEK_CONTROL_PLANE.md"
@@ -41,11 +43,34 @@ jobs:
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Compile control script
+      - name: Compile control scripts
         id: compile_control
         run: |
           set +e
-          python -m py_compile scripts/cross_repo_control.py 2>&1 | tee control-ci-artifacts/control-script-compile.log
+          python -m py_compile \
+            scripts/cross_repo_control.py \
+            scripts/deepseek_priority_control.py \
+            2>&1 | tee control-ci-artifacts/control-script-compile.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Verify mandatory entry and automatic repair contracts
+        id: priority_contract
+        run: |
+          set +e
+          {
+            grep -F 'scripts.deepseek_priority_control' .github/workflows/deepseek-control.yml >/dev/null
+            if grep -F 'python -m scripts.cross_repo_control' .github/workflows/deepseek-control.yml; then
+              echo 'Production workflow bypasses the DeepSeek-first wrapper.'
+              exit 1
+            fi
+            grep -F 'ENTRY_BLOCKED' scripts/deepseek_priority_control.py >/dev/null
+            grep -F 'automatic_repair' scripts/deepseek_priority_control.py >/dev/null
+            grep -F 'redirect_stdout' scripts/deepseek_priority_control.py >/dev/null
+            grep -F 'control_ticket_receipt' scripts/deepseek_priority_control.py >/dev/null
+          } 2>&1 | tee control-ci-artifacts/priority-contract.log
           status=${PIPESTATUS[0]}
           set -e
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -67,7 +92,7 @@ jobs:
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Verify work repository is the only target
+      - name: Verify work repository is the only production target
         id: target_contract
         run: |
           set +e
@@ -99,6 +124,7 @@ jobs:
           for status in \
             "${{ steps.control_contract.outputs.status }}" \
             "${{ steps.compile_control.outputs.status }}" \
+            "${{ steps.priority_contract.outputs.status }}" \
             "${{ steps.rescue_contract.outputs.status }}" \
             "${{ steps.target_contract.outputs.status }}"; do
             if [[ -z "$status" || "$status" != "0" ]]; then
