@@ -27,9 +27,9 @@ def _run(command: list[str]) -> None:
     subprocess.run(command, check=True, text=True)
 
 
-def _current_run_id() -> int | None:
+def _current_run_id() -> str | None:
     value = (os.getenv("GITHUB_RUN_ID") or "").strip()
-    return int(value) if value.isdigit() else None
+    return value or None
 
 
 def _build_status(operation_id: str, operation: str, phase: str, job_status: str) -> dict[str, Any]:
@@ -111,7 +111,7 @@ def _publish(payload: dict[str, Any], operation_id: str) -> None:
         try:
             _publish_once(payload, operation_id)
             return
-        except Exception as exc:  # retry only this tiny control-plane publication
+        except Exception as exc:
             last_error = exc
             subprocess.run(["git", "worktree", "prune"], check=False)
             if attempt < 3:
