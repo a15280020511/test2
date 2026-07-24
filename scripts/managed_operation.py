@@ -17,8 +17,10 @@ from scripts.repair_utils import (
     write_json,
 )
 
+PLUGIN_OPERATIONS = {"model_intelligence", "execute_team"}
 
-def _entrypoint_command(
+
+def _entrypoint_arguments(
     *,
     operation: str,
     operation_id: str,
@@ -28,9 +30,6 @@ def _entrypoint_command(
     support_packet_json: str,
 ) -> list[str]:
     return [
-        sys.executable,
-        "-m",
-        "scripts.action_entrypoint",
         "--operation",
         operation,
         "--operation-id",
@@ -44,6 +43,42 @@ def _entrypoint_command(
         "--support-packet-json",
         support_packet_json,
     ]
+
+
+def _entrypoint_command(
+    *,
+    operation: str,
+    operation_id: str,
+    plan_json: str,
+    ranking_limit: int,
+    steward_mode: str,
+    support_packet_json: str,
+) -> list[str]:
+    arguments = _entrypoint_arguments(
+        operation=operation,
+        operation_id=operation_id,
+        plan_json=plan_json,
+        ranking_limit=ranking_limit,
+        steward_mode=steward_mode,
+        support_packet_json=support_packet_json,
+    )
+    if operation in PLUGIN_OPERATIONS:
+        return [
+            sys.executable,
+            "-m",
+            "scripts.plugin_runner",
+            "--plugin",
+            "expert-team",
+            "--operation",
+            operation,
+            "--operation-id",
+            operation_id,
+            "--module",
+            "scripts.action_entrypoint",
+            "--",
+            *arguments,
+        ]
+    return [sys.executable, "-m", "scripts.action_entrypoint", *arguments]
 
 
 def _run(command: list[str], log_path: Path) -> subprocess.CompletedProcess[str]:
@@ -68,7 +103,7 @@ def _publish_transition(operation_id: str, operation: str, phase: str, output_di
     """Best-effort progress publication; terminal publication remains a workflow hard step."""
     try:
         publish_status(operation_id, operation, phase)
-    except Exception as exc:  # Progress visibility must not abort an otherwise repairable operation.
+    except Exception as exc:
         log_path = output_dir / "status_transition_errors.log"
         with log_path.open("a", encoding="utf-8") as handle:
             handle.write(f"phase={phase} error={type(exc).__name__}: {exc}\n")
@@ -80,7 +115,7 @@ def main() -> None:
     parser.add_argument("--operation-id", required=True)
     parser.add_argument("--plan-json", default="{}")
     parser.add_argument("--ranking-limit", type=int, default=20)
-    parser.add_argument("--steward-mode", choices=("ASSIST", "REPAIR"), default="ASSIST")
+    parser.add_argument("--steward-mode", choices=("ASSIST", "REVIEW", "REPAIR"), default="ASSIST")
     parser.add_argument("--support-packet-json", default="{}")
     args = parser.parse_args()
 
@@ -97,7 +132,7 @@ def main() -> None:
         support_packet_json=args.support_packet_json,
     )
 
-    # Explicit Steward operations are already the repair/service operation themselves.
+    # Explicit Steward operations are the independent service operation themselves.
     # Do not recursively invoke Steward when Steward fails; DeepSeek unavailability is a hard stop.
     if args.operation == "deepseek_steward":
         completed = _run(original_command, output_dir / "managed_operation.log")
@@ -113,37 +148,42 @@ def main() -> None:
     if first.returncode == 0:
         write_json(
             output_dir / "managed_operation.json",
-            {"status": "success", "operation": args.operation, "attempts": 1, "auto_repair_triggered": False},
+            {
+                "status": "success",
+                "operation": args.operation,
+                "attempts": 1,
+                "auto_repair_triggered": False,
+                "plugin": "expert-team" if args.operation in PLUGIN_OPERATIONS else None,
+                "plugin_cleanup": "always",
+            },
         )
         return
 
     # A GitHub-internal operation failure automatically becomes a DeepSeek REPAIR request.
-    # This is deliberately limited to one repair cycle and one retry.
+    # This remains deliberately limited to one repair cycle and one retry.
     _publish_transition(operation_id, args.operation, "repairing", output_dir)
     repair_id = safe_operation_id(f"{operation_id}-auto-repair")
     supplied_packet = _load_json_object(args.support_packet_json)
     support_packet = {
         "operation_id": operation_id,
         "mode": "REPAIR",
-        "request": "Automatically diagnose and repair the repository defect that caused the production operation to fail, then allow one retry of the original operation.",
+        "request": "Automatically diagnose and repair the repository integration defect that caused the production operation to fail, then allow one retry.",
         "task": supplied_packet.get("task"),
         "current_state": "Original GitHub production operation failed before completion.",
         "failure_location": f"managed production operation: {args.operation}",
         "error_type": "ProductionOperationFailure",
         "error_message": (first.stderr or first.stdout or "unknown failure")[-12000:],
-        "logs_excerpt": {
-            "stdout": first.stdout[-12000:],
-            "stderr": first.stderr[-12000:],
-        },
+        "logs_excerpt": {"stdout": first.stdout[-12000:], "stderr": first.stderr[-12000:]},
         "attempts_already_made": ["Initial operation attempt failed. No manual repository repair was attempted."],
         "constraints": [
             "Use DeepSeek official API only for Steward.",
             "Never fall back to OpenRouter for Steward.",
             "Use the smallest evidence-based repair.",
-            "Do not modify protected paths.",
+            "Do not maintain or fork an upstream plugin package.",
+            "Repair only the local manifest, adapter, workflow, or compatibility boundary.",
             "Only one automatic repair cycle and one retry are allowed.",
         ],
-        "requested_outcome": "Repair the repository defect, pass verification, and make the original operation succeed on one retry.",
+        "requested_outcome": "Repair the repository integration defect, pass verification, and make the original operation succeed on one retry.",
         "original_support_packet": supplied_packet,
     }
 
@@ -227,7 +267,6 @@ def main() -> None:
         "pull_request_url": None,
     }
     write_json(auto_repair_result_path, result)
-
     write_json(
         output_dir / "auto_repair_manifest.json",
         {
