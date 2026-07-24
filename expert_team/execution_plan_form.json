@@ -2,7 +2,7 @@
   "version": "1",
   "selection_policy": "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，必须具体问题具体分析。",
   "task": "<用户的原始任务>",
-  "rationale": "<说明任务风险、模型选择、专家组织和预算配置依据。技术故障统一交给 DeepSeek Top Supervisor。>",
+  "rationale": "<必须说明本次如何依据 selection_policy，结合任务难度、风险、模型能力、价格、延迟、上下文和预算，决定专家数量、模型、token 与工作流。技术故障统一交给 DeepSeek Top Supervisor。>",
   "budget": {
     "max_total_usd": 1.0,
     "recovery_reserve_ratio": 0.3
