@@ -6,7 +6,7 @@
 
 The system separates:
 
-- **Durable receipt plane**: one synchronous GitHub issue comment per production operation in control issue `#15`.
+- **Durable receipt plane**: one GitHub issue comment per production operation in control issue `#15`.
 - **Primary control plane**: `runtime_results/current_operation_status.json`.
 - **Historical audit status**: `runtime_results/status/<operation_id>.json`.
 - **Audit plane**: Run, Job, Step, logs, Artifact, metadata, repair evidence, and detailed runtime results.
@@ -16,17 +16,18 @@ Web GPT owns user intent. DeepSeek Steward owns technical diagnosis and recovery
 
 ## Durable operation receipt
 
-Before every call to `dispatchExpertTeamOperation`:
+For every production operation:
 
 1. Generate one unique `operation_id`.
-2. Call `createOperationReceipt` and add one compact JSON receipt comment to issue `#15`.
-3. The receipt must contain at least `operation_id`, `operation`, and a short task label. Never include secrets.
-4. Keep the returned GitHub comment `id` as `receipt_comment_id`.
-5. Dispatch the production workflow with the same `operation_id` and the required `receipt_comment_id`.
+2. Web GPT should normally call `createOperationReceipt` first and keep the returned comment `id` as `receipt_comment_id`.
+3. The receipt contains at least `operation_id`, `operation`, and a short task label. Never include secrets.
+4. Dispatch the production workflow with the same `operation_id`.
+5. When Web GPT supplies `receipt_comment_id`, the workflow uses it.
+6. When Web GPT omits `receipt_comment_id`, the production workflow must automatically create the receipt server-side in issue `#15` before publishing running status.
+7. Missing `receipt_comment_id` must never produce an entry-point `422` that ends the user task.
+8. If server-side receipt creation fails, the production job fails and automatically escalates to DeepSeek Top Supervisor.
 
-The receipt is synchronous durable evidence that Web GPT accepted the operation before the asynchronous workflow starts.
-
-The receipt does not replace the workflow. It exists so a startup failure can be diagnosed without guessing whether the user task was ever accepted.
+The receipt is durable evidence that the operation was accepted. Pre-dispatch receipt creation is preferred because it is synchronous, but server-side fallback is mandatory so correctness does not depend on Web GPT remembering an Action call order.
 
 ## Operation-to-Run correlation
 
@@ -82,7 +83,7 @@ The supervisor:
 
 1. Uses a concurrency group separate from `expert-team-production`.
 2. Uses only the official DeepSeek API.
-3. Receives the original `operation_id`, durable receipt ID, failure class, Support Packet, and a bounded original dispatch payload.
+3. Receives the original `operation_id`, durable receipt ID when available, failure class, Support Packet, and a bounded original dispatch payload.
 4. Runs DeepSeek Steward in `REPAIR` mode.
 5. Applies only bounded repository edits authorized by Steward.
 6. Runs mandatory verification before repair delivery.
@@ -99,6 +100,7 @@ This includes failures in:
 
 - checkout;
 - Python setup;
+- automatic receipt creation;
 - status publication;
 - dependency installation;
 - repository-context preparation;
@@ -135,8 +137,8 @@ This internal repair loop is subordinate to the top supervisor. If the productio
 Web GPT must route any technical anomaly to the top supervisor, including:
 
 - `getCurrentOperationStatus` returns `404` or unparseable data;
-- receipt creation unexpectedly fails;
-- production dispatch returns unexpected `4xx/5xx`;
+- pre-dispatch receipt creation fails;
+- production dispatch returns unexpected `4xx/5xx` for any reason other than a stale Builder schema that can be corrected immediately;
 - startup remains `idle` or mismatched for two consecutive control reads or about 90 seconds;
 - Execution Plan Schema cannot be read or parsed;
 - model-intelligence refresh fails after its documented refresh sequence;
@@ -161,8 +163,8 @@ Mandatory behavior:
 For `getOpenRouterModels`:
 
 1. Always pass `ref=runtime-results`.
-2. On first `404`, create a durable receipt for a unique `model_intelligence` operation.
-3. Dispatch `model_intelligence` with that receipt ID.
+2. On first `404`, create a durable receipt for a unique `model_intelligence` operation when possible.
+3. Dispatch `model_intelligence`; the workflow auto-creates a receipt when none was supplied.
 4. Track via `getCurrentOperationStatus`.
 5. Apply the same two-read/90-second startup timeout rule.
 6. Only after matching `status=success` and `result_ready=true`, retry `getOpenRouterModels` once.
@@ -183,11 +185,11 @@ Run, Job, Step, logs, Artifact, historical per-operation status, metadata, recei
 
 The primary Web GPT control path is:
 
-`durable receipt -> production dispatch -> permanent current status -> result`
+`receipt when available -> production dispatch -> server-side receipt fallback -> permanent current status -> result`
 
 On technical anomaly it becomes:
 
-`durable receipt -> DeepSeek Top Supervisor -> verified repair/diagnosis -> bounded resume -> permanent current status -> result`
+`available receipt evidence -> DeepSeek Top Supervisor -> verified repair/diagnosis -> bounded resume -> permanent current status -> result`
 
 Do not expose or use workflow-run lists as the normal Web GPT control mechanism.
 
@@ -204,4 +206,4 @@ Do not expose or use workflow-run lists as the normal Web GPT control mechanism.
 - No infinite repair, supervisor, or redispatch loop is allowed.
 - One internal repair cycle and one internal retry remain the maximum inside one production operation.
 - One top-supervisor recovery and one bounded production redispatch are the maximum after one failed or missing production attempt.
-- A total GitHub Actions/API platform outage that prevents both production and supervisor workflows from starting cannot be repaired by repository code; preserve the durable receipt and report a platform hard stop.
+- A total GitHub Actions/API platform outage that prevents both production and supervisor workflows from starting cannot be repaired by repository code; preserve available receipt evidence and report a platform hard stop.
