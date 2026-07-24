@@ -11,8 +11,16 @@ from expert_team.dynamic_team import validate_execution_plan
 from expert_team.model_intelligence import RANKING_SORTS, build_model_intelligence_snapshot
 
 
+SELECTION_POLICY = (
+    "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；"
+    "随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；"
+    "重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，"
+    "必须具体问题具体分析。"
+)
+
 VALID_PLAN = {
     "version": "1",
+    "selection_policy": SELECTION_POLICY,
     "task": "Analyze a complex business decision.",
     "rationale": "Use independent experts, then adversarial review and arbitration.",
     "experts": [
@@ -86,11 +94,19 @@ class ExpertTeamContractTests(unittest.TestCase):
             validate_execution_plan(VALID_PLAN)
 
     def test_execution_plan_schema_file_is_present_and_json(self) -> None:
-        path = Path("expert_team/execution_plan.schema.json")
+        path = Path("execution_plan.schema.json")
         schema = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(schema["properties"]["version"]["const"], "1")
+        self.assertIn("selection_policy", schema["required"])
+        self.assertEqual(schema["properties"]["selection_policy"]["const"], SELECTION_POLICY)
         self.assertIn("experts", schema["required"])
         self.assertIn("stages", schema["required"])
+
+    def test_execution_plan_form_exposes_selection_policy(self) -> None:
+        path = Path("expert_team/execution_plan_form.json")
+        form = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(form["selection_policy"], SELECTION_POLICY)
+        self.assertIn("selection_policy", form["rationale"])
 
 
 class ModelIntelligenceTests(unittest.TestCase):
