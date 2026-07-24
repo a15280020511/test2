@@ -1,0 +1,394 @@
+name: DeepSeek Control Plane
+run-name: "DeepSeek Control · ${{ inputs.task_id }} · r${{ inputs.revision }} · ${{ inputs.operation }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: START, STATUS, CANCEL, FORCE_CANCEL, RESTART, REVIEW, or DIAGNOSE
+        required: true
+        type: choice
+        options:
+          - START
+          - STATUS
+          - CANCEL
+          - FORCE_CANCEL
+          - RESTART
+          - REVIEW
+          - DIAGNOSE
+      task_id:
+        description: Stable task identity
+        required: true
+        type: string
+      revision:
+        description: Positive task revision
+        required: false
+        default: "1"
+        type: string
+      task_objective:
+        description: Authoritative user objective
+        required: false
+        default: ""
+        type: string
+      task_json:
+        description: Raw task JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      evidence_json:
+        description: Raw evidence JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      execution_plan_json:
+        description: Raw execution-plan JSON for START or RESTART
+        required: false
+        default: "{}"
+        type: string
+      target_run_id:
+        description: Target test workflow Run ID for status, cancellation, restart, review, or diagnosis
+        required: false
+        default: ""
+        type: string
+      support_context_json:
+        description: Optional structured context for DeepSeek review or diagnosis
+        required: false
+        default: "{}"
+        type: string
+      target_repo:
+        description: Controlled execution repository
+        required: false
+        default: a15280020511/test
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: "deepseek-control-${{ inputs.task_id }}-${{ inputs.revision }}"
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Execute independent control operation
+        env:
+          CONTROL_PLANE_TOKEN: ${{ secrets.CONTROL_PLANE_TOKEN }}
+          CONTROL_TICKET_SECRET: ${{ secrets.CONTROL_TICKET_SECRET }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          CONTROL_OPERATION: ${{ inputs.operation }}
+          TASK_ID: ${{ inputs.task_id }}
+          TASK_REVISION: ${{ inputs.revision }}
+          TASK_OBJECTIVE: ${{ inputs.task_objective }}
+          TASK_JSON: ${{ inputs.task_json }}
+          EVIDENCE_JSON: ${{ inputs.evidence_json }}
+          EXECUTION_PLAN_JSON: ${{ inputs.execution_plan_json }}
+          TARGET_RUN_ID: ${{ inputs.target_run_id }}
+          SUPPORT_CONTEXT_JSON: ${{ inputs.support_context_json }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/deepseek-control-output
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import hmac
+          import io
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import uuid
+          import zipfile
+          from pathlib import Path
+          from typing import Any
+
+          API = "https://api.github.com"
+          EXPECTED_REPO = "a15280020511/test"
+          WORKFLOW = "think-tank.yml"
+          OUT = Path("/tmp/deepseek-control-output")
+
+          def required(name: str) -> str:
+              value = os.environ.get(name, "").strip()
+              if not value:
+                  raise SystemExit(f"missing required secret or input: {name}")
+              return value
+
+          token = required("CONTROL_PLANE_TOKEN")
+          operation = required("CONTROL_OPERATION").upper()
+          task_id = required("TASK_ID")
+          revision_text = os.environ.get("TASK_REVISION", "1").strip() or "1"
+          try:
+              revision = int(revision_text)
+          except ValueError as exc:
+              raise SystemExit("TASK_REVISION must be a positive integer") from exc
+          if revision < 1:
+              raise SystemExit("TASK_REVISION must be a positive integer")
+          target_repo = os.environ.get("TARGET_REPO", EXPECTED_REPO).strip() or EXPECTED_REPO
+          if target_repo != EXPECTED_REPO:
+              raise SystemExit(f"refusing uncontrolled target repository: {target_repo}")
+
+          def github(method: str, path: str, payload: dict[str, Any] | None = None, *, binary: bool = False) -> Any:
+              data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+              headers = {
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {token}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "deepseek-independent-control-plane",
+              }
+              if data is not None:
+                  headers["Content-Type"] = "application/json"
+              request = urllib.request.Request(f"{API}{path}", data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(request, timeout=120) as response:
+                      raw = response.read()
+                      if binary:
+                          return raw
+                      if not raw:
+                          return {"http_status": response.status}
+                      return json.loads(raw.decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  body = exc.read().decode("utf-8", errors="replace")
+                  raise RuntimeError(f"GitHub API {method} {path} failed: HTTP {exc.code}: {body[:4000]}") from exc
+
+          def matching_runs() -> list[dict[str, Any]]:
+              query = urllib.parse.urlencode({"event": "workflow_dispatch", "per_page": 100})
+              data = github("GET", f"/repos/{target_repo}/actions/workflows/{WORKFLOW}/runs?{query}")
+              expected_title = f"Think Tank · {task_id} · r{revision}"
+              return [
+                  item
+                  for item in data.get("workflow_runs", [])
+                  if str(item.get("display_title", "")).startswith(expected_title)
+              ]
+
+          def write_result(payload: dict[str, Any]) -> None:
+              payload.setdefault("task_id", task_id)
+              payload.setdefault("revision", revision)
+              payload.setdefault("operation", operation)
+              payload.setdefault("target_repo", target_repo)
+              payload.setdefault("generated_at", int(time.time()))
+              (OUT / "control-result.json").write_text(
+                  json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+              )
+              print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+
+          def run_id() -> int:
+              value = os.environ.get("TARGET_RUN_ID", "").strip()
+              if not value.isdigit():
+                  raise SystemExit("TARGET_RUN_ID must be supplied as an integer")
+              return int(value)
+
+          def sha256(text: str) -> str:
+              return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+          def deepseek_review(packet: dict[str, Any], purpose: str) -> dict[str, Any]:
+              api_key = required("DEEPSEEK_API_KEY")
+              headers = {"Accept": "application/json", "Authorization": f"Bearer {api_key}"}
+              request = urllib.request.Request(
+                  "https://api.deepseek.com/models", headers=headers, method="GET"
+              )
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  models = json.loads(response.read().decode("utf-8")).get("data", [])
+              candidates = [
+                  str(item.get("id", ""))
+                  for item in models
+                  if str(item.get("id", "")).lower().startswith("deepseek")
+                  or str(item.get("owned_by", "")).lower() == "deepseek"
+              ]
+              if not candidates:
+                  raise RuntimeError("DeepSeek /models returned no usable model")
+              premium = [m for m in candidates if any(t in m.lower() for t in ("pro", "max", "ultra", "expert"))]
+              non_light = [m for m in candidates if not any(t in m.lower() for t in ("flash", "lite", "mini"))]
+              model = sorted(premium or non_light or candidates)[-1]
+              prompt = (
+                  "You are the independent highest-priority control authority for repository a15280020511/test. "
+                  f"Perform {purpose}. Distinguish facts, assumptions, code output and unresolved uncertainty. "
+                  "Return JSON only with decision APPROVE, REPLAN, COLLECT, REPAIR, or STOP; summary; defects[]; "
+                  "required_actions[]; and confidence. Never fabricate repository evidence or successful execution."
+              )
+              body = json.dumps(
+                  {
+                      "model": model,
+                      "messages": [
+                          {"role": "system", "content": prompt},
+                          {"role": "user", "content": json.dumps(packet, ensure_ascii=False, sort_keys=True)},
+                      ],
+                      "response_format": {"type": "json_object"},
+                      "stream": False,
+                  },
+                  ensure_ascii=False,
+              ).encode("utf-8")
+              request = urllib.request.Request(
+                  "https://api.deepseek.com/chat/completions",
+                  data=body,
+                  headers={**headers, "Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=180) as response:
+                  response_json = json.loads(response.read().decode("utf-8"))
+              content = response_json["choices"][0]["message"]["content"]
+              result = json.loads(content)
+              result["runtime_model"] = model
+              return result
+
+          active_states = {"queued", "in_progress", "waiting", "pending", "requested"}
+
+          if operation in {"START", "RESTART"}:
+              objective = required("TASK_OBJECTIVE")
+              task_json = os.environ.get("TASK_JSON", "{}")
+              evidence_json = os.environ.get("EVIDENCE_JSON", "{}")
+              plan_json = os.environ.get("EXECUTION_PLAN_JSON", "{}")
+              if operation == "RESTART" and os.environ.get("TARGET_RUN_ID", "").strip():
+                  old_run = run_id()
+                  github("POST", f"/repos/{target_repo}/actions/runs/{old_run}/force-cancel")
+              matches = matching_runs()
+              active = [item for item in matches if item.get("status") in active_states]
+              successful = [item for item in matches if item.get("status") == "completed" and item.get("conclusion") == "success"]
+              if active:
+                  write_result({"status": "DUPLICATE_ACTIVE", "existing_run": active[0]})
+                  raise SystemExit(0)
+              if successful and operation == "START":
+                  write_result({"status": "DUPLICATE_COMPLETED", "existing_run": successful[0]})
+                  raise SystemExit(0)
+
+              secret = required("CONTROL_TICKET_SECRET").encode("utf-8")
+              now = int(time.time())
+              ticket = {
+                  "schema_version": 1,
+                  "issuer": "a15280020511/test2",
+                  "target_repo": target_repo,
+                  "workflow": WORKFLOW,
+                  "task_id": task_id,
+                  "revision": revision,
+                  "objective_sha256": sha256(objective),
+                  "task_sha256": sha256(task_json),
+                  "evidence_sha256": sha256(evidence_json),
+                  "plan_sha256": sha256(plan_json),
+                  "issued_at": now,
+                  "expires_at": now + 3600,
+                  "nonce": uuid.uuid4().hex,
+              }
+              canonical = json.dumps(ticket, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+              ticket["signature"] = hmac.new(secret, canonical.encode("utf-8"), hashlib.sha256).hexdigest()
+              dispatch = {
+                  "ref": "main",
+                  "inputs": {
+                      "task_id": task_id,
+                      "task_objective": objective,
+                      "task_json": task_json,
+                      "evidence_json": evidence_json,
+                      "execution_plan_json": plan_json,
+                      "task_json_b64": "",
+                      "evidence_json_b64": "",
+                      "execution_plan_b64": "",
+                      "revision": str(revision),
+                      "control_ticket_json": json.dumps(ticket, ensure_ascii=False, separators=(",", ":")),
+                  },
+              }
+              accepted = github(
+                  "POST",
+                  f"/repos/{target_repo}/actions/workflows/{WORKFLOW}/dispatches",
+                  dispatch,
+              )
+              write_result({"status": "DISPATCH_ACCEPTED", "github_response": accepted, "ticket": ticket})
+
+          elif operation in {"CANCEL", "FORCE_CANCEL"}:
+              rid = run_id()
+              endpoint = "force-cancel" if operation == "FORCE_CANCEL" else "cancel"
+              response = github("POST", f"/repos/{target_repo}/actions/runs/{rid}/{endpoint}")
+              write_result({"status": f"{operation}_REQUESTED", "run_id": rid, "github_response": response})
+
+          elif operation == "STATUS":
+              rid_text = os.environ.get("TARGET_RUN_ID", "").strip()
+              if rid_text:
+                  rid = run_id()
+                  response = github("GET", f"/repos/{target_repo}/actions/runs/{rid}")
+                  write_result({"status": "STATUS_READ", "run": response})
+              else:
+                  write_result({"status": "STATUS_READ", "matching_runs": matching_runs()})
+
+          elif operation in {"REVIEW", "DIAGNOSE"}:
+              rid = run_id()
+              run = github("GET", f"/repos/{target_repo}/actions/runs/{rid}")
+              jobs = github("GET", f"/repos/{target_repo}/actions/runs/{rid}/jobs?per_page=100")
+              packet: dict[str, Any] = {
+                  "task_id": task_id,
+                  "revision": revision,
+                  "run": run,
+                  "jobs": jobs,
+                  "support_context": json.loads(os.environ.get("SUPPORT_CONTEXT_JSON", "{}") or "{}"),
+              }
+              if operation == "REVIEW":
+                  artifacts = github("GET", f"/repos/{target_repo}/actions/runs/{rid}/artifacts?per_page=100")
+                  packet["artifacts"] = artifacts
+                  selected = next((a for a in artifacts.get("artifacts", []) if not a.get("expired")), None)
+                  if selected:
+                      archive = github(
+                          "GET",
+                          f"/repos/{target_repo}/actions/artifacts/{selected['id']}/zip",
+                          binary=True,
+                      )
+                      if len(archive) > 25 * 1024 * 1024:
+                          raise RuntimeError("artifact exceeds 25 MiB review limit")
+                      with zipfile.ZipFile(io.BytesIO(archive)) as zf:
+                          names = zf.namelist()
+                          preferred = [
+                              name
+                              for name in names
+                              if name.endswith(("report.json", "report.md", "provenance.json", "result.json"))
+                          ]
+                          extracted: dict[str, str] = {}
+                          for name in preferred[:12]:
+                              text = zf.read(name).decode("utf-8", errors="replace")
+                              extracted[name] = text[:120000]
+                          packet["artifact_files"] = extracted
+                  purpose = "a final result-quality and publication review"
+              else:
+                  logs: dict[str, str] = {}
+                  for job in jobs.get("jobs", [])[:10]:
+                      try:
+                          raw = github(
+                              "GET",
+                              f"/repos/{target_repo}/actions/jobs/{job['id']}/logs",
+                              binary=True,
+                          )
+                          logs[str(job["id"])] = raw.decode("utf-8", errors="replace")[-60000:]
+                      except Exception as exc:  # noqa: BLE001
+                          logs[str(job.get("id"))] = f"log retrieval failed: {exc}"
+                  packet["job_log_tails"] = logs
+                  purpose = "a workflow diagnosis and smallest safe recovery decision"
+              review = deepseek_review(packet, purpose)
+              (OUT / f"{operation.lower()}-result.json").write_text(
+                  json.dumps(review, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+              )
+              write_result({"status": f"{operation}_COMPLETED", "run_id": rid, "deepseek_result": review})
+          else:
+              raise SystemExit(f"unsupported CONTROL_OPERATION: {operation}")
+          PY
+
+      - name: Publish control summary
+        if: always()
+        run: |
+          if [[ -f /tmp/deepseek-control-output/control-result.json ]]; then
+            echo '## DeepSeek independent control result' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/deepseek-control-output/control-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload control audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "deepseek-control-${{ inputs.task_id }}-r${{ inputs.revision }}-${{ inputs.operation }}"
+          path: /tmp/deepseek-control-output/
+          if-no-files-found: warn
+          retention-days: 30
