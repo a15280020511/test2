@@ -19,30 +19,17 @@ from scripts.repair_utils import (
 
 
 def _entrypoint_command(
-    *,
-    operation: str,
-    operation_id: str,
-    plan_json: str,
-    ranking_limit: int,
-    steward_mode: str,
-    support_packet_json: str,
+    *, operation: str, operation_id: str, plan_json: str, ranking_limit: int,
+    steward_mode: str, support_packet_json: str,
 ) -> list[str]:
     return [
-        sys.executable,
-        "-m",
-        "scripts.action_entrypoint",
-        "--operation",
-        operation,
-        "--operation-id",
-        operation_id,
-        "--plan-json",
-        plan_json,
-        "--ranking-limit",
-        str(ranking_limit),
-        "--steward-mode",
-        steward_mode,
-        "--support-packet-json",
-        support_packet_json,
+        sys.executable, "-m", "scripts.action_entrypoint",
+        "--operation", operation,
+        "--operation-id", operation_id,
+        "--plan-json", plan_json,
+        "--ranking-limit", str(ranking_limit),
+        "--steward-mode", steward_mode,
+        "--support-packet-json", support_packet_json,
     ]
 
 
@@ -74,45 +61,47 @@ def _publish_transition(operation_id: str, operation: str, phase: str, output_di
             current_policy="if-owner",
         )
     except Exception as exc:
-        log_path = output_dir / "status_transition_errors.log"
-        with log_path.open("a", encoding="utf-8") as handle:
+        with (output_dir / "status_transition_errors.log").open("a", encoding="utf-8") as handle:
             handle.write(f"phase={phase} error={type(exc).__name__}: {exc}\n")
 
 
 def _safe_unchanged_retry(result: dict) -> bool:
     if str(result.get("resume") or "STOP").upper() != "READY":
         return False
-    text = " ".join(
-        str(result.get(field) or "")
-        for field in ("diagnosis", "message_to_web_gpt")
-    ).lower()
-    budget_markers = ("402", "credit", "budget", "afford", "insufficient")
-    if any(marker in text for marker in budget_markers):
+    text = " ".join(str(result.get(field) or "") for field in ("diagnosis", "message_to_web_gpt")).lower()
+    if any(marker in text for marker in ("402", "credit", "budget", "afford", "insufficient")):
         return False
-    transient_markers = (
-        "transient",
-        "temporary",
-        "network",
-        "rate limit",
-        "429",
-        "502",
-        "503",
-        "jsondecodeerror",
-        "could not be parsed",
-        "invalid json",
+    return any(
+        marker in text
+        for marker in (
+            "transient", "temporary", "network", "rate limit", "429", "502", "503",
+            "jsondecodeerror", "could not be parsed", "invalid json",
+        )
     )
-    return any(marker in text for marker in transient_markers)
+
+
+def _recovery_reserve_allows_whole_retry(output_dir: Path, operation: str) -> tuple[bool, dict]:
+    if operation != "execute_team":
+        return True, {"reason": "non_expert_operation"}
+    path = output_dir / "cost_preflight.json"
+    if not path.exists():
+        return False, {"reason": "missing_cost_preflight"}
+    preflight = read_json(path)
+    try:
+        single_pass = float(preflight.get("single_clean_pass_estimated_usd"))
+        reserve = float(preflight.get("reserved_recovery_budget_usd"))
+    except (TypeError, ValueError):
+        return False, {"reason": "invalid_cost_preflight"}
+    return single_pass <= reserve, {
+        "single_clean_pass_estimated_usd": single_pass,
+        "reserved_recovery_budget_usd": reserve,
+        "reason": "within_recovery_reserve" if single_pass <= reserve else "whole_retry_exceeds_recovery_reserve",
+    }
 
 
 def _record_retry_failure(
-    *,
-    output_dir: Path,
-    auto_repair_result_path: Path,
-    operation: str,
-    decision: str,
-    second: subprocess.CompletedProcess[str],
-    changed_files: list[str],
-    verification: str,
+    *, output_dir: Path, auto_repair_result_path: Path, operation: str,
+    decision: str, second: subprocess.CompletedProcess[str], changed_files: list[str], verification: str,
 ) -> None:
     result = read_json(auto_repair_result_path)
     result["verification"] = verification
@@ -122,19 +111,42 @@ def _record_retry_failure(
     write_json(
         output_dir / "managed_operation.json",
         {
+            "status": "STOP", "operation": operation, "attempts": 2,
+            "auto_repair_triggered": True, "repair_decision": decision,
+            "changed_files": changed_files, "reason": "The single allowed retry failed.",
+        },
+    )
+
+
+def _stop_for_reserve(
+    output_dir: Path,
+    auto_repair_result_path: Path,
+    operation: str,
+    decision: str,
+    reserve_evidence: dict,
+    changed_files: list[str],
+) -> None:
+    result = read_json(auto_repair_result_path)
+    result["resume"] = "STOP"
+    result["retry"] = {"status": "not_attempted", "reason": "recovery_reserve_insufficient", **reserve_evidence}
+    write_json(auto_repair_result_path, result)
+    write_json(
+        output_dir / "managed_operation.json",
+        {
             "status": "STOP",
             "operation": operation,
-            "attempts": 2,
+            "attempts": 1,
             "auto_repair_triggered": True,
             "repair_decision": decision,
             "changed_files": changed_files,
-            "reason": "The single allowed retry failed.",
+            "reason": "A whole-operation retry would exceed the reserved recovery budget; top supervisor must replan.",
+            "budget_evidence": reserve_evidence,
         },
     )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Managed operation with one DeepSeek diagnosis and one bounded retry")
+    parser = argparse.ArgumentParser(description="Managed operation with one DeepSeek diagnosis and one budgeted retry")
     parser.add_argument("--operation", required=True, choices=("model_intelligence", "execute_team", "deepseek_steward"))
     parser.add_argument("--operation-id", required=True)
     parser.add_argument("--plan-json", default="{}")
@@ -179,7 +191,7 @@ def main() -> None:
     support_packet = {
         "operation_id": operation_id,
         "mode": "REPAIR",
-        "request": "Diagnose the failed operation. Authorize one unchanged retry only for a transient provider failure; budget or plan changes belong to the top supervisor.",
+        "request": "Diagnose the failed operation. Authorize one unchanged retry only for a transient provider failure and only when the reserved recovery budget covers a clean pass.",
         "task": supplied_packet.get("task"),
         "current_state": "Original GitHub production operation failed before completion.",
         "failure_location": f"managed production operation: {args.operation}",
@@ -192,9 +204,10 @@ def main() -> None:
             "Never fall back to OpenRouter for Steward.",
             "One diagnosis and one retry maximum.",
             "Do not retry an unchanged 402, affordability, or budget failure.",
-            "Execution-plan changes must be handled by DeepSeek Top Supervisor and pass schema and budget validation.",
+            "A whole-operation retry must fit the reserved recovery budget.",
+            "Execution-plan changes belong to DeepSeek Top Supervisor and require schema and budget validation.",
         ],
-        "requested_outcome": "Choose EDIT for a repository defect, NO_EDIT+READY for a safe transient unchanged retry, or STOP for top-supervisor escalation.",
+        "requested_outcome": "Choose EDIT for a repository defect, NO_EDIT+READY for a safe transient retry, or STOP for top-supervisor escalation.",
         "original_support_packet": supplied_packet,
     }
 
@@ -211,9 +224,7 @@ def main() -> None:
         write_json(
             output_dir / "managed_operation.json",
             {
-                "status": "STOP",
-                "operation": args.operation,
-                "attempts": 1,
+                "status": "STOP", "operation": args.operation, "attempts": 1,
                 "auto_repair_triggered": True,
                 "reason": "DeepSeek Steward failed or was unavailable. Hard stop; no provider fallback.",
             },
@@ -227,8 +238,14 @@ def main() -> None:
     auto_repair_result_path = output_dir / "auto_repair_result.json"
     shutil.copy2(repair_result_path, auto_repair_result_path)
     decision = str(repair_result.get("decision") or "STOP").upper()
+    reserve_allowed, reserve_evidence = _recovery_reserve_allows_whole_retry(output_dir, args.operation)
 
     if decision == "NO_EDIT" and _safe_unchanged_retry(repair_result):
+        if not reserve_allowed:
+            _stop_for_reserve(
+                output_dir, auto_repair_result_path, args.operation, decision, reserve_evidence, []
+            )
+            raise RuntimeError("Transient whole-operation retry blocked by the logical-task recovery budget")
         _publish_transition(operation_id, args.operation, "retrying", output_dir)
         second = _run(original_command, output_dir / "retry_operation.log")
         if second.returncode != 0:
@@ -245,19 +262,17 @@ def main() -> None:
         result = read_json(auto_repair_result_path)
         result["verification"] = "not_required_for_transient_retry"
         result["resume"] = "READY"
-        result["retry"] = {"status": "success", "attempt": 2, "type": "unchanged_transient_retry"}
+        result["retry"] = {
+            "status": "success", "attempt": 2, "type": "unchanged_transient_retry", **reserve_evidence
+        }
         write_json(auto_repair_result_path, result)
         write_json(
             output_dir / "managed_operation.json",
             {
-                "status": "success",
-                "operation": args.operation,
-                "attempts": 2,
-                "auto_repair_triggered": True,
-                "repair_decision": decision,
-                "changed_files": [],
-                "retry": "success",
-                "delivery": "not_required",
+                "status": "success", "operation": args.operation, "attempts": 2,
+                "auto_repair_triggered": True, "repair_decision": decision,
+                "changed_files": [], "retry": "success", "delivery": "not_required",
+                "budget_evidence": reserve_evidence,
             },
         )
         return
@@ -266,18 +281,21 @@ def main() -> None:
         write_json(
             output_dir / "managed_operation.json",
             {
-                "status": "STOP",
-                "operation": args.operation,
-                "attempts": 1,
-                "auto_repair_triggered": True,
-                "repair_decision": decision,
-                "reason": "DeepSeek did not authorize a repository edit or safe unchanged transient retry; top supervisor must decide any replan.",
+                "status": "STOP", "operation": args.operation, "attempts": 1,
+                "auto_repair_triggered": True, "repair_decision": decision,
+                "reason": "DeepSeek did not authorize a repository edit or safe budgeted transient retry; top supervisor must decide any replan.",
             },
         )
         raise RuntimeError(f"Automatic repair stopped for top-supervisor escalation: DeepSeek decision={decision}")
 
     changed = ensure_safe_repair_changes()
     run_verification()
+    if not reserve_allowed:
+        _stop_for_reserve(
+            output_dir, auto_repair_result_path, args.operation, decision, reserve_evidence, changed
+        )
+        raise RuntimeError("Verified code repair could not retry because the recovery reserve is insufficient")
+
     _publish_transition(operation_id, args.operation, "retrying", output_dir)
     second = _run(original_command, output_dir / "retry_operation.log")
     if second.returncode != 0:
@@ -295,36 +313,28 @@ def main() -> None:
     result = read_json(auto_repair_result_path)
     result["verification"] = "passed"
     result["resume"] = "STOP"
-    result["retry"] = {"status": "success", "attempt": 2, "type": "verified_repository_edit"}
+    result["retry"] = {
+        "status": "success", "attempt": 2, "type": "verified_repository_edit", **reserve_evidence
+    }
     result["repair_delivery"] = {
-        "status": "pending_delivery",
-        "verification": "passed",
-        "method": None,
-        "pull_request_url": None,
+        "status": "pending_delivery", "verification": "passed", "method": None, "pull_request_url": None,
     }
     write_json(auto_repair_result_path, result)
     write_json(
         output_dir / "auto_repair_manifest.json",
         {
-            "operation_id": operation_id,
-            "repair_operation_id": repair_id,
-            "original_operation": args.operation,
-            "status": "verified_retry_success_pending_delivery",
-            "changed_files": changed,
-            "attempts": 2,
+            "operation_id": operation_id, "repair_operation_id": repair_id,
+            "original_operation": args.operation, "status": "verified_retry_success_pending_delivery",
+            "changed_files": changed, "attempts": 2,
         },
     )
     write_json(
         output_dir / "managed_operation.json",
         {
-            "status": "success",
-            "operation": args.operation,
-            "attempts": 2,
-            "auto_repair_triggered": True,
-            "repair_decision": decision,
-            "changed_files": changed,
-            "retry": "success",
-            "delivery": "pending",
+            "status": "success", "operation": args.operation, "attempts": 2,
+            "auto_repair_triggered": True, "repair_decision": decision,
+            "changed_files": changed, "retry": "success", "delivery": "pending",
+            "budget_evidence": reserve_evidence,
         },
     )
 
