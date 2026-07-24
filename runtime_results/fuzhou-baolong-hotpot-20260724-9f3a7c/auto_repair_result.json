@@ -1,13 +1,15 @@
 {
   "mode": "REPAIR",
   "decision": "NO_EDIT",
-  "diagnosis": "The production operation failed due to insufficient OpenRouter credits. The requested max_tokens was 65536 but the available credit could only afford up to 47235 tokens. This is an external provider resource issue, not a repository defect.",
-  "confidence": 0.99,
+  "diagnosis": "The production operation failed because the OpenRouter API returned a response that could not be parsed as JSON (JSONDecodeError at line 1741 column 1). This is an external API fault or a transient network issue, not a repository defect.",
+  "confidence": 0.9,
   "edits": [],
   "delete_files": [],
-  "verification": [],
-  "resume": "STOP",
-  "message_to_web_gpt": "OpenRouter credit insufficiency. Add credits or adjust the execution plan to use fewer max_tokens or a cheaper model. The top supervisor may be used to safely override the plan with a reduced token limit while preserving user intent.",
+  "verification": [
+    "Verify that the OpenRouter API is operational and returns valid JSON for the selected judge model by running a minimal agent request with the same model and a small payload."
+  ],
+  "resume": "READY",
+  "message_to_web_gpt": "No repository edit needed. The failure was an external API response problem. The original operation may be retried once if the API issue is transient. If it persists, consider reducing the judge payload complexity or using an alternative model.",
   "steward_model": "deepseek-v4-pro",
   "steward_provider": "DeepSeek official API",
   "steward_api_base": "https://api.deepseek.com",
