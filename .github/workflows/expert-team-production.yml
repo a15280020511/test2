@@ -8,12 +8,13 @@ on:
         required: true
         type: string
       operation:
-        description: Read model intelligence or execute a Web-GPT-authored team plan
+        description: Model intelligence, expert execution, or DeepSeek Steward service
         required: true
         type: choice
         options:
           - model_intelligence
           - execute_team
+          - deepseek_steward
       plan_json:
         description: Execution Plan JSON; required only for execute_team
         required: false
@@ -24,9 +25,23 @@ on:
         required: false
         default: "20"
         type: string
+      steward_mode:
+        description: DeepSeek Steward mode; ASSIST advises Web GPT, REPAIR diagnoses and repairs repository faults
+        required: false
+        default: ASSIST
+        type: choice
+        options:
+          - ASSIST
+          - REPAIR
+      support_packet_json:
+        description: JSON Support Packet for DeepSeek Steward
+        required: false
+        default: "{}"
+        type: string
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: expert-team-production
@@ -35,11 +50,13 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,16 +69,160 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Prepare Steward context
+        if: ${{ inputs.operation == 'deepseek_steward' }}
+        run: git fetch origin runtime-results || true
+
       - name: Execute requested operation
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           PLAN_JSON: ${{ inputs.plan_json }}
+          SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
         run: |
           python -m scripts.action_entrypoint \
             --operation "${{ inputs.operation }}" \
             --operation-id "${{ inputs.operation_id }}" \
             --plan-json "$PLAN_JSON" \
-            --ranking-limit "${{ inputs.ranking_limit }}"
+            --ranking-limit "${{ inputs.ranking_limit }}" \
+            --steward-mode "${{ inputs.steward_mode }}" \
+            --support-packet-json "$SUPPORT_PACKET_JSON"
+
+      - name: Verify and deliver DeepSeek repair
+        if: ${{ inputs.operation == 'deepseek_steward' && inputs.steward_mode == 'REPAIR' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPERATION_ID: ${{ inputs.operation_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          SAFE_ID="$(python - <<'PY'
+          import os
+          value = os.environ['OPERATION_ID']
+          cleaned = ''.join(ch for ch in value.strip() if ch.isalnum() or ch in {'-', '_', '.'})
+          if not cleaned:
+              raise SystemExit('operation_id has no safe characters')
+          print(cleaned[:120])
+          PY
+          )"
+          RESULT="artifacts/${SAFE_ID}/deepseek_steward_result.json"
+
+          DECISION="$(python - <<'PY'
+          import json, os
+          safe = ''.join(ch for ch in os.environ['OPERATION_ID'].strip() if ch.isalnum() or ch in {'-', '_', '.'})[:120]
+          with open(f'artifacts/{safe}/deepseek_steward_result.json', encoding='utf-8') as f:
+              data = json.load(f)
+          print(str(data.get('decision', 'STOP')).upper())
+          PY
+          )"
+
+          if [ "$DECISION" != "EDIT" ]; then
+            echo "DeepSeek Steward chose ${DECISION}; no repository edits will be delivered."
+            exit 0
+          fi
+
+          PROTECTED="$(git diff --name-only -- tests runtime_results artifacts || true)"
+          if [ -n "$PROTECTED" ]; then
+            echo "DeepSeek Steward attempted to modify protected paths:"
+            echo "$PROTECTED"
+            exit 1
+          fi
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "DeepSeek Steward returned EDIT but produced no repository changes."
+            exit 1
+          fi
+
+          # Safety invariants: autonomous repair cannot silently remove the mandatory CI gates.
+          for REQUIRED_GATE in \
+            "Validate GPT Action OpenAPI contract" \
+            "Run offline contract tests" \
+            "Run optional live OpenRouter smoke test"
+          do
+            grep -F "$REQUIRED_GATE" .github/workflows/expert-team-ci.yml >/dev/null
+          done
+
+          python -m compileall -q expert_team scripts
+          python -m unittest discover -s tests -v
+
+          ruby <<'RUBY'
+          require "yaml"
+          d = YAML.load_file("gpt_action_openapi.yaml")
+          raise "missing openapi" unless d["openapi"]
+          schemas = d.dig("components", "schemas")
+          raise "components.schemas must be an object" unless schemas.is_a?(Hash)
+          errors = []
+          walk = lambda do |node, path|
+            case node
+            when Hash
+              if node["type"] == "object" && !node.key?("properties")
+                errors << "object schema missing properties at #{path.join('/')}"
+              end
+              node.each { |k, v| walk.call(v, path + [k.to_s]) }
+            when Array
+              node.each_with_index { |v, i| walk.call(v, path + [i.to_s]) }
+            end
+          end
+          walk.call(d, [])
+          raise errors.join("\n") unless errors.empty?
+          puts "GPT Action OpenAPI strict contract OK"
+          RUBY
+
+          PYTHONPATH=. OPENROUTER_SMOKE_MODEL=openrouter/free python scripts/live_smoke_test.py
+
+          BRANCH="deepseek-repair-${SAFE_ID}-${GITHUB_RUN_ID}"
+          git config user.name "deepseek-steward[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "DeepSeek Steward repair ${SAFE_ID}"
+          git push origin "HEAD:${BRANCH}"
+
+          DELIVERY_METHOD="verified_direct_merge"
+          PR_URL=""
+          set +e
+          PR_URL="$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "DeepSeek Steward repair: ${SAFE_ID}" \
+            --body "Automated repository repair by DeepSeek Steward. The repair passed Python compilation, existing unit tests, strict GPT Action OpenAPI validation, and the live OpenRouter smoke test before delivery." 2>/tmp/deepseek-pr-error.txt)"
+          PR_CREATE_STATUS=$?
+          set -e
+
+          if [ $PR_CREATE_STATUS -eq 0 ] && [ -n "$PR_URL" ]; then
+            set +e
+            gh pr merge "$PR_URL" --merge --delete-branch
+            PR_MERGE_STATUS=$?
+            set -e
+            if [ $PR_MERGE_STATUS -eq 0 ]; then
+              DELIVERY_METHOD="verified_pr_merge"
+            else
+              echo "PR merge was unavailable; falling back to verified fast-forward delivery."
+              git push origin "HEAD:main"
+            fi
+          else
+            echo "PR creation was unavailable; falling back to verified fast-forward delivery."
+            cat /tmp/deepseek-pr-error.txt || true
+            git push origin "HEAD:main"
+          fi
+
+          export DELIVERY_METHOD PR_URL
+          python - <<'PY'
+          import json, os
+          safe = ''.join(ch for ch in os.environ['OPERATION_ID'].strip() if ch.isalnum() or ch in {'-', '_', '.'})[:120]
+          path = f'artifacts/{safe}/deepseek_steward_result.json'
+          with open(path, encoding='utf-8') as f:
+              data = json.load(f)
+          data['repair_delivery'] = {
+              'status': 'merged',
+              'method': os.environ['DELIVERY_METHOD'],
+              'pull_request_url': os.environ.get('PR_URL') or None,
+              'verification': 'passed',
+          }
+          data['resume'] = 'READY'
+          with open(path, 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          PY
 
       - name: Upload result artifact
         if: always()
@@ -106,6 +267,10 @@ jobs:
 
           if [ -f "${SOURCE_DIR}/expert_team_result.json" ]; then
             cp "${SOURCE_DIR}/expert_team_result.json" "${DEST_DIR}/expert_team_result.json"
+          fi
+
+          if [ -f "${SOURCE_DIR}/deepseek_steward_result.json" ]; then
+            cp "${SOURCE_DIR}/deepseek_steward_result.json" "${DEST_DIR}/deepseek_steward_result.json"
           fi
 
           if [ -f "${SOURCE_DIR}/model_intelligence_compact.json" ]; then
