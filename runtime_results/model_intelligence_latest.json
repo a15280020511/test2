@@ -1,0 +1,7605 @@
+{
+  "schema_version": "2",
+  "generated_at": "2026-07-24T00:46:03.096695+00:00",
+  "source": "OpenRouter official Python SDK + official benchmark API",
+  "selection_rule": "Use these signals as decision evidence, not as a universal winner list. Web GPT must choose models according to the concrete task, role, budget, latency, context, supported parameters and uncertainty.",
+  "rankings": {
+    "intelligence-high-to-low": [
+      "anthropic/claude-fable-5",
+      "openai/gpt-5.6-sol",
+      "moonshotai/kimi-k3",
+      "anthropic/claude-opus-4.8",
+      "openai/gpt-5.6-terra",
+      "openai/gpt-5.5",
+      "x-ai/grok-4.5",
+      "anthropic/claude-opus-4.7",
+      "anthropic/claude-sonnet-5",
+      "openai/gpt-5.4",
+      "openai/gpt-5.6-luna",
+      "z-ai/glm-5.2",
+      "meta/muse-spark-1.1",
+      "google/gemini-3.5-flash",
+      "google/gemini-3.6-flash",
+      "anthropic/claude-sonnet-4.6",
+      "google/gemini-3.1-pro-preview",
+      "qwen/qwen3.7-max",
+      "minimax/minimax-m3",
+      "deepseek/deepseek-v4-pro",
+      "moonshotai/kimi-k2.6",
+      "xiaomi/mimo-v2.5-pro",
+      "moonshotai/kimi-k2.7-code",
+      "tencent/hy3-preview",
+      "nex-agi/nex-n2-pro",
+      "thinkingmachines/inkling",
+      "deepseek/deepseek-v4-flash",
+      "z-ai/glm-5.1",
+      "openai/gpt-5.4-mini",
+      "x-ai/grok-build-0.1"
+    ],
+    "coding-high-to-low": [
+      "openai/gpt-5.6-sol",
+      "openai/gpt-5.6-terra",
+      "anthropic/claude-fable-5",
+      "moonshotai/kimi-k3",
+      "openai/gpt-5.5",
+      "anthropic/claude-opus-4.8",
+      "anthropic/claude-opus-4.7",
+      "x-ai/grok-4.5",
+      "anthropic/claude-sonnet-5",
+      "openai/gpt-5.6-luna",
+      "meta/muse-spark-1.1",
+      "openai/gpt-5.4",
+      "google/gemini-3.5-flash",
+      "google/gemini-3.6-flash",
+      "google/gemini-3.1-pro-preview",
+      "z-ai/glm-5.2",
+      "qwen/qwen3.7-max",
+      "anthropic/claude-sonnet-4.6",
+      "moonshotai/kimi-k2.6",
+      "moonshotai/kimi-k2.7-code",
+      "xiaomi/mimo-v2.5-pro",
+      "kwaipilot/kat-coder-pro-v2",
+      "deepseek/deepseek-v4-pro",
+      "nex-agi/nex-n2-pro",
+      "tencent/hy3-preview",
+      "minimax/minimax-m3",
+      "xiaomi/mimo-v2.5",
+      "deepseek/deepseek-v4-flash",
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4-nano"
+    ],
+    "agentic-high-to-low": [
+      "openai/gpt-5.6-sol",
+      "anthropic/claude-fable-5",
+      "moonshotai/kimi-k3",
+      "openai/gpt-5.6-terra",
+      "anthropic/claude-opus-4.8",
+      "anthropic/claude-sonnet-5",
+      "x-ai/grok-4.5",
+      "openai/gpt-5.6-luna",
+      "openai/gpt-5.5",
+      "anthropic/claude-opus-4.7",
+      "z-ai/glm-5.2",
+      "openai/gpt-5.4",
+      "anthropic/claude-sonnet-4.6",
+      "google/gemini-3.6-flash",
+      "meta/muse-spark-1.1",
+      "google/gemini-3.5-flash",
+      "deepseek/deepseek-v4-pro",
+      "minimax/minimax-m3",
+      "thinkingmachines/inkling",
+      "deepseek/deepseek-v4-flash",
+      "nex-agi/nex-n2-pro",
+      "tencent/hy3-preview",
+      "qwen/qwen3.7-max",
+      "moonshotai/kimi-k2.6",
+      "openai/gpt-5.4-mini",
+      "z-ai/glm-5.1",
+      "moonshotai/kimi-k2.7-code",
+      "xiaomi/mimo-v2.5-pro",
+      "x-ai/grok-build-0.1",
+      "qwen/qwen3.6-plus"
+    ],
+    "design-arena-elo-high-to-low": [
+      "moonshotai/kimi-k3",
+      "z-ai/glm-5.2",
+      "anthropic/claude-fable-5",
+      "anthropic/claude-opus-4.6",
+      "google/gemini-3.6-flash",
+      "anthropic/claude-opus-4.7",
+      "x-ai/grok-4.5",
+      "anthropic/claude-sonnet-5",
+      "moonshotai/kimi-k2.6",
+      "z-ai/glm-5.1",
+      "anthropic/claude-sonnet-4.6",
+      "meta/muse-spark-1.1",
+      "xiaomi/mimo-v2.5-pro",
+      "z-ai/glm-5-turbo",
+      "qwen/qwen3.7-max",
+      "moonshotai/kimi-k2.7-code",
+      "qwen/qwen3.7-plus",
+      "google/gemini-3.5-flash",
+      "minimax/minimax-m3",
+      "xiaomi/mimo-v2.5",
+      "openai/gpt-5.5",
+      "z-ai/glm-5",
+      "anthropic/claude-opus-4.5",
+      "google/gemini-3.1-pro-preview",
+      "anthropic/claude-opus-4.8",
+      "deepseek/deepseek-v4-pro",
+      "moonshotai/kimi-k2.5",
+      "minimax/minimax-m2.7",
+      "z-ai/glm-5v-turbo",
+      "qwen/qwen3.6-plus"
+    ],
+    "top-weekly": [
+      "xiaomi/mimo-v2.5",
+      "deepseek/deepseek-v4-flash",
+      "z-ai/glm-5.2",
+      "deepseek/deepseek-v4-pro",
+      "minimax/minimax-m3",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "anthropic/claude-opus-4.8",
+      "tencent/hy3",
+      "anthropic/claude-opus-4.7",
+      "stepfun/step-3.7-flash",
+      "anthropic/claude-sonnet-5",
+      "google/gemini-3-flash-preview",
+      "moonshotai/kimi-k3",
+      "anthropic/claude-sonnet-4.6",
+      "google/gemini-2.5-flash",
+      "google/gemini-2.5-flash-lite",
+      "google/gemini-3.1-flash-lite",
+      "xiaomi/mimo-v2.5-pro",
+      "openai/gpt-5.6-sol",
+      "openai/gpt-5.5",
+      "openai/gpt-oss-120b",
+      "poolside/laguna-m.1:free",
+      "google/gemini-3.5-flash",
+      "x-ai/grok-4.5",
+      "anthropic/claude-fable-5",
+      "openai/gpt-5.4",
+      "deepseek/deepseek-v3.2",
+      "google/gemma-4-26b-a4b-it",
+      "google/gemma-4-31b-it",
+      "moonshotai/kimi-k2.6"
+    ],
+    "most-popular": [
+      "xiaomi/mimo-v2.5",
+      "deepseek/deepseek-v4-flash",
+      "z-ai/glm-5.2",
+      "deepseek/deepseek-v4-pro",
+      "minimax/minimax-m3",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "tencent/hy3",
+      "anthropic/claude-opus-4.8",
+      "stepfun/step-3.7-flash",
+      "anthropic/claude-opus-4.7",
+      "anthropic/claude-sonnet-5",
+      "moonshotai/kimi-k3",
+      "google/gemini-3-flash-preview",
+      "anthropic/claude-sonnet-4.6",
+      "google/gemini-2.5-flash-lite",
+      "google/gemini-2.5-flash",
+      "google/gemini-3.1-flash-lite",
+      "xiaomi/mimo-v2.5-pro",
+      "openai/gpt-5.6-sol",
+      "openai/gpt-5.5",
+      "openai/gpt-oss-120b",
+      "google/gemini-3.5-flash",
+      "x-ai/grok-4.5",
+      "poolside/laguna-m.1:free",
+      "anthropic/claude-fable-5",
+      "google/gemma-4-31b-it",
+      "google/gemma-4-26b-a4b-it",
+      "deepseek/deepseek-v3.2",
+      "moonshotai/kimi-k2.6",
+      "nvidia/nemotron-3-super-120b-a12b:free"
+    ],
+    "throughput-high-to-low": [
+      "morph/morph-v3-large",
+      "openai/gpt-oss-safeguard-20b",
+      "google/gemini-3.1-flash-lite-image",
+      "x-ai/grok-4.20-multi-agent",
+      "inception/mercury-2",
+      "arcee-ai/trinity-large-thinking",
+      "google/gemini-3.1-flash-image-preview",
+      "openai/gpt-oss-20b",
+      "~google/gemini-flash-latest",
+      "google/gemini-2.5-flash-image",
+      "google/gemini-3.6-flash",
+      "anthropic/claude-opus-4.7-fast",
+      "google/gemini-3.5-flash-lite",
+      "qwen/qwen3-next-80b-a3b-thinking",
+      "qwen/qwen3-vl-8b-thinking",
+      "google/gemini-2.5-flash-lite",
+      "openai/o4-mini-high",
+      "qwen/qwen3-30b-a3b-thinking-2507",
+      "google/gemini-3.5-flash",
+      "meta/muse-spark-1.1",
+      "kwaipilot/kat-coder-air-v2.5",
+      "openai/gpt-5-nano",
+      "meta-llama/llama-3.1-8b-instruct",
+      "qwen/qwen3.6-flash",
+      "openai/gpt-5-image-mini",
+      "amazon/nova-2-lite-v1",
+      "openai/o4-mini",
+      "mistralai/mistral-small-2603",
+      "nex-agi/nex-n2-pro",
+      "morph/morph-v3-fast"
+    ],
+    "latency-low-to-high": [
+      "microsoft/phi-4",
+      "sao10k/l3-lunaris-8b",
+      "ibm-granite/granite-4.1-8b",
+      "cohere/command-r-08-2024",
+      "nousresearch/hermes-4-70b",
+      "qwen/qwen3-32b",
+      "sao10k/l3.1-euryale-70b",
+      "cohere/command-a",
+      "bytedance-seed/seed-2.0-mini",
+      "openai/gpt-oss-20b",
+      "poolside/laguna-s-2.1",
+      "meta-llama/llama-3.2-1b-instruct",
+      "qwen/qwen3-30b-a3b-instruct-2507",
+      "poolside/laguna-m.1",
+      "meta-llama/llama-3.1-8b-instruct",
+      "thedrummer/skyfall-36b-v2",
+      "mistralai/mistral-small-24b-instruct-2501",
+      "mistralai/mistral-small-3.2-24b-instruct",
+      "meta-llama/llama-4-maverick",
+      "cohere/command-r7b-12-2024",
+      "cohere/command-r-plus-08-2024",
+      "mistralai/ministral-8b-2512",
+      "qwen/qwen3.6-27b",
+      "mistralai/ministral-3b-2512",
+      "mistralai/codestral-2508",
+      "openai/gpt-5.4-image-2",
+      "nousresearch/hermes-3-llama-3.1-70b",
+      "qwen/qwen3-vl-30b-a3b-instruct",
+      "mistralai/ministral-14b-2512",
+      "google/gemma-3n-e4b-it"
+    ],
+    "pricing-low-to-high": [
+      "cohere/north-mini-code:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "google/gemma-4-31b-it:free",
+      "google/lyria-3-clip-preview",
+      "google/lyria-3-pro-preview",
+      "inclusionai/ling-3.0-flash:free",
+      "nvidia/nemotron-3-nano-30b-a3b:free",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3.5-content-safety:free",
+      "nvidia/nemotron-nano-12b-v2-vl:free",
+      "nvidia/nemotron-nano-9b-v2:free",
+      "openai/gpt-oss-20b:free",
+      "poolside/laguna-m.1:free",
+      "poolside/laguna-s-2.1:free",
+      "poolside/laguna-xs-2.1:free",
+      "inclusionai/ling-2.6-flash",
+      "mistralai/mistral-nemo",
+      "ibm-granite/granite-4.0-h-micro",
+      "nex-agi/nex-n2-mini",
+      "openai/gpt-oss-20b",
+      "sao10k/l3-lunaris-8b",
+      "meta-llama/llama-3.2-1b-instruct",
+      "amazon/nova-micro-v1",
+      "qwen/qwen-2.5-7b-instruct",
+      "cohere/command-r7b-12-2024",
+      "openai/gpt-oss-120b",
+      "meta-llama/llama-3.1-8b-instruct",
+      "mistralai/mistral-small-24b-instruct-2501"
+    ],
+    "context-high-to-low": [
+      "openrouter/auto",
+      "openrouter/auto-beta",
+      "openrouter/pareto-code",
+      "x-ai/grok-4.20",
+      "x-ai/grok-4.20-multi-agent",
+      "meta-llama/llama-4-scout",
+      "~openai/gpt-latest",
+      "openai/gpt-5.4",
+      "openai/gpt-5.4-pro",
+      "openai/gpt-5.5",
+      "openai/gpt-5.5-pro",
+      "openai/gpt-5.6-luna",
+      "openai/gpt-5.6-luna-pro",
+      "openai/gpt-5.6-sol",
+      "openai/gpt-5.6-sol-pro",
+      "openai/gpt-5.6-terra",
+      "openai/gpt-5.6-terra-pro",
+      "xiaomi/mimo-v2.5",
+      "xiaomi/mimo-v2.5-pro",
+      "meituan/longcat-2.0",
+      "~google/gemini-flash-latest",
+      "~google/gemini-pro-latest",
+      "~moonshotai/kimi-latest",
+      "deepseek/deepseek-v4-flash",
+      "deepseek/deepseek-v4-pro",
+      "google/gemini-2.5-flash",
+      "google/gemini-2.5-flash-lite",
+      "google/gemini-2.5-pro",
+      "google/gemini-2.5-pro-preview-05-06",
+      "google/gemini-2.5-pro-preview"
+    ],
+    "newest": [
+      "inclusionai/ling-3.0-flash:free",
+      "poolside/laguna-s-2.1",
+      "poolside/laguna-s-2.1:free",
+      "google/gemini-3.6-flash",
+      "google/gemini-3.5-flash-lite",
+      "meituan/longcat-2.0",
+      "thinkingmachines/inkling",
+      "openrouter/auto-beta",
+      "moonshotai/kimi-k3",
+      "meta/muse-spark-1.1",
+      "kwaipilot/kat-coder-air-v2.5",
+      "kwaipilot/kat-coder-pro-v2.5",
+      "openai/gpt-5.6-luna-pro",
+      "openai/gpt-5.6-luna",
+      "openai/gpt-5.6-terra-pro",
+      "openai/gpt-5.6-terra",
+      "openai/gpt-5.6-sol-pro",
+      "openai/gpt-5.6-sol",
+      "x-ai/grok-4.5",
+      "~x-ai/grok-latest",
+      "aion-labs/aion-3.0-mini",
+      "aion-labs/aion-3.0",
+      "tencent/hy3",
+      "poolside/laguna-xs-2.1",
+      "poolside/laguna-xs-2.1:free",
+      "anthropic/claude-sonnet-5",
+      "google/gemini-3.1-flash-lite-image",
+      "nex-agi/nex-n2-mini",
+      "sakana/fugu-ultra",
+      "google/gemini-3.1-flash-image"
+    ]
+  },
+  "models": {
+    "anthropic/claude-fable-5": {
+      "id": "anthropic/claude-fable-5",
+      "name": "Anthropic: Claude Fable 5",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00005",
+        "prompt": "0.00001",
+        "input_cache_read": "0.000001",
+        "input_cache_write": "0.0000125",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "high",
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 52.8,
+        "coding_index": 76.5,
+        "intelligence_index": 59.9
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1396.0,
+        "rank": 1,
+        "win_rate": 66.7
+      }
+    },
+    "openai/gpt-5.6-sol": {
+      "id": "openai/gpt-5.6-sol",
+      "name": "OpenAI: GPT-5.6 Sol",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00003",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "overrides": [
+          {
+            "completion": "0.000045",
+            "input_cache_read": "0.000001",
+            "input_cache_write": "0.0000125",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00001"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {
+        "agentic_index": 54.0,
+        "coding_index": 77.4,
+        "intelligence_index": 58.9
+      },
+      "best_design_arena": null
+    },
+    "moonshotai/kimi-k3": {
+      "id": "moonshotai/kimi-k3",
+      "name": "MoonshotAI: Kimi K3",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.000003",
+        "input_cache_read": "0.0000003"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "max",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "high",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 50.1,
+        "coding_index": 76.2,
+        "intelligence_index": 57.1
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1465.0,
+        "rank": 1,
+        "win_rate": 69.7
+      }
+    },
+    "anthropic/claude-opus-4.8": {
+      "id": "anthropic/claude-opus-4.8",
+      "name": "Anthropic: Claude Opus 4.8",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000025",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "input_cache_write_1h": "0.00001",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 47.2,
+        "coding_index": 74.3,
+        "intelligence_index": 55.7
+      },
+      "best_design_arena": {
+        "arena": "agents",
+        "category": "androidnative",
+        "elo": 1337.0,
+        "rank": 1,
+        "win_rate": 67.0
+      }
+    },
+    "openai/gpt-5.6-terra": {
+      "id": "openai/gpt-5.6-terra",
+      "name": "OpenAI: GPT-5.6 Terra",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.0000025",
+        "input_cache_read": "0.00000025",
+        "input_cache_write": "0.000003125",
+        "overrides": [
+          {
+            "completion": "0.0000225",
+            "input_cache_read": "0.0000005",
+            "input_cache_write": "0.00000625",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.000005"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {
+        "agentic_index": 47.4,
+        "coding_index": 76.7,
+        "intelligence_index": 55.0
+      },
+      "best_design_arena": null
+    },
+    "openai/gpt-5.5": {
+      "id": "openai/gpt-5.5",
+      "name": "OpenAI: GPT-5.5",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00003",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "overrides": [
+          {
+            "completion": "0.000045",
+            "input_cache_read": "0.000001",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00001"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-12-01",
+      "artificial_analysis": {
+        "agentic_index": 44.9,
+        "coding_index": 74.9,
+        "intelligence_index": 54.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1343.0,
+        "rank": 4,
+        "win_rate": 62.2
+      }
+    },
+    "x-ai/grok-4.5": {
+      "id": "x-ai/grok-4.5",
+      "name": "xAI: Grok 4.5",
+      "context_length": 500000,
+      "pricing": {
+        "completion": "0.000006",
+        "prompt": "0.000002",
+        "input_cache_read": "0.0000003",
+        "overrides": [
+          {
+            "completion": "0.000012",
+            "input_cache_read": "0.0000006",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.000004"
+          }
+        ],
+        "web_search": "0.005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 45.7,
+        "coding_index": 72.4,
+        "intelligence_index": 53.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1330.0,
+        "rank": 8,
+        "win_rate": 54.4
+      }
+    },
+    "anthropic/claude-opus-4.7": {
+      "id": "anthropic/claude-opus-4.7",
+      "name": "Anthropic: Claude Opus 4.7",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000025",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "input_cache_write_1h": "0.00001",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 44.4,
+        "coding_index": 73.6,
+        "intelligence_index": 53.5
+      },
+      "best_design_arena": {
+        "arena": "agents",
+        "category": "fullstack",
+        "elo": 1503.0,
+        "rank": 1,
+        "win_rate": 80.1
+      }
+    },
+    "anthropic/claude-sonnet-5": {
+      "id": "anthropic/claude-sonnet-5",
+      "name": "Anthropic: Claude Sonnet 5",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.000002",
+        "input_cache_read": "0.0000002",
+        "input_cache_write": "0.0000025",
+        "input_cache_write_1h": "0.000004",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 46.7,
+        "coding_index": 71.5,
+        "intelligence_index": 53.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1345.0,
+        "rank": 3,
+        "win_rate": 59.9
+      }
+    },
+    "openai/gpt-5.4": {
+      "id": "openai/gpt-5.4",
+      "name": "OpenAI: GPT-5.4",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.0000025",
+        "input_cache_read": "0.00000025",
+        "overrides": [
+          {
+            "completion": "0.0000225",
+            "input_cache_read": "0.0000005",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.000005"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": false,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 41.1,
+        "coding_index": 71.1,
+        "intelligence_index": 51.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1298.0,
+        "rank": 17,
+        "win_rate": 57.8
+      }
+    },
+    "openai/gpt-5.6-luna": {
+      "id": "openai/gpt-5.6-luna",
+      "name": "OpenAI: GPT-5.6 Luna",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.000006",
+        "prompt": "0.000001",
+        "input_cache_read": "0.0000001",
+        "input_cache_write": "0.00000125",
+        "overrides": [
+          {
+            "completion": "0.000009",
+            "input_cache_read": "0.0000002",
+            "input_cache_write": "0.0000025",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.000002"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {
+        "agentic_index": 45.6,
+        "coding_index": 71.4,
+        "intelligence_index": 51.2
+      },
+      "best_design_arena": null
+    },
+    "z-ai/glm-5.2": {
+      "id": "z-ai/glm-5.2",
+      "name": "Z.ai: GLM 5.2",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000024728",
+        "prompt": "0.0000007868",
+        "input_cache_read": "0.00000014612"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "xhigh",
+          "high"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 43.1,
+        "coding_index": 68.8,
+        "intelligence_index": 51.1
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1358.0,
+        "rank": 3,
+        "win_rate": 60.1
+      }
+    },
+    "meta/muse-spark-1.1": {
+      "id": "meta/muse-spark-1.1",
+      "name": "Meta: Muse Spark 1.1",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00000425",
+        "prompt": "0.00000125",
+        "input_cache_read": "0.00000015",
+        "web_search": "0.0025"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 37.5,
+        "coding_index": 71.3,
+        "intelligence_index": 50.6
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1327.0,
+        "rank": 10,
+        "win_rate": 56.1
+      }
+    },
+    "google/gemini-3.5-flash": {
+      "id": "google/gemini-3.5-flash",
+      "name": "Google: Gemini 3.5 Flash",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000009",
+        "prompt": "0.0000015",
+        "audio": "0.000003",
+        "image": "0.0000015",
+        "input_audio_cache": "0.0000003",
+        "input_cache_read": "0.00000015",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.000009",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-01",
+      "artificial_analysis": {
+        "agentic_index": 37.4,
+        "coding_index": 70.1,
+        "intelligence_index": 50.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1318.0,
+        "rank": 11,
+        "win_rate": 57.6
+      }
+    },
+    "google/gemini-3.6-flash": {
+      "id": "google/gemini-3.6-flash",
+      "name": "Google: Gemini 3.6 Flash",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000075",
+        "prompt": "0.0000015",
+        "audio": "0.0000015",
+        "image": "0.0000015",
+        "input_audio_cache": "0.00000015",
+        "input_cache_read": "0.00000015",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000075",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 38.7,
+        "coding_index": 69.2,
+        "intelligence_index": 50.1
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 1346.0,
+        "rank": 4,
+        "win_rate": 63.4
+      }
+    },
+    "anthropic/claude-sonnet-4.6": {
+      "id": "anthropic/claude-sonnet-4.6",
+      "name": "Anthropic: Claude Sonnet 4.6",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.000003",
+        "input_cache_read": "0.0000003",
+        "input_cache_write": "0.00000375",
+        "input_cache_write_1h": "0.000006",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "max",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 40.8,
+        "coding_index": 63.0,
+        "intelligence_index": 47.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 1315.0,
+        "rank": 7,
+        "win_rate": 61.3
+      }
+    },
+    "google/gemini-3.1-pro-preview": {
+      "id": "google/gemini-3.1-pro-preview",
+      "name": "Google: Gemini 3.1 Pro Preview",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000012",
+        "prompt": "0.000002",
+        "audio": "0.000002",
+        "image": "0.000002",
+        "input_audio_cache": "0.0000002",
+        "input_cache_read": "0.0000002",
+        "input_cache_write": "0.000000375",
+        "internal_reasoning": "0.000012",
+        "overrides": [
+          {
+            "audio": "0.000004",
+            "completion": "0.000018",
+            "input_audio_cache": "0.0000004",
+            "input_cache_read": "0.0000004",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.000004"
+          }
+        ],
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 21.4,
+        "coding_index": 68.8,
+        "intelligence_index": 46.5
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "svg",
+        "elo": 1336.0,
+        "rank": 2,
+        "win_rate": 69.7
+      }
+    },
+    "qwen/qwen3.7-max": {
+      "id": "qwen/qwen3.7-max",
+      "name": "Qwen: Qwen3.7 Max",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000004425",
+        "prompt": "0.000001475",
+        "input_cache_read": "0.000000295",
+        "input_cache_write": "0.00000184375"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 30.6,
+        "coding_index": 66.0,
+        "intelligence_index": 46.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1315.0,
+        "rank": 14,
+        "win_rate": 57.9
+      }
+    },
+    "minimax/minimax-m3": {
+      "id": "minimax/minimax-m3",
+      "name": "MiniMax: MiniMax M3",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000012",
+        "prompt": "0.0000003",
+        "input_cache_read": "0.00000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 35.4,
+        "coding_index": 58.6,
+        "intelligence_index": 44.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "codecategories",
+        "elo": 1287.0,
+        "rank": 19,
+        "win_rate": 54.8
+      }
+    },
+    "deepseek/deepseek-v4-pro": {
+      "id": "deepseek/deepseek-v4-pro",
+      "name": "DeepSeek: DeepSeek V4 Pro",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00000087",
+        "prompt": "0.000000435",
+        "input_cache_read": "0.000000003625"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "supported_efforts": [
+          "xhigh",
+          "high"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 36.4,
+        "coding_index": 59.4,
+        "intelligence_index": 44.3
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1311.0,
+        "rank": 10,
+        "win_rate": 58.9
+      }
+    },
+    "moonshotai/kimi-k2.6": {
+      "id": "moonshotai/kimi-k2.6",
+      "name": "MoonshotAI: Kimi K2.6",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000342",
+        "prompt": "0.000000684",
+        "input_cache_read": "0.000000144"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 30.3,
+        "coding_index": 61.8,
+        "intelligence_index": 44.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1334.0,
+        "rank": 7,
+        "win_rate": 61.4
+      }
+    },
+    "xiaomi/mimo-v2.5-pro": {
+      "id": "xiaomi/mimo-v2.5-pro",
+      "name": "Xiaomi: MiMo-V2.5-Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00000087",
+        "prompt": "0.000000435",
+        "input_cache_read": "0.0000000036"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 29.1,
+        "coding_index": 60.2,
+        "intelligence_index": 42.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1331.0,
+        "rank": 7,
+        "win_rate": 60.9
+      }
+    },
+    "moonshotai/kimi-k2.7-code": {
+      "id": "moonshotai/kimi-k2.7-code",
+      "name": "MoonshotAI: Kimi K2.7 Code",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000375",
+        "prompt": "0.00000082",
+        "input_cache_read": "0.00000016"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 29.6,
+        "coding_index": 60.8,
+        "intelligence_index": 41.9
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1303.0,
+        "rank": 17,
+        "win_rate": 54.0
+      }
+    },
+    "tencent/hy3-preview": {
+      "id": "tencent/hy3-preview",
+      "name": "Tencent: Hy3 preview",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000021",
+        "prompt": "0.000000063",
+        "input_cache_read": "0.000000021"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 30.7,
+        "coding_index": 58.8,
+        "intelligence_index": 41.2
+      },
+      "best_design_arena": null
+    },
+    "nex-agi/nex-n2-pro": {
+      "id": "nex-agi/nex-n2-pro",
+      "name": "Nex AGI: Nex-N2-Pro",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.000001",
+        "prompt": "0.00000025",
+        "input_cache_read": "0.000000025"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 31.0,
+        "coding_index": 59.1,
+        "intelligence_index": 41.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1294.0,
+        "rank": 18,
+        "win_rate": 53.4
+      }
+    },
+    "thinkingmachines/inkling": {
+      "id": "thinkingmachines/inkling",
+      "name": "Thinking Machines: Inkling",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00000405",
+        "prompt": "0.000001",
+        "input_cache_read": "0.00000017"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "high",
+          "medium",
+          "low",
+          "minimal",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 32.3,
+        "coding_index": 52.1,
+        "intelligence_index": 40.7
+      },
+      "best_design_arena": null
+    },
+    "deepseek/deepseek-v4-flash": {
+      "id": "deepseek/deepseek-v4-flash",
+      "name": "DeepSeek: DeepSeek V4 Flash",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000000196",
+        "prompt": "0.000000098",
+        "input_cache_read": "0.0000000196"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "supported_efforts": [
+          "xhigh",
+          "high"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 31.1,
+        "coding_index": 56.2,
+        "intelligence_index": 40.3
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1254.0,
+        "rank": 32,
+        "win_rate": 50.4
+      }
+    },
+    "z-ai/glm-5.1": {
+      "id": "z-ai/glm-5.1",
+      "name": "Z.ai: GLM 5.1",
+      "context_length": 204800,
+      "pricing": {
+        "completion": "0.000003036",
+        "prompt": "0.000000966",
+        "input_cache_read": "0.0000001794"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 29.9,
+        "coding_index": 55.8,
+        "intelligence_index": 40.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 1366.0,
+        "rank": 2,
+        "win_rate": 67.0
+      }
+    },
+    "openai/gpt-5.4-mini": {
+      "id": "openai/gpt-5.4-mini",
+      "name": "OpenAI: GPT-5.4 Mini",
+      "context_length": 400000,
+      "pricing": {
+        "completion": "0.0000045",
+        "prompt": "0.00000075",
+        "input_cache_read": "0.000000075",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": false,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-08-31",
+      "artificial_analysis": {
+        "agentic_index": 30.2,
+        "coding_index": 56.1,
+        "intelligence_index": 40.0
+      },
+      "best_design_arena": null
+    },
+    "x-ai/grok-build-0.1": {
+      "id": "x-ai/grok-build-0.1",
+      "name": "xAI: Grok Build 0.1",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.000002",
+        "prompt": "0.000001",
+        "input_cache_read": "0.0000002",
+        "overrides": [
+          {
+            "completion": "0.000004",
+            "input_cache_read": "0.0000004",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.000002"
+          }
+        ],
+        "web_search": "0.005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 28.0,
+        "coding_index": 51.5,
+        "intelligence_index": 39.8
+      },
+      "best_design_arena": null
+    },
+    "kwaipilot/kat-coder-pro-v2": {
+      "id": "kwaipilot/kat-coder-pro-v2",
+      "name": "Kwaipilot: KAT-Coder-Pro V2",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000012",
+        "prompt": "0.0000003",
+        "input_cache_read": "0.00000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 15.5,
+        "coding_index": 59.5,
+        "intelligence_index": 33.7
+      },
+      "best_design_arena": null
+    },
+    "xiaomi/mimo-v2.5": {
+      "id": "xiaomi/mimo-v2.5",
+      "name": "Xiaomi: MiMo-V2.5",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00000028",
+        "prompt": "0.00000014",
+        "input_cache_read": "0.0000000028"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "audio",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 23.7,
+        "coding_index": 56.8,
+        "intelligence_index": 37.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "uicomponent",
+        "elo": 1293.0,
+        "rank": 18,
+        "win_rate": 55.3
+      }
+    },
+    "openai/gpt-5.4-nano": {
+      "id": "openai/gpt-5.4-nano",
+      "name": "OpenAI: GPT-5.4 Nano",
+      "context_length": 400000,
+      "pricing": {
+        "completion": "0.00000125",
+        "prompt": "0.0000002",
+        "input_cache_read": "0.00000002",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": false,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-08-31",
+      "artificial_analysis": {
+        "agentic_index": 27.5,
+        "coding_index": 56.1,
+        "intelligence_index": 38.2
+      },
+      "best_design_arena": null
+    },
+    "qwen/qwen3.6-plus": {
+      "id": "qwen/qwen3.6-plus",
+      "name": "Qwen: Qwen3.6 Plus",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00000195",
+        "prompt": "0.000000325",
+        "input_cache_write": "0.00000040625",
+        "overrides": [
+          {
+            "completion": "0.0000039",
+            "input_cache_write": "0.000001625",
+            "min_prompt_tokens": 256000.0,
+            "prompt": "0.0000013"
+          }
+        ]
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 27.6,
+        "coding_index": 54.5,
+        "intelligence_index": 39.6
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "uicomponent",
+        "elo": 1269.0,
+        "rank": 27,
+        "win_rate": 52.0
+      }
+    },
+    "anthropic/claude-opus-4.6": {
+      "id": "anthropic/claude-opus-4.6",
+      "name": "Anthropic: Claude Opus 4.6",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000025",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "input_cache_write_1h": "0.00001",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "max",
+          "high",
+          "medium",
+          "low"
+        ],
+        "supports_max_tokens": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1337.0,
+        "rank": 5,
+        "win_rate": 63.0
+      }
+    },
+    "z-ai/glm-5-turbo": {
+      "id": "z-ai/glm-5-turbo",
+      "name": "Z.ai: GLM 5 Turbo",
+      "context_length": 202752,
+      "pricing": {
+        "completion": "0.000004",
+        "prompt": "0.0000012",
+        "input_cache_read": "0.00000024"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": "2098-12-31",
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1315.0,
+        "rank": 13,
+        "win_rate": 59.0
+      }
+    },
+    "qwen/qwen3.7-plus": {
+      "id": "qwen/qwen3.7-plus",
+      "name": "Qwen: Qwen3.7 Plus",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00000128",
+        "prompt": "0.00000032",
+        "input_cache_read": "0.000000064",
+        "input_cache_write": "0.0000004",
+        "overrides": [
+          {
+            "completion": "0.00000384",
+            "input_cache_read": "0.000000192",
+            "input_cache_write": "0.0000012",
+            "min_prompt_tokens": 256000.0,
+            "prompt": "0.00000096"
+          }
+        ]
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 20.8,
+        "coding_index": 55.9,
+        "intelligence_index": 39.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1308.0,
+        "rank": 14,
+        "win_rate": 50.1
+      }
+    },
+    "z-ai/glm-5": {
+      "id": "z-ai/glm-5",
+      "name": "Z.ai: GLM 5",
+      "context_length": 204800,
+      "pricing": {
+        "completion": "0.00000255",
+        "prompt": "0.00000095",
+        "input_cache_read": "0.0000002"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1292.0,
+        "rank": 18,
+        "win_rate": 57.4
+      }
+    },
+    "anthropic/claude-opus-4.5": {
+      "id": "anthropic/claude-opus-4.5",
+      "name": "Anthropic: Claude Opus 4.5",
+      "context_length": 200000,
+      "pricing": {
+        "completion": "0.000025",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "input_cache_write_1h": "0.00001",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1288.0,
+        "rank": 20,
+        "win_rate": 59.4
+      }
+    },
+    "moonshotai/kimi-k2.5": {
+      "id": "moonshotai/kimi-k2.5",
+      "name": "MoonshotAI: Kimi K2.5",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000285",
+        "prompt": "0.00000057",
+        "input_cache_read": "0.000000095"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 21.7,
+        "coding_index": 46.8,
+        "intelligence_index": 35.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1277.0,
+        "rank": 23,
+        "win_rate": 55.7
+      }
+    },
+    "minimax/minimax-m2.7": {
+      "id": "minimax/minimax-m2.7",
+      "name": "MiniMax: MiniMax M2.7",
+      "context_length": 204800,
+      "pricing": {
+        "completion": "0.0000012",
+        "prompt": "0.0000003",
+        "input_cache_read": "0.00000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 25.6,
+        "coding_index": 52.6,
+        "intelligence_index": 38.1
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1273.0,
+        "rank": 26,
+        "win_rate": 54.1
+      }
+    },
+    "z-ai/glm-5v-turbo": {
+      "id": "z-ai/glm-5v-turbo",
+      "name": "Z.ai: GLM 5V Turbo",
+      "context_length": 202752,
+      "pricing": {
+        "completion": "0.000004",
+        "prompt": "0.0000012",
+        "input_cache_read": "0.00000024"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": "2098-12-31",
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1280.0,
+        "rank": 22,
+        "win_rate": 54.5
+      }
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b:free": {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "name": "NVIDIA: Nemotron 3 Ultra (free)",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium"
+        ],
+        "supports_max_tokens": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 27.4,
+        "coding_index": 49.3,
+        "intelligence_index": 37.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1192.0,
+        "rank": 49,
+        "win_rate": 42.2
+      }
+    },
+    "tencent/hy3": {
+      "id": "tencent/hy3",
+      "name": "Tencent: Hy3",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000058",
+        "prompt": "0.00000014",
+        "input_cache_read": "0.000000035"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_completion_tokens",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1269.0,
+        "rank": 28,
+        "win_rate": 50.4
+      }
+    },
+    "stepfun/step-3.7-flash": {
+      "id": "stepfun/step-3.7-flash",
+      "name": "StepFun: Step 3.7 Flash",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000115",
+        "prompt": "0.0000002",
+        "input_cache_read": "0.00000004"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 21.5,
+        "coding_index": 39.6,
+        "intelligence_index": 30.3
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1209.0,
+        "rank": 51,
+        "win_rate": 46.0
+      }
+    },
+    "google/gemini-3-flash-preview": {
+      "id": "google/gemini-3-flash-preview",
+      "name": "Google: Gemini 3 Flash Preview",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000003",
+        "prompt": "0.0000005",
+        "audio": "0.000001",
+        "image": "0.0000005",
+        "input_audio_cache": "0.0000001",
+        "input_cache_read": "0.00000005",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.000003",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file",
+        "audio",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1243.0,
+        "rank": 36,
+        "win_rate": 62.7
+      }
+    },
+    "google/gemini-2.5-flash": {
+      "id": "google/gemini-2.5-flash",
+      "name": "Google: Gemini 2.5 Flash",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.0000003",
+        "audio": "0.000001",
+        "image": "0.0000003",
+        "input_audio_cache": "0.0000001",
+        "input_cache_read": "0.00000003",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000025",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text",
+        "audio",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 1161.0,
+        "rank": 66,
+        "win_rate": 48.4
+      }
+    },
+    "google/gemini-2.5-flash-lite": {
+      "id": "google/gemini-2.5-flash-lite",
+      "name": "Google: Gemini 2.5 Flash Lite",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.0000001",
+        "audio": "0.0000003",
+        "image": "0.0000001",
+        "input_audio_cache": "0.00000003",
+        "input_cache_read": "0.00000001",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000004",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file",
+        "audio",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-3.1-flash-lite": {
+      "id": "google/gemini-3.1-flash-lite",
+      "name": "Google: Gemini 3.1 Flash Lite",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000015",
+        "prompt": "0.00000025",
+        "audio": "0.0000005",
+        "image": "0.00000025",
+        "input_audio_cache": "0.00000005",
+        "input_cache_read": "0.000000025",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000015",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "minimal",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-oss-120b": {
+      "id": "openai/gpt-oss-120b",
+      "name": "OpenAI: gpt-oss-120b",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000017",
+        "prompt": "0.000000037"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_a",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {
+        "agentic_index": 13.2,
+        "coding_index": 30.4,
+        "intelligence_index": 23.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1052.0,
+        "rank": 90,
+        "win_rate": 40.6
+      }
+    },
+    "poolside/laguna-m.1:free": {
+      "id": "poolside/laguna-m.1:free",
+      "name": "Poolside: Laguna M.1 (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": "2026-07-28",
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "deepseek/deepseek-v3.2": {
+      "id": "deepseek/deepseek-v3.2",
+      "name": "DeepSeek: DeepSeek V3.2",
+      "context_length": 163840,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.000000269",
+        "input_cache_read": "0.0000001345"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 18.3,
+        "coding_index": 44.2,
+        "intelligence_index": 32.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1201.0,
+        "rank": 55,
+        "win_rate": 50.1
+      }
+    },
+    "google/gemma-4-26b-a4b-it": {
+      "id": "google/gemma-4-26b-a4b-it",
+      "name": "Google: Gemma 4 26B A4B ",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000035",
+        "prompt": "0.00000012",
+        "input_cache_read": "0.00000005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 11.0,
+        "coding_index": 39.3,
+        "intelligence_index": 25.7
+      },
+      "best_design_arena": null
+    },
+    "google/gemma-4-31b-it": {
+      "id": "google/gemma-4-31b-it",
+      "name": "Google: Gemma 4 31B",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000035",
+        "prompt": "0.00000012",
+        "input_cache_read": "0.00000009"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_a",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 14.4,
+        "coding_index": 43.4,
+        "intelligence_index": 29.4
+      },
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-3-super-120b-a12b:free": {
+      "id": "nvidia/nemotron-3-super-120b-a12b:free",
+      "name": "NVIDIA: Nemotron 3 Super (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "medium",
+          "low"
+        ],
+        "supports_max_tokens": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 8.7,
+        "coding_index": 37.7,
+        "intelligence_index": 25.4
+      },
+      "best_design_arena": null
+    },
+    "morph/morph-v3-large": {
+      "id": "morph/morph-v3-large",
+      "name": "Morph: Morph V3 Large",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000019",
+        "prompt": "0.0000009"
+      },
+      "supported_parameters": [
+        "logprobs",
+        "max_tokens",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_logprobs"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-oss-safeguard-20b": {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "name": "OpenAI: gpt-oss-safeguard-20b",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000003",
+        "prompt": "0.000000075",
+        "input_cache_read": "0.0000000375"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-3.1-flash-lite-image": {
+      "id": "google/gemini-3.1-flash-lite-image",
+      "name": "Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)",
+      "context_length": 65536,
+      "pricing": {
+        "completion": "0.0000015",
+        "prompt": "0.00000025",
+        "image_output": "0.00003",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "minimal",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-01",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "x-ai/grok-4.20-multi-agent": {
+      "id": "x-ai/grok-4.20-multi-agent",
+      "name": "xAI: Grok 4.20 Multi-Agent",
+      "context_length": 2000000,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.00000125",
+        "input_cache_read": "0.0000002",
+        "overrides": [
+          {
+            "completion": "0.000005",
+            "input_cache_read": "0.0000004",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.0000025"
+          }
+        ],
+        "web_search": "0.005"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-09-01",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "inception/mercury-2": {
+      "id": "inception/mercury-2",
+      "name": "Inception: Mercury 2",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0.00000075",
+        "prompt": "0.00000025",
+        "input_cache_read": "0.000000025"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 9.6,
+        "coding_index": 31.1,
+        "intelligence_index": 21.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1047.0,
+        "rank": 91,
+        "win_rate": 24.8
+      }
+    },
+    "arcee-ai/trinity-large-thinking": {
+      "id": "arcee-ai/trinity-large-thinking",
+      "name": "Arcee AI: Trinity Large Thinking",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000008",
+        "prompt": "0.00000025",
+        "input_cache_read": "0.00000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 3.7,
+        "coding_index": 25.8,
+        "intelligence_index": 18.2
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1162.0,
+        "rank": 67,
+        "win_rate": 41.3
+      }
+    },
+    "google/gemini-3.1-flash-image-preview": {
+      "id": "google/gemini-3.1-flash-image-preview",
+      "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image Preview)",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.000003",
+        "prompt": "0.0000005",
+        "image_output": "0.00006",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "minimal",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "image",
+        "elo": 1299.0,
+        "rank": 2,
+        "win_rate": 65.2
+      }
+    },
+    "openai/gpt-oss-20b": {
+      "id": "openai/gpt-oss-20b",
+      "name": "OpenAI: gpt-oss-20b",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000013",
+        "prompt": "0.00000003",
+        "input_cache_read": "0.00000003"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {
+        "agentic_index": 3.1,
+        "coding_index": 20.7,
+        "intelligence_index": 14.9
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 968.0,
+        "rank": 99,
+        "win_rate": 39.7
+      }
+    },
+    "~google/gemini-flash-latest": {
+      "id": "~google/gemini-flash-latest",
+      "name": "Google Gemini Flash Latest",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000075",
+        "prompt": "0.0000015",
+        "audio": "0.0000015",
+        "image": "0.0000015",
+        "input_audio_cache": "0.00000015",
+        "input_cache_read": "0.00000015",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000075",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-2.5-flash-image": {
+      "id": "google/gemini-2.5-flash-image",
+      "name": "Google: Nano Banana (Gemini 2.5 Flash Image)",
+      "context_length": 32768,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.0000003",
+        "audio": "0.000001",
+        "image": "0.0000003",
+        "image_output": "0.00003",
+        "input_audio_cache": "0.0000001",
+        "input_cache_read": "0.00000003",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000025",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "image",
+        "elo": 1209.0,
+        "rank": 8,
+        "win_rate": 55.6
+      }
+    },
+    "anthropic/claude-opus-4.7-fast": {
+      "id": "anthropic/claude-opus-4.7-fast",
+      "name": "Anthropic: Claude Opus 4.7 (Fast)",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00015",
+        "prompt": "0.00003",
+        "input_cache_read": "0.000003",
+        "input_cache_write": "0.0000375",
+        "input_cache_write_1h": "0.00006",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-3.5-flash-lite": {
+      "id": "google/gemini-3.5-flash-lite",
+      "name": "Google: Gemini 3.5 Flash Lite",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.0000003",
+        "audio": "0.0000003",
+        "image": "0.0000003",
+        "input_audio_cache": "0.00000003",
+        "input_cache_read": "0.00000003",
+        "input_cache_write": "0.00000008333333333333334",
+        "internal_reasoning": "0.0000025",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "minimal",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 26.8,
+        "coding_index": 49.3,
+        "intelligence_index": 36.5
+      },
+      "best_design_arena": null
+    },
+    "qwen/qwen3-next-80b-a3b-thinking": {
+      "id": "qwen/qwen3-next-80b-a3b-thinking",
+      "name": "Qwen: Qwen3 Next 80B A3B Thinking",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000078",
+        "prompt": "0.0000000975"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-09-30",
+      "artificial_analysis": {
+        "agentic_index": 2.1,
+        "coding_index": 17.4,
+        "intelligence_index": 16.7
+      },
+      "best_design_arena": null
+    },
+    "qwen/qwen3-vl-8b-thinking": {
+      "id": "qwen/qwen3-vl-8b-thinking",
+      "name": "Qwen: Qwen3 VL 8B Thinking",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.000001365",
+        "prompt": "0.000000117"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/o4-mini-high": {
+      "id": "openai/o4-mini-high",
+      "name": "OpenAI: o4 Mini High",
+      "context_length": 200000,
+      "pricing": {
+        "completion": "0.0000044",
+        "prompt": "0.0000011",
+        "input_cache_read": "0.000000275",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "high",
+        "supported_efforts": [
+          "high"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "qwen/qwen3-30b-a3b-thinking-2507": {
+      "id": "qwen/qwen3-30b-a3b-thinking-2507",
+      "name": "Qwen: Qwen3 30B A3B Thinking 2507",
+      "context_length": 81920,
+      "pricing": {
+        "completion": "0.00000156",
+        "prompt": "0.00000013"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-06-30",
+      "artificial_analysis": {
+        "agentic_index": 1.8,
+        "coding_index": 12.1,
+        "intelligence_index": 14.4
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 960.0,
+        "rank": 101,
+        "win_rate": 33.3
+      }
+    },
+    "kwaipilot/kat-coder-air-v2.5": {
+      "id": "kwaipilot/kat-coder-air-v2.5",
+      "name": "Kwaipilot: KAT-Coder-Air V2.5",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.0000006",
+        "prompt": "0.00000015",
+        "input_cache_read": "0.00000003"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5-nano": {
+      "id": "openai/gpt-5-nano",
+      "name": "OpenAI: GPT-5 Nano",
+      "context_length": 400000,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.00000005",
+        "input_cache_read": "0.000000005",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-05-31",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1129.0,
+        "rank": 81,
+        "win_rate": 48.9
+      }
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "id": "meta-llama/llama-3.1-8b-instruct",
+      "name": "Meta: Llama 3.1 8B Instruct",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000008",
+        "prompt": "0.00000005",
+        "input_cache_read": "0.000000025"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-12-31",
+      "artificial_analysis": {
+        "agentic_index": 0.5,
+        "coding_index": 5.4,
+        "intelligence_index": 7.6
+      },
+      "best_design_arena": null
+    },
+    "qwen/qwen3.6-flash": {
+      "id": "qwen/qwen3.6-flash",
+      "name": "Qwen: Qwen3.6 Flash",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.000001125",
+        "prompt": "0.0000001875",
+        "input_cache_write": "0.000000234375",
+        "overrides": [
+          {
+            "completion": "0.000003",
+            "input_cache_write": "0.0000009375",
+            "min_prompt_tokens": 256000.0,
+            "prompt": "0.00000075"
+          }
+        ]
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5-image-mini": {
+      "id": "openai/gpt-5-image-mini",
+      "name": "OpenAI: GPT-5 Image Mini",
+      "context_length": 400000,
+      "pricing": {
+        "completion": "0.000002",
+        "prompt": "0.0000025",
+        "image_output": "0.000008",
+        "input_cache_read": "0.00000025",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "logo",
+        "elo": 1222.0,
+        "rank": 6,
+        "win_rate": 51.9
+      }
+    },
+    "amazon/nova-2-lite-v1": {
+      "id": "amazon/nova-2-lite-v1",
+      "name": "Amazon: Nova 2 Lite",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.0000003"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 3.1,
+        "coding_index": 23.0,
+        "intelligence_index": 18.2
+      },
+      "best_design_arena": null
+    },
+    "openai/o4-mini": {
+      "id": "openai/o4-mini",
+      "name": "OpenAI: o4 Mini",
+      "context_length": 200000,
+      "pricing": {
+        "completion": "0.0000044",
+        "prompt": "0.0000011",
+        "input_cache_read": "0.000000275",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1061.0,
+        "rank": 88,
+        "win_rate": 50.0
+      }
+    },
+    "mistralai/mistral-small-2603": {
+      "id": "mistralai/mistral-small-2603",
+      "name": "Mistral: Mistral Small 4",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000006",
+        "prompt": "0.00000015",
+        "input_cache_read": "0.000000015"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "high",
+        "default_enabled": false,
+        "supported_efforts": [
+          "high",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 4.7,
+        "coding_index": 26.6,
+        "intelligence_index": 19.6
+      },
+      "best_design_arena": null
+    },
+    "morph/morph-v3-fast": {
+      "id": "morph/morph-v3-fast",
+      "name": "Morph: Morph V3 Fast",
+      "context_length": 81920,
+      "pricing": {
+        "completion": "0.0000012",
+        "prompt": "0.0000008"
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "stop",
+        "temperature"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "microsoft/phi-4": {
+      "id": "microsoft/phi-4",
+      "name": "Microsoft: Phi 4",
+      "context_length": 16384,
+      "pricing": {
+        "completion": "0.00000014",
+        "prompt": "0.00000007"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "sao10k/l3-lunaris-8b": {
+      "id": "sao10k/l3-lunaris-8b",
+      "name": "Sao10K: Llama 3 8B Lunaris",
+      "context_length": 8192,
+      "pricing": {
+        "completion": "0.00000005",
+        "prompt": "0.00000004"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-12-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "ibm-granite/granite-4.1-8b": {
+      "id": "ibm-granite/granite-4.1-8b",
+      "name": "IBM: Granite 4.1 8B",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000001",
+        "prompt": "0.00000005",
+        "input_cache_read": "0.00000005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": null,
+        "coding_index": 9.5,
+        "intelligence_index": null
+      },
+      "best_design_arena": null
+    },
+    "cohere/command-r-08-2024": {
+      "id": "cohere/command-r-08-2024",
+      "name": "Cohere: Command R (08-2024)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0.0000006",
+        "prompt": "0.00000015"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-03-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nousresearch/hermes-4-70b": {
+      "id": "nousresearch/hermes-4-70b",
+      "name": "Nous: Hermes 4 70B",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.00000013"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "qwen/qwen3-32b": {
+      "id": "qwen/qwen3-32b",
+      "name": "Qwen: Qwen3 32B",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000028",
+        "prompt": "0.00000008"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-03-31",
+      "artificial_analysis": {
+        "agentic_index": 1.8,
+        "coding_index": 15.3,
+        "intelligence_index": 11.5
+      },
+      "best_design_arena": null
+    },
+    "sao10k/l3.1-euryale-70b": {
+      "id": "sao10k/l3.1-euryale-70b",
+      "name": "Sao10K: Llama 3.1 Euryale 70B v2.2",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000085",
+        "prompt": "0.00000085"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-12-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "cohere/command-a": {
+      "id": "cohere/command-a",
+      "name": "Cohere: Command A",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.0000025"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {
+        "agentic_index": 9.2,
+        "coding_index": 27.8,
+        "intelligence_index": 22.5
+      },
+      "best_design_arena": null
+    },
+    "bytedance-seed/seed-2.0-mini": {
+      "id": "bytedance-seed/seed-2.0-mini",
+      "name": "ByteDance Seed: Seed-2.0-Mini",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.0000001",
+        "overrides": [
+          {
+            "completion": "0.0000008",
+            "min_prompt_tokens": 128000.0,
+            "prompt": "0.0000002"
+          }
+        ]
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "poolside/laguna-s-2.1": {
+      "id": "poolside/laguna-s-2.1",
+      "name": "Poolside: Laguna S 2.1",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000002",
+        "prompt": "0.0000001",
+        "input_cache_read": "0.00000001"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "meta-llama/llama-3.2-1b-instruct": {
+      "id": "meta-llama/llama-3.2-1b-instruct",
+      "name": "Meta: Llama 3.2 1B Instruct",
+      "context_length": 60000,
+      "pricing": {
+        "completion": "0.000000201",
+        "prompt": "0.000000027"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-12-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "qwen/qwen3-30b-a3b-instruct-2507": {
+      "id": "qwen/qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen: Qwen3 30B A3B Instruct 2507",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000003",
+        "prompt": "0.0000001"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "poolside/laguna-m.1": {
+      "id": "poolside/laguna-m.1",
+      "name": "Poolside: Laguna M.1",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000004",
+        "prompt": "0.0000002",
+        "input_cache_read": "0.0000001"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": "2026-07-28",
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "thedrummer/skyfall-36b-v2": {
+      "id": "thedrummer/skyfall-36b-v2",
+      "name": "TheDrummer: Skyfall 36B V2",
+      "context_length": 32768,
+      "pricing": {
+        "completion": "0.0000008",
+        "prompt": "0.00000055",
+        "input_cache_read": "0.00000025"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "mistralai/mistral-small-24b-instruct-2501": {
+      "id": "mistralai/mistral-small-24b-instruct-2501",
+      "name": "Mistral: Mistral Small 3",
+      "context_length": 32768,
+      "pricing": {
+        "completion": "0.00000008",
+        "prompt": "0.00000005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-10-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "mistralai/mistral-small-3.2-24b-instruct": {
+      "id": "mistralai/mistral-small-3.2-24b-instruct",
+      "name": "Mistral: Mistral Small 3.2 24B",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.0000003",
+        "prompt": "0.0000001",
+        "input_cache_read": "0.00000001"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-10-31",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 962.0,
+        "rank": 100,
+        "win_rate": 43.3
+      }
+    },
+    "meta-llama/llama-4-maverick": {
+      "id": "meta-llama/llama-4-maverick",
+      "name": "Meta: Llama 4 Maverick",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.0000008",
+        "prompt": "0.0000002"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {
+        "agentic_index": 1.3,
+        "coding_index": 16.3,
+        "intelligence_index": 14.3
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 959.0,
+        "rank": 98,
+        "win_rate": 40.2
+      }
+    },
+    "cohere/command-r7b-12-2024": {
+      "id": "cohere/command-r7b-12-2024",
+      "name": "Cohere: Command R7B (12-2024)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0.00000015",
+        "prompt": "0.0000000375"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "cohere/command-r-plus-08-2024": {
+      "id": "cohere/command-r-plus-08-2024",
+      "name": "Cohere: Command R+ (08-2024)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.0000025"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-03-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "mistralai/ministral-8b-2512": {
+      "id": "mistralai/ministral-8b-2512",
+      "name": "Mistral: Ministral 3 8B 2512",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000015",
+        "prompt": "0.00000015",
+        "input_cache_read": "0.000000015"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 1.2,
+        "coding_index": 9.7,
+        "intelligence_index": 9.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1092.0,
+        "rank": 89,
+        "win_rate": 42.9
+      }
+    },
+    "qwen/qwen3.6-27b": {
+      "id": "qwen/qwen3.6-27b",
+      "name": "Qwen: Qwen3.6 27B",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000036",
+        "prompt": "0.0000006",
+        "input_cache_read": "0.00000012"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 27.0,
+        "coding_index": 53.7,
+        "intelligence_index": 37.1
+      },
+      "best_design_arena": null
+    },
+    "mistralai/ministral-3b-2512": {
+      "id": "mistralai/ministral-3b-2512",
+      "name": "Mistral: Ministral 3 3B 2512",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000001",
+        "prompt": "0.0000001",
+        "input_cache_read": "0.00000001"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 1.6,
+        "coding_index": 4.8,
+        "intelligence_index": 6.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1055.0,
+        "rank": 98,
+        "win_rate": 38.2
+      }
+    },
+    "mistralai/codestral-2508": {
+      "id": "mistralai/codestral-2508",
+      "name": "Mistral: Codestral 2508",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.0000009",
+        "prompt": "0.0000003",
+        "input_cache_read": "0.00000003"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "prediction",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-03-31",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "3d",
+        "elo": 1080.0,
+        "rank": 83,
+        "win_rate": 45.5
+      }
+    },
+    "openai/gpt-5.4-image-2": {
+      "id": "openai/gpt-5.4-image-2",
+      "name": "OpenAI: GPT-5.4 Image 2",
+      "context_length": 272000,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.000008",
+        "image_output": "0.00003",
+        "input_cache_read": "0.000002",
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "top_logprobs"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "file"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": false,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nousresearch/hermes-3-llama-3.1-70b": {
+      "id": "nousresearch/hermes-3-llama-3.1-70b",
+      "name": "Nous: Hermes 3 70B Instruct",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000007",
+        "prompt": "0.0000007"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2023-12-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "qwen/qwen3-vl-30b-a3b-instruct": {
+      "id": "qwen/qwen3-vl-30b-a3b-instruct",
+      "name": "Qwen: Qwen3 VL 30B A3B Instruct",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000006",
+        "prompt": "0.00000015"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-03-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "mistralai/ministral-14b-2512": {
+      "id": "mistralai/ministral-14b-2512",
+      "name": "Mistral: Ministral 3 14B 2512",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000002",
+        "prompt": "0.0000002",
+        "input_cache_read": "0.00000002"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 2.2,
+        "coding_index": 14.4,
+        "intelligence_index": 11.1
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "website",
+        "elo": 1109.0,
+        "rank": 86,
+        "win_rate": 44.8
+      }
+    },
+    "google/gemma-3n-e4b-it": {
+      "id": "google/gemma-3n-e4b-it",
+      "name": "Google: Gemma 3n 4B",
+      "context_length": 32768,
+      "pricing": {
+        "completion": "0.00000012",
+        "prompt": "0.00000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {
+        "agentic_index": null,
+        "coding_index": 3.2,
+        "intelligence_index": null
+      },
+      "best_design_arena": null
+    },
+    "cohere/north-mini-code:free": {
+      "id": "cohere/north-mini-code:free",
+      "name": "Cohere: North Mini Code (free)",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 3.1,
+        "coding_index": 36.5,
+        "intelligence_index": 19.8
+      },
+      "best_design_arena": null
+    },
+    "google/gemma-4-26b-a4b-it:free": {
+      "id": "google/gemma-4-26b-a4b-it:free",
+      "name": "Google: Gemma 4 26B A4B  (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 11.0,
+        "coding_index": 39.3,
+        "intelligence_index": 25.7
+      },
+      "best_design_arena": null
+    },
+    "google/gemma-4-31b-it:free": {
+      "id": "google/gemma-4-31b-it:free",
+      "name": "Google: Gemma 4 31B (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 14.4,
+        "coding_index": 43.4,
+        "intelligence_index": 29.4
+      },
+      "best_design_arena": null
+    },
+    "google/lyria-3-clip-preview": {
+      "id": "google/lyria-3-clip-preview",
+      "name": "Google: Lyria 3 Clip Preview",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "response_format",
+        "seed",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text",
+        "audio"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/lyria-3-pro-preview": {
+      "id": "google/lyria-3-pro-preview",
+      "name": "Google: Lyria 3 Pro Preview",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "response_format",
+        "seed",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text",
+        "audio"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "inclusionai/ling-3.0-flash:free": {
+      "id": "inclusionai/ling-3.0-flash:free",
+      "name": "Ling-3.0-flash (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-3-nano-30b-a3b:free": {
+      "id": "nvidia/nemotron-3-nano-30b-a3b:free",
+      "name": "NVIDIA: Nemotron 3 Nano 30B A3B (free)",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 2.0,
+        "coding_index": 14.4,
+        "intelligence_index": 14.2
+      },
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+      "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "name": "NVIDIA: Nemotron 3 Nano Omni (free)",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "audio",
+        "image",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true,
+        "supports_max_tokens": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": null,
+        "coding_index": 13.8,
+        "intelligence_index": null
+      },
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-3.5-content-safety:free": {
+      "id": "nvidia/nemotron-3.5-content-safety:free",
+      "name": "NVIDIA: Nemotron 3.5 Content Safety (free)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "seed",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-nano-12b-v2-vl:free": {
+      "id": "nvidia/nemotron-nano-12b-v2-vl:free",
+      "name": "NVIDIA: Nemotron Nano 12B 2 VL (free)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nvidia/nemotron-nano-9b-v2:free": {
+      "id": "nvidia/nemotron-nano-9b-v2:free",
+      "name": "NVIDIA: Nemotron Nano 9B V2 (free)",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-03-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-oss-20b:free": {
+      "id": "openai/gpt-oss-20b:free",
+      "name": "OpenAI: gpt-oss-20b (free)",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {
+        "agentic_index": 3.1,
+        "coding_index": 20.7,
+        "intelligence_index": 14.9
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 968.0,
+        "rank": 99,
+        "win_rate": 39.7
+      }
+    },
+    "poolside/laguna-s-2.1:free": {
+      "id": "poolside/laguna-s-2.1:free",
+      "name": "Poolside: Laguna S 2.1 (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "poolside/laguna-xs-2.1:free": {
+      "id": "poolside/laguna-xs-2.1:free",
+      "name": "Poolside: Laguna XS 2.1 (free)",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0",
+        "prompt": "0"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "inclusionai/ling-2.6-flash": {
+      "id": "inclusionai/ling-2.6-flash",
+      "name": "inclusionAI: Ling-2.6-flash",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000003",
+        "prompt": "0.00000001",
+        "input_cache_read": "0.000000002"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {
+        "agentic_index": 2.3,
+        "coding_index": 25.3,
+        "intelligence_index": 14.1
+      },
+      "best_design_arena": null
+    },
+    "mistralai/mistral-nemo": {
+      "id": "mistralai/mistral-nemo",
+      "name": "Mistral: Mistral Nemo",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.00000003",
+        "prompt": "0.000000019"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-04-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "ibm-granite/granite-4.0-h-micro": {
+      "id": "ibm-granite/granite-4.0-h-micro",
+      "name": "IBM: Granite 4.0 Micro",
+      "context_length": 131000,
+      "pricing": {
+        "completion": "0.000000112",
+        "prompt": "0.000000017"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "temperature",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "nex-agi/nex-n2-mini": {
+      "id": "nex-agi/nex-n2-mini",
+      "name": "Nex AGI: Nex-N2-Mini",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.0000001",
+        "prompt": "0.000000025",
+        "input_cache_read": "0.0000000025"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "amazon/nova-micro-v1": {
+      "id": "amazon/nova-micro-v1",
+      "name": "Amazon: Nova Micro 1.0",
+      "context_length": 128000,
+      "pricing": {
+        "completion": "0.00000014",
+        "prompt": "0.000000035"
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "stop",
+        "temperature",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-10-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "qwen/qwen-2.5-7b-instruct": {
+      "id": "qwen/qwen-2.5-7b-instruct",
+      "name": "Qwen: Qwen2.5 7B Instruct",
+      "context_length": 32768,
+      "pricing": {
+        "completion": "0.0000001",
+        "prompt": "0.00000004"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-06-30",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openrouter/auto": {
+      "id": "openrouter/auto",
+      "name": "Auto Router",
+      "context_length": 2000000,
+      "pricing": {
+        "completion": "-1",
+        "prompt": "-1"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "prediction",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_a",
+        "top_k",
+        "top_logprobs",
+        "top_p",
+        "web_search_options"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "output_modalities": [
+        "text",
+        "image"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openrouter/auto-beta": {
+      "id": "openrouter/auto-beta",
+      "name": "Auto Router (Beta)",
+      "context_length": 2000000,
+      "pricing": {
+        "completion": "-1",
+        "prompt": "-1"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "prediction",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_a",
+        "top_k",
+        "top_logprobs",
+        "top_p",
+        "web_search_options"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "output_modalities": [
+        "text",
+        "image"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openrouter/pareto-code": {
+      "id": "openrouter/pareto-code",
+      "name": "Pareto Code Router",
+      "context_length": 2000000,
+      "pricing": {
+        "completion": "-1",
+        "prompt": "-1"
+      },
+      "supported_parameters": [],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "x-ai/grok-4.20": {
+      "id": "x-ai/grok-4.20",
+      "name": "xAI: Grok 4.20",
+      "context_length": 2000000,
+      "pricing": {
+        "completion": "0.0000025",
+        "prompt": "0.00000125",
+        "input_cache_read": "0.0000002",
+        "overrides": [
+          {
+            "completion": "0.000005",
+            "input_cache_read": "0.0000004",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.0000025"
+          }
+        ],
+        "web_search": "0.005"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": false
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-09-01",
+      "artificial_analysis": {},
+      "best_design_arena": {
+        "arena": "models",
+        "category": "gamedev",
+        "elo": 1255.0,
+        "rank": 31,
+        "win_rate": 53.5
+      }
+    },
+    "meta-llama/llama-4-scout": {
+      "id": "meta-llama/llama-4-scout",
+      "name": "Meta: Llama 4 Scout",
+      "context_length": 1310720,
+      "pricing": {
+        "completion": "0.0000003",
+        "prompt": "0.0000001"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": "2024-08-31",
+      "artificial_analysis": {
+        "agentic_index": 1.1,
+        "coding_index": 8.2,
+        "intelligence_index": 10.0
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 930.0,
+        "rank": 104,
+        "win_rate": 39.3
+      }
+    },
+    "~openai/gpt-latest": {
+      "id": "~openai/gpt-latest",
+      "name": "OpenAI GPT Latest",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00003",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "overrides": [
+          {
+            "completion": "0.000045",
+            "input_cache_read": "0.000001",
+            "input_cache_write": "0.0000125",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00001"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5.4-pro": {
+      "id": "openai/gpt-5.4-pro",
+      "name": "OpenAI: GPT-5.4 Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00018",
+        "prompt": "0.00003",
+        "overrides": [
+          {
+            "completion": "0.00027",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00006"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5.5-pro": {
+      "id": "openai/gpt-5.5-pro",
+      "name": "OpenAI: GPT-5.5 Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00018",
+        "prompt": "0.00003",
+        "overrides": [
+          {
+            "completion": "0.00027",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00006"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-12-01",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5.6-luna-pro": {
+      "id": "openai/gpt-5.6-luna-pro",
+      "name": "OpenAI: GPT-5.6 Luna Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.000006",
+        "prompt": "0.000001",
+        "input_cache_read": "0.0000001",
+        "input_cache_write": "0.00000125",
+        "overrides": [
+          {
+            "completion": "0.000009",
+            "input_cache_read": "0.0000002",
+            "input_cache_write": "0.0000025",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.000002"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5.6-sol-pro": {
+      "id": "openai/gpt-5.6-sol-pro",
+      "name": "OpenAI: GPT-5.6 Sol Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.00003",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "input_cache_write": "0.00000625",
+        "overrides": [
+          {
+            "completion": "0.000045",
+            "input_cache_read": "0.000001",
+            "input_cache_write": "0.0000125",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00001"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "openai/gpt-5.6-terra-pro": {
+      "id": "openai/gpt-5.6-terra-pro",
+      "name": "OpenAI: GPT-5.6 Terra Pro",
+      "context_length": 1050000,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.0000025",
+        "input_cache_read": "0.00000025",
+        "input_cache_write": "0.000003125",
+        "overrides": [
+          {
+            "completion": "0.0000225",
+            "input_cache_read": "0.0000005",
+            "input_cache_write": "0.00000625",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.000005"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "medium",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "none"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2026-02-16",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "meituan/longcat-2.0": {
+      "id": "meituan/longcat-2.0",
+      "name": "Meituan: LongCat 2.0",
+      "context_length": 1048756,
+      "pricing": {
+        "completion": "0.0000012",
+        "prompt": "0.0000003",
+        "input_cache_read": "0.000000006"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true,
+        "supports_max_tokens": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "~google/gemini-pro-latest": {
+      "id": "~google/gemini-pro-latest",
+      "name": "Google Gemini Pro Latest",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000012",
+        "prompt": "0.000002",
+        "audio": "0.000002",
+        "image": "0.000002",
+        "input_audio_cache": "0.0000002",
+        "input_cache_read": "0.0000002",
+        "input_cache_write": "0.000000375",
+        "internal_reasoning": "0.000012",
+        "overrides": [
+          {
+            "audio": "0.000004",
+            "completion": "0.000018",
+            "input_audio_cache": "0.0000004",
+            "input_cache_read": "0.0000004",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.000004"
+          }
+        ],
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "medium",
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "~moonshotai/kimi-latest": {
+      "id": "~moonshotai/kimi-latest",
+      "name": "MoonshotAI Kimi Latest",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.000015",
+        "prompt": "0.000003",
+        "input_cache_read": "0.0000003"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "max",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "high",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-2.5-pro": {
+      "id": "google/gemini-2.5-pro",
+      "name": "Google: Gemini 2.5 Pro",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.00000125",
+        "audio": "0.00000125",
+        "image": "0.00000125",
+        "input_audio_cache": "0.000000125",
+        "input_cache_read": "0.000000125",
+        "input_cache_write": "0.000000375",
+        "internal_reasoning": "0.00001",
+        "overrides": [
+          {
+            "audio": "0.0000025",
+            "completion": "0.000015",
+            "input_audio_cache": "0.00000025",
+            "input_cache_read": "0.00000025",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.0000025"
+          }
+        ],
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file",
+        "audio",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {
+        "agentic_index": 7.1,
+        "coding_index": 33.3,
+        "intelligence_index": 25.8
+      },
+      "best_design_arena": {
+        "arena": "models",
+        "category": "dataviz",
+        "elo": 1280.0,
+        "rank": 16,
+        "win_rate": 71.8
+      }
+    },
+    "google/gemini-2.5-pro-preview-05-06": {
+      "id": "google/gemini-2.5-pro-preview-05-06",
+      "name": "Google: Gemini 2.5 Pro Preview 05-06",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.00000125",
+        "audio": "0.00000125",
+        "image": "0.00000125",
+        "input_audio_cache": "0.000000125",
+        "input_cache_read": "0.000000125",
+        "input_cache_write": "0.000000375",
+        "internal_reasoning": "0.00001",
+        "overrides": [
+          {
+            "audio": "0.0000025",
+            "completion": "0.000015",
+            "input_audio_cache": "0.00000025",
+            "input_cache_read": "0.00000025",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.0000025"
+          }
+        ],
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file",
+        "audio",
+        "video"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-2.5-pro-preview": {
+      "id": "google/gemini-2.5-pro-preview",
+      "name": "Google: Gemini 2.5 Pro Preview 06-05",
+      "context_length": 1048576,
+      "pricing": {
+        "completion": "0.00001",
+        "prompt": "0.00000125",
+        "audio": "0.00000125",
+        "image": "0.00000125",
+        "input_audio_cache": "0.000000125",
+        "input_cache_read": "0.000000125",
+        "input_cache_write": "0.000000375",
+        "internal_reasoning": "0.00001",
+        "overrides": [
+          {
+            "audio": "0.0000025",
+            "completion": "0.000015",
+            "input_audio_cache": "0.00000025",
+            "input_cache_read": "0.00000025",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.0000025"
+          }
+        ],
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "file",
+        "image",
+        "text",
+        "audio"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": "2025-01-31",
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "kwaipilot/kat-coder-pro-v2.5": {
+      "id": "kwaipilot/kat-coder-pro-v2.5",
+      "name": "Kwaipilot: KAT-Coder-Pro V2.5",
+      "context_length": 256000,
+      "pricing": {
+        "completion": "0.00000296",
+        "prompt": "0.00000074",
+        "input_cache_read": "0.00000015"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": null,
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "~x-ai/grok-latest": {
+      "id": "~x-ai/grok-latest",
+      "name": "xAI: Grok Latest",
+      "context_length": 500000,
+      "pricing": {
+        "completion": "0.000006",
+        "prompt": "0.000002",
+        "input_cache_read": "0.0000003",
+        "overrides": [
+          {
+            "completion": "0.000012",
+            "input_cache_read": "0.0000006",
+            "min_prompt_tokens": 200000.0,
+            "prompt": "0.000004"
+          }
+        ],
+        "web_search": "0.005"
+      },
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "high",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "aion-labs/aion-3.0-mini": {
+      "id": "aion-labs/aion-3.0-mini",
+      "name": "AionLabs: Aion-3.0-Mini",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.0000014",
+        "prompt": "0.0000007",
+        "input_cache_read": "0.00000018"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "aion-labs/aion-3.0": {
+      "id": "aion-labs/aion-3.0",
+      "name": "AionLabs: Aion-3.0",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.000006",
+        "prompt": "0.000003",
+        "input_cache_read": "0.00000075"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "response_format",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "poolside/laguna-xs-2.1": {
+      "id": "poolside/laguna-xs-2.1",
+      "name": "Poolside: Laguna XS 2.1",
+      "context_length": 262144,
+      "pricing": {
+        "completion": "0.00000012",
+        "prompt": "0.00000006",
+        "input_cache_read": "0.00000003"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "temperature",
+        "tool_choice",
+        "tools"
+      ],
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "sakana/fugu-ultra": {
+      "id": "sakana/fugu-ultra",
+      "name": "Sakana: Fugu Ultra",
+      "context_length": 1000000,
+      "pricing": {
+        "completion": "0.00003",
+        "prompt": "0.000005",
+        "input_cache_read": "0.0000005",
+        "overrides": [
+          {
+            "completion": "0.000045",
+            "input_cache_read": "0.000001",
+            "min_prompt_tokens": 272000.0,
+            "prompt": "0.00001"
+          }
+        ],
+        "web_search": "0.01"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "reasoning",
+        "reasoning_effort",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "web_search_options"
+      ],
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": true,
+        "default_effort": "xhigh",
+        "default_enabled": true,
+        "supported_efforts": [
+          "max",
+          "xhigh",
+          "high"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    },
+    "google/gemini-3.1-flash-image": {
+      "id": "google/gemini-3.1-flash-image",
+      "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+      "context_length": 131072,
+      "pricing": {
+        "completion": "0.000003",
+        "prompt": "0.0000005",
+        "image_output": "0.00006",
+        "web_search": "0.014"
+      },
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "top_p"
+      ],
+      "input_modalities": [
+        "image",
+        "text"
+      ],
+      "output_modalities": [
+        "image",
+        "text"
+      ],
+      "reasoning": {
+        "mandatory": false,
+        "default_effort": "minimal",
+        "default_enabled": true,
+        "supported_efforts": [
+          "high",
+          "minimal"
+        ]
+      },
+      "expiration_date": null,
+      "knowledge_cutoff": null,
+      "artificial_analysis": {},
+      "best_design_arena": null
+    }
+  }
+}
