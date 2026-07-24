@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.publish_operation_status import publish_status
 from scripts.repair_utils import (
     ensure_safe_repair_changes,
     read_json,
@@ -63,6 +64,16 @@ def _load_json_object(value: str) -> dict:
     return parsed if isinstance(parsed, dict) else {"raw_support_packet": value}
 
 
+def _publish_transition(operation_id: str, operation: str, phase: str, output_dir: Path) -> None:
+    """Best-effort progress publication; terminal publication remains a workflow hard step."""
+    try:
+        publish_status(operation_id, operation, phase)
+    except Exception as exc:  # Progress visibility must not abort an otherwise repairable operation.
+        log_path = output_dir / "status_transition_errors.log"
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"phase={phase} error={type(exc).__name__}: {exc}\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Managed production operation with one automatic DeepSeek repair cycle")
     parser.add_argument("--operation", required=True, choices=("model_intelligence", "execute_team", "deepseek_steward"))
@@ -108,6 +119,7 @@ def main() -> None:
 
     # A GitHub-internal operation failure automatically becomes a DeepSeek REPAIR request.
     # This is deliberately limited to one repair cycle and one retry.
+    _publish_transition(operation_id, args.operation, "repairing", output_dir)
     repair_id = safe_operation_id(f"{operation_id}-auto-repair")
     supplied_packet = _load_json_object(args.support_packet_json)
     support_packet = {
@@ -182,6 +194,7 @@ def main() -> None:
     changed = ensure_safe_repair_changes()
     run_verification()
 
+    _publish_transition(operation_id, args.operation, "retrying", output_dir)
     second = _run(original_command, output_dir / "retry_operation.log")
     if second.returncode != 0:
         result = read_json(auto_repair_result_path)
