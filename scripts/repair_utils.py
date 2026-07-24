@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
-PROTECTED_PREFIXES = ("tests/", "artifacts/", "runtime_results/", ".git/")
+PROTECTED_SOURCE_PREFIXES = ("tests/", "runtime_results/", ".git/")
+IGNORED_GENERATED_PREFIXES = ("artifacts/", "__pycache__/", ".pytest_cache/")
 
 
 def safe_operation_id(value: str) -> str:
@@ -41,14 +42,20 @@ def changed_paths() -> list[str]:
         path = raw_line[3:].strip()
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
-        paths.append(path.replace("\\", "/"))
+        normalized = path.replace("\\", "/")
+        if normalized.endswith(".pyc") or any(
+            normalized == prefix.rstrip("/") or normalized.startswith(prefix)
+            for prefix in IGNORED_GENERATED_PREFIXES
+        ):
+            continue
+        paths.append(normalized)
     return paths
 
 
 def repair_source_paths(paths: Iterable[str] | None = None) -> list[str]:
     source_paths: list[str] = []
     for path in paths or changed_paths():
-        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_PREFIXES):
+        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_SOURCE_PREFIXES):
             continue
         source_paths.append(path)
     return source_paths
@@ -59,10 +66,10 @@ def ensure_safe_repair_changes() -> list[str]:
     protected = [
         path
         for path in paths
-        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_PREFIXES)
+        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_SOURCE_PREFIXES)
     ]
     if protected:
-        raise RuntimeError(f"DeepSeek Steward attempted to modify protected paths: {protected}")
+        raise RuntimeError(f"DeepSeek Steward attempted to modify protected source paths: {protected}")
     source_paths = repair_source_paths(paths)
     if not source_paths:
         raise RuntimeError("DeepSeek Steward returned EDIT but produced no repository source/configuration changes")
