@@ -27,7 +27,7 @@ end
 raise description_errors.join("\n") unless description_errors.empty?
 
 required_operation_ids = %w[
-  createOperationReceipt
+  submitExpertTeamOperation
   getOpenRouterModels
   getExecutionPlanSchema
   getDeepSeekStewardPolicy
@@ -53,6 +53,7 @@ missing = required_operation_ids - operation_ids
 raise "missing operationIds: #{missing.join(',')}" unless missing.empty?
 raise "listExpertTeamRuns must not be exposed" if operation_ids.include?("listExpertTeamRuns")
 raise "legacy getOperationStatus must not be exposed" if operation_ids.include?("getOperationStatus")
+raise "two-step createOperationReceipt must not remain the primary entry" if operation_ids.include?("createOperationReceipt")
 
 errors = []
 walk = lambda do |node, path|
@@ -112,8 +113,11 @@ raise "operation state endpoint missing HTTP 200" unless schema.dig("paths", ope
 current_path = "/repos/a15280020511/test2/contents/runtime_results/current_operation_status.json"
 raise "current dashboard endpoint missing" unless schema.dig("paths", current_path, "get", "responses", "200")
 
-receipt_path = "/repos/a15280020511/test2/issues/15/comments"
-raise "durable receipt endpoint missing" unless schema.dig("paths", receipt_path, "post", "responses", "201")
+submission_path = "/repos/a15280020511/test2/issues/15/comments"
+submission = schema.dig("paths", submission_path, "post")
+raise "one-step operation submission endpoint missing" unless submission
+raise "submission must return HTTP 201 receipt" unless submission.dig("responses", "201")
+raise "submission operationId must be submitExpertTeamOperation" unless submission["operationId"] == "submitExpertTeamOperation"
 
 production_path = "/repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches"
 production_inputs = schema.dig("paths", production_path, "post", "requestBody", "content", "application/json", "schema", "properties", "inputs")
@@ -143,4 +147,4 @@ main_paths.each do |path|
   raise "ref must be pinned to main: #{path}" unless ref.dig("schema", "enum") == ["main"]
 end
 
-puts "GPT Action OpenAPI v1.7 single-task, budget, cancellation, and DeepSeek contract OK"
+puts "GPT Action OpenAPI v1.7 one-step submission, single-task, budget, cancellation, and DeepSeek contract OK"
