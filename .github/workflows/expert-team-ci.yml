@@ -81,7 +81,7 @@ jobs:
           grep -F 'scripts.supervisor_resume' .github/workflows/deepseek-supervisor.yml >/dev/null
           grep -F 'retry_operation_overrides' expert_team/deepseek_top_supervisor.py >/dev/null
           grep -F 'operationId: dispatchDeepSeekSupervisor' gpt_action_openapi.yaml >/dev/null
-          grep -F 'two consecutive control reads' ACTION_RECOVERY.md >/dev/null
+          grep -F 'second consecutive read' ACTION_RECOVERY.md >/dev/null
           grep -F 'highest technical control layer' DEEPSEEK_STEWARD.md >/dev/null
           echo "Durable receipt and DeepSeek top-supervisor contract OK"
 
