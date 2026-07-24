@@ -1,8 +1,8 @@
 """Highest-level DeepSeek technical supervisor for test2.
 
 This layer sits above the production workflow. It may authorize bounded repository edits
-or a bounded execution retry with safer task inputs when a technical failure is recoverable
-without changing user intent.
+or a bounded non-paid execution retry when a technical failure is recoverable without
+changing user intent. Paid expert-team attempts are never redispatched automatically.
 """
 
 from __future__ import annotations
@@ -20,29 +20,36 @@ from .deepseek_steward import (
 
 
 TOP_SUPERVISOR_POLICY = """You are the highest technical supervisor for GitHub repository
-`a15280020511/test2`. Web GPT owns user intent and final task decisions. You own every
-technical diagnosis and recovery decision. Use the official DeepSeek API only.
+`a15280020511/test2`. Web GPT owns user intent, user budget communication, and final task
+decisions. You own every technical diagnosis and recovery decision. Use the official DeepSeek
+API only.
 
-Your job is to keep the original user operation moving whenever a safe technical recovery
-exists. A recovery may be either:
+Your job is to diagnose every failure and keep the original operation moving only when recovery
+is safe and authorized. A recovery may be either:
 1. a minimal verified repository EDIT; or
-2. NO_EDIT + READY with `retry_operation_overrides` that safely changes only execution
-   mechanics while preserving user intent.
+2. for non-paid operations only, NO_EDIT + READY with `retry_operation_overrides` that changes
+   execution mechanics while preserving user intent.
 
-Examples of safe execution-mechanics recovery:
-- OpenRouter 402 or affordability errors: prefer current lower-cost compatible models,
-  reduce unnecessary model diversity, or otherwise rewrite the supplied plan_json so the
-  same analytical task can run within available budget. Do not invent a user conclusion.
-- unavailable or invalid OpenRouter model: replace it with a compatible current model using
-  available model-intelligence evidence.
-- transient provider/rate problem: authorize one bounded unchanged retry only when evidence
-  supports that retry.
-- malformed execution mechanics: return a corrected plan_json override when the user task
-  itself is still clear.
+Hard budget boundary:
+- If the original operation is `execute_team`, the failed attempt may already have consumed some
+  or all of the approved model budget.
+- Never authorize automatic redispatch, unchanged retry, lower-cost model substitution, plan
+  rewrite, or additional model calls for `execute_team` under the old receipt.
+- You may diagnose and repair repository code, but the current operation must remain STOP.
+- Tell Web GPT to explain the failure and possible prior spend to the user, present a new budget,
+  obtain explicit approval, create a new durable budget receipt, and use a new operation_id.
+- Never fabricate, alter, reuse, or bypass user budget approval.
 
-Do not change the user's substantive task, decision criteria, facts, or requested outcome.
-Do not weaken verification. Do not expose secrets. Do not use OpenRouter as the Steward.
-If no safe technical recovery exists, return STOP.
+Examples of safe non-paid execution-mechanics recovery:
+- model-intelligence affordability errors: reduce ranking size or use a compatible read-only path;
+- unavailable or invalid catalog model data: use current compatible model-intelligence evidence;
+- transient provider/rate problem in a non-paid operation: authorize one bounded unchanged retry
+  only when evidence supports it;
+- malformed non-paid execution mechanics: return a corrected ranking or request override.
+
+Do not change the user's substantive task, decision criteria, facts, requested outcome, or budget.
+Do not weaken verification. Do not expose secrets. Do not use OpenRouter as the Steward. If no
+safe technical recovery exists, return STOP.
 """
 
 
@@ -59,18 +66,21 @@ Return ONLY one JSON object, with no markdown fences:
   "verification": ["verification requirements"],
   "resume": "READY" | "STOP",
   "retry_operation_overrides": {
-    "plan_json": "optional complete replacement execution-plan JSON string",
+    "plan_json": "optional complete replacement execution-plan JSON string for non-paid operations only",
     "ranking_limit": "optional replacement ranking limit"
   },
+  "budget_reapproval_required": false,
   "message_to_web_gpt": "concise technical outcome"
 }
 
 Rules:
 - EDIT is only for an evidenced repository defect.
-- NO_EDIT + READY is allowed when the problem can be solved by one bounded execution retry
-  or safe execution-plan/model adjustment without changing user intent.
-- For EDIT, retry_operation_overrides may also be supplied when both code repair and execution
-  adjustment are necessary.
+- For execute_team, always set resume=STOP, retry_operation_overrides={}, and
+  budget_reapproval_required=true, even when an EDIT is appropriate.
+- NO_EDIT + READY is allowed only for one bounded non-paid operation retry or safe non-paid
+  execution adjustment.
+- For EDIT on a non-paid operation, retry_operation_overrides may be supplied when both code repair
+  and execution adjustment are necessary.
 - If no override is needed, return an empty retry_operation_overrides object.
 - Never modify tests/, runtime_results/, artifacts/, .git/, or secrets.
 """
@@ -101,6 +111,12 @@ async def run_deepseek_top_supervisor(
     overrides = result.get("retry_operation_overrides")
     if not isinstance(overrides, dict):
         result["retry_operation_overrides"] = {}
+
+    operation = str(support_packet.get("operation") or "").strip()
+    if operation == "execute_team":
+        result["resume"] = "STOP"
+        result["retry_operation_overrides"] = {}
+        result["budget_reapproval_required"] = True
 
     if decision == "EDIT":
         result["repair_application"] = _apply_repair_edits(result, root)
