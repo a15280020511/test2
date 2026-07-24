@@ -35,7 +35,7 @@ required_operation_ids = %w[
   getDeepSeekStewardPolicy
   getActionRecoveryPolicy
   dispatchExpertTeamOperation
-  listExpertTeamRuns
+  getOperationStatus
   getExpertTeamRun
   getExpertTeamRunJobs
   listExpertTeamRunArtifacts
@@ -47,6 +47,7 @@ required_operation_ids = %w[
 ]
 missing = required_operation_ids - operation_ids
 raise "missing operationIds: #{missing.join(',')}" unless missing.empty?
+raise "listExpertTeamRuns must not be exposed as a normal control-plane Action" if operation_ids.include?("listExpertTeamRuns")
 
 errors = []
 walk = lambda do |node, path|
@@ -67,6 +68,7 @@ raise errors.join("\n") unless errors.empty?
 
 runtime_paths = [
   "/repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json",
+  "/repos/a15280020511/test2/contents/runtime_results/status/{operation_id}.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/expert_team_result.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json",
   "/repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json",
