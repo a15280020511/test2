@@ -17,7 +17,7 @@ on:
           - execute_team
           - deepseek_steward
       receipt_comment_id:
-        description: Optional durable receipt comment ID; workflow creates one when omitted
+        description: Durable receipt comment ID; mandatory for execute_team and must contain the user's approved budget JSON
         required: false
         default: ""
         type: string
@@ -74,7 +74,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Ensure durable operation receipt
+      - name: Ensure durable operation and budget receipt
         id: receipt
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,6 +86,10 @@ jobs:
             echo "receipt_comment_id=$PROVIDED_RECEIPT_COMMENT_ID" >> "$GITHUB_OUTPUT"
             echo "receipt_source=provided" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+          if [ "$OPERATION" = "execute_team" ]; then
+            echo "execute_team requires a durable Web GPT receipt created after the user selects a budget" >&2
+            exit 1
           fi
           RECEIPT_BODY=$(jq -cn \
             --arg operation_id "$OPERATION_ID" \
@@ -127,14 +131,20 @@ jobs:
       - name: Prepare repository context
         run: git fetch origin runtime-results || true
 
-      - name: Verify real DeepSeek first-entry result and budget options
+      - name: Verify DeepSeek entry and durable user budget approval
         if: ${{ inputs.operation == 'execute_team' }}
         env:
+          GH_TOKEN: ${{ github.token }}
           PLAN_JSON: ${{ inputs.plan_json }}
+          RECEIPT_COMMENT_ID: ${{ steps.receipt.outputs.receipt_comment_id }}
         run: |
+          gh api "/repos/${GITHUB_REPOSITORY}/issues/comments/${RECEIPT_COMMENT_ID}" \
+            --jq '.body' > /tmp/budget-approval-receipt.json
           python -m scripts.verify_deepseek_entry \
             --plan-json "$PLAN_JSON" \
-            --operation-id "${{ inputs.operation_id }}"
+            --operation-id "${{ inputs.operation_id }}" \
+            --receipt-body-file /tmp/budget-approval-receipt.json \
+            --receipt-comment-id "$RECEIPT_COMMENT_ID"
 
       - name: Execute managed operation with automatic DeepSeek repair
         env:
@@ -225,7 +235,7 @@ jobs:
             --arg original_plan_json "$ORIGINAL_PLAN_JSON" \
             --arg original_ranking_limit "$ORIGINAL_RANKING_LIMIT" \
             --arg original_support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
-            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Diagnose and recover a failed production workflow while preserving the independent DeepSeek core and ephemeral-plugin boundary.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or infrastructure step",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Do not maintain or fork upstream plugins","Preserve user-approved budget","Resume at most once"],requested_outcome:"Restore repository integration and safely resume the original task."}')
+            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Diagnose and recover a failed production workflow while preserving the independent DeepSeek core, durable budget receipt, and ephemeral-plugin boundary.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or infrastructure step",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Do not maintain or fork upstream plugins","Never fabricate or bypass user budget approval","Resume at most once"],requested_outcome:"Restore repository integration and safely resume only when the existing budget approval remains valid."}')
           PAYLOAD=$(jq -cn \
             --arg operation_id "$SUPERVISOR_ID" \
             --arg original_operation_id "$ORIGINAL_OPERATION_ID" \
