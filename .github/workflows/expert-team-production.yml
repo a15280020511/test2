@@ -115,6 +115,7 @@ jobs:
           retention-days: 7
 
       - name: Publish GPT-readable JSON result
+        id: publish_result
         if: always()
         env:
           PYTHONPATH: .
@@ -129,4 +130,5 @@ jobs:
             --operation-id "${{ inputs.operation_id }}" \
             --operation "${{ inputs.operation }}" \
             --phase final \
-            --job-status "${{ job.status }}"
+            --job-status "${{ job.status }}" \
+            --result-published "${{ steps.publish_result.outcome }}"
