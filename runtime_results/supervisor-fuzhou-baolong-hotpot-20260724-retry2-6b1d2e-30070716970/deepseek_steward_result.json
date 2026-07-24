@@ -1,0 +1,56 @@
+{
+  "mode": "REPAIR",
+  "decision": "NO_EDIT",
+  "diagnosis": "The managed operation failed because the initial execution of the expert team encountered a recoverable OpenRouter resource error (likely 402 insufficient credits given the prior history), and the subsequent automatic DeepSeek repair correctly identified no repository defect and stopped. The original model selection, while already cost-conscious, still exceeded available budget.",
+  "confidence": 0.8,
+  "edits": [],
+  "delete_files": [],
+  "verification": [],
+  "resume": "READY",
+  "retry_operation_overrides": {
+    "plan_json": "{\"version\":\"1\",\"selection_policy\":\"在极低成本和严格字数限制下保证必要分析质量，优先使用性价比最高的模型，避免任何不必要的 token 消耗。\",\"task\":\"用户计划在福州宝龙城市广场开一家火锅店，要求完全由GitHub专家团队分析，Web GPT不得自行给出商业判断。判断时点：2026-07-24。\\n\\n已收集事实：\\n1) 目标为宝龙广场（福州台江店），地址福州市台江区工业路193号，坐标119.291555,26.061551，营业时间10:00-22:00。高德坐标通常为GCJ-02，只能用于商圈级近似。\\n2) 以该点为中心、半径1.5公里搜索火锅，高德返回count=70，但可能包含重复、分类误差与停业滞后，不得视为真实在营数量。\\n3) 300米内代表性竞品包括：大牌小火锅，人均49；蜀九鼎火锅，人均85，营业至02:00；黄幺妹重庆野火锅，人均58；许府牛火锅，人均55；串滋多回转小火锅，人均34；遇见梦贵州烙锅，人均64，营业至05:30；串串街头24小时串串火锅，人均76；臻牛潮汕牛肉火锅，人均67；朱富贵火锅，人均约116-119；开源齐庆美蛙鱼头，人均90；杨老板火锅，人均96；海底捞大排档火锅，人均120；火焰鲜鲜活牛肉自助火锅，人均92；黔山厨鲜切牛肉火锅，人均87；蛮涮自助小火锅，人均57。部分POI可能重复。\\n4) 约1公里方形窗口内VIIRS夜间灯光，同为10月：2024年mean=42.1284，2025年mean=54.2284，count均为25。不得直接解释为客流或消费力。\\n5) 关键未知：具体铺位楼层与可见性、面积、租金/物业/扣点、转让费、装修与排烟条件、供电燃气、消防审批、品牌与锅底品类、客单价、座位数、翻台率、营业时段、人工成本、食材毛利、外卖策略、投资预算、回本期限、合同期限及退出条款。不得虚构。\\n\\n请输出一份精炼中文报告，包含：A. 条件式GO/NO-GO与置信度；B. 已确认事实/推断/未知分层；C. 竞争格局、价格带、品类拥挤度；D. 两种差异化店型方案及适用条件；E. 盈亏平衡公式和物业谈判必须拿到的阈值数据；F. 三种情景；G. Premortem与止损信号；H. 30/60/90天低成本验证；I. 哪些新证据会推翻结论。严禁把夜光、POI数量、评分直接当客流。总字数控制在3500字以内。\",\"rationale\":\"本次进一步压缩成本：将所有模型切换为性价比突出的 moonshotai/kimi-k3 和 openai/gpt-5.6-terra，在确保中文分析质量的前提下大幅降低 token 单价，避免额度不足重演。\",\"experts\":[{\"name\":\"商圈竞争专家\",\"mission\":\"识别周边竞争结构、价格带、品类拥挤度和差异化空间，并提出两种可行店型。\",\"instructions\":\"仅基于证据包；严格区分事实、推断与未知；不得把POI、评分、夜光直接等同客流；输出控制在1200字以内。\",\"model\":\"moonshotai/kimi-k3\"},{\"name\":\"单店经济与决策专家\",\"mission\":\"建立不虚构数据的盈亏框架、阈值条件、情景、止损线和30/60/90天验证路径。\",\"instructions\":\"必须给公式、变量、信息价值和NO-GO条件；不得编造租金、翻台率、毛利或回本数字；输出控制在1400字以内。\",\"model\":\"openai/gpt-5.6-terra\"}],\"stages\":[{\"id\":\"stage1\",\"mode\":\"parallel\",\"members\":[\"商圈竞争专家\",\"单店经济与决策专家\"],\"input_from\":[\"task\"]}],\"red_team\":{\"enabled\":false},\"judge\":{\"enabled\":true,\"name\":\"精炼裁决员\",\"model\":\"moonshotai/kimi-k3\",\"instructions\":\"整合两位专家，保留分歧，形成唯一中文决策报告；不得新增事实；结论必须条件式；总字数不超过3500字。\"}}",
+    "ranking_limit": "20"
+  },
+  "message_to_web_gpt": "Switched expert models to lower-cost options (moonshotai/kimi-k3 and openai/gpt-5.6-terra) while keeping the analytical task fully intact. One bounded retry with the revised plan is authorized.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "supervisor": "deepseek_top_supervisor",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  },
+  "supervisor_resume": {
+    "original_operation_id": "fuzhou-baolong-hotpot-20260724-retry2-6b1d2e",
+    "known_failed_run_id": "30070716970",
+    "steward_resume": "READY",
+    "action": "dispatch",
+    "reason": "no_active_matching_run_after_supervisor_ready",
+    "matching_runs": [
+      {
+        "id": 30070716970,
+        "status": "completed",
+        "conclusion": "failure",
+        "display_title": "expert-fuzhou-baolong-hotpot-20260724-retry2-6b1d2e-execute_team"
+      }
+    ],
+    "applied_retry_overrides": {
+      "plan_json": "replaced",
+      "ranking_limit": "20"
+    },
+    "dispatch_status": "not_attempted",
+    "retry_dispatch_payload": {
+      "ref": "main",
+      "inputs": {
+        "operation_id": "fuzhou-baolong-hotpot-20260724-retry2-6b1d2e",
+        "operation": "execute_team",
+        "receipt_comment_id": "5066716435",
+        "plan_json": "{\"version\":\"1\",\"selection_policy\":\"在极低成本和严格字数限制下保证必要分析质量，优先使用性价比最高的模型，避免任何不必要的 token 消耗。\",\"task\":\"用户计划在福州宝龙城市广场开一家火锅店，要求完全由GitHub专家团队分析，Web GPT不得自行给出商业判断。判断时点：2026-07-24。\\n\\n已收集事实：\\n1) 目标为宝龙广场（福州台江店），地址福州市台江区工业路193号，坐标119.291555,26.061551，营业时间10:00-22:00。高德坐标通常为GCJ-02，只能用于商圈级近似。\\n2) 以该点为中心、半径1.5公里搜索火锅，高德返回count=70，但可能包含重复、分类误差与停业滞后，不得视为真实在营数量。\\n3) 300米内代表性竞品包括：大牌小火锅，人均49；蜀九鼎火锅，人均85，营业至02:00；黄幺妹重庆野火锅，人均58；许府牛火锅，人均55；串滋多回转小火锅，人均34；遇见梦贵州烙锅，人均64，营业至05:30；串串街头24小时串串火锅，人均76；臻牛潮汕牛肉火锅，人均67；朱富贵火锅，人均约116-119；开源齐庆美蛙鱼头，人均90；杨老板火锅，人均96；海底捞大排档火锅，人均120；火焰鲜鲜活牛肉自助火锅，人均92；黔山厨鲜切牛肉火锅，人均87；蛮涮自助小火锅，人均57。部分POI可能重复。\\n4) 约1公里方形窗口内VIIRS夜间灯光，同为10月：2024年mean=42.1284，2025年mean=54.2284，count均为25。不得直接解释为客流或消费力。\\n5) 关键未知：具体铺位楼层与可见性、面积、租金/物业/扣点、转让费、装修与排烟条件、供电燃气、消防审批、品牌与锅底品类、客单价、座位数、翻台率、营业时段、人工成本、食材毛利、外卖策略、投资预算、回本期限、合同期限及退出条款。不得虚构。\\n\\n请输出一份精炼中文报告，包含：A. 条件式GO/NO-GO与置信度；B. 已确认事实/推断/未知分层；C. 竞争格局、价格带、品类拥挤度；D. 两种差异化店型方案及适用条件；E. 盈亏平衡公式和物业谈判必须拿到的阈值数据；F. 三种情景；G. Premortem与止损信号；H. 30/60/90天低成本验证；I. 哪些新证据会推翻结论。严禁把夜光、POI数量、评分直接当客流。总字数控制在3500字以内。\",\"rationale\":\"本次进一步压缩成本：将所有模型切换为性价比突出的 moonshotai/kimi-k3 和 openai/gpt-5.6-terra，在确保中文分析质量的前提下大幅降低 token 单价，避免额度不足重演。\",\"experts\":[{\"name\":\"商圈竞争专家\",\"mission\":\"识别周边竞争结构、价格带、品类拥挤度和差异化空间，并提出两种可行店型。\",\"instructions\":\"仅基于证据包；严格区分事实、推断与未知；不得把POI、评分、夜光直接等同客流；输出控制在1200字以内。\",\"model\":\"moonshotai/kimi-k3\"},{\"name\":\"单店经济与决策专家\",\"mission\":\"建立不虚构数据的盈亏框架、阈值条件、情景、止损线和30/60/90天验证路径。\",\"instructions\":\"必须给公式、变量、信息价值和NO-GO条件；不得编造租金、翻台率、毛利或回本数字；输出控制在1400字以内。\",\"model\":\"openai/gpt-5.6-terra\"}],\"stages\":[{\"id\":\"stage1\",\"mode\":\"parallel\",\"members\":[\"商圈竞争专家\",\"单店经济与决策专家\"],\"input_from\":[\"task\"]}],\"red_team\":{\"enabled\":false},\"judge\":{\"enabled\":true,\"name\":\"精炼裁决员\",\"model\":\"moonshotai/kimi-k3\",\"instructions\":\"整合两位专家，保留分歧，形成唯一中文决策报告；不得新增事实；结论必须条件式；总字数不超过3500字。\"}}",
+        "ranking_limit": "20",
+        "steward_mode": "ASSIST",
+        "support_packet_json": "{}"
+      }
+    }
+  }
+}
