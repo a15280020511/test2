@@ -1,0 +1,19 @@
+{
+  "mode": "REPAIR",
+  "decision": "NO_EDIT",
+  "diagnosis": "The production operation failed due to insufficient OpenRouter credits. The requested max_tokens was 65536 but the available credit could only afford up to 47235 tokens. This is an external provider resource issue, not a repository defect.",
+  "confidence": 0.99,
+  "edits": [],
+  "delete_files": [],
+  "verification": [],
+  "resume": "STOP",
+  "message_to_web_gpt": "OpenRouter credit insufficiency. Add credits or adjust the execution plan to use fewer max_tokens or a cheaper model. The top supervisor may be used to safely override the plan with a reduced token limit while preserving user intent.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  }
+}
