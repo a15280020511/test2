@@ -1,7 +1,7 @@
 {
   "operation_id": "fuzhou-baolong-hotpot-20260724-retry2-6b1d2e",
   "operation": "execute_team",
-  "status": "failure",
-  "error_type": "ChatClientException",
-  "error": "(\"<class 'agent_framework_openai._chat_completion_client.OpenAIChatCompletionClient'> service failed to complete the prompt: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 47424. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None, 'previous_errors': [{'code': 402, 'message': 'This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 47424. To increase, visit https://openrouter.ai/settings/credits and add more credits'}]}}, 'user_id': 'user_3Bc9VoAnegc2tKJBZ4zfG3f6RkQ'}\", APIStatusError(\"Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 47424. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None, 'previous_errors': [{'code': 402, 'message': 'This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 47424. To increase, visit https://openrouter.ai/settings/credits and add more credits'}]}}, 'user_id': 'user_3Bc9VoAnegc2tKJBZ4zfG3f6RkQ'}\"))"
+  "status": "success",
+  "readable_result_file": "expert_team_result.json",
+  "result_file": "expert_team_result.json"
 }
