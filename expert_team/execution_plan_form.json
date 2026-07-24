@@ -1,38 +1,52 @@
 {
-  "version": "1",
-  "selection_policy": "默认采用质量约束下的动态最优组合：先保证任务所需质量，再在满足质量的候选模型中优化成本和速度；随着任务复杂度、风险、价值和不确定性提高，自动增加专家数量、模型多样性和红队强度；重大任务以能力优先，普通任务以性价比优先。不得固定专家数量、固定模型或固定工作流，必须具体问题具体分析。",
+  "version": "2",
+  "selection_policy": "DeepSeek ASSIST 必须作为最高优先级入口，先审计任务、插件需求和预算方案；网页 GPT 必须把经济、均衡、质量三档预算反馈给用户并取得明确选择。执行时先满足用户批准的质量和成本边界，再在边界内动态选择专家、模型和工作流。所有专业工具采用任务级临时插头，用时安装、结束销毁。重大任务能力优先，普通任务性价比优先，具体问题具体分析。",
   "task": "<用户的原始任务>",
-  "rationale": "<网页 GPT 必须说明本次如何依据 selection_policy，结合任务难度、价值、风险、不确定性以及 OpenRouter 当前模型能力、价格、延迟、上下文等信息，决定专家数量、具体模型和并行/串行/多阶段组合。若不确定仓库使用、表单填写或编排，可先调用 DeepSeek Steward ASSIST；最终方案仍由网页 GPT 决定。若遇任何仓库技术故障，停止自行修码并调用 DeepSeek Steward REPAIR。>",
+  "rationale": "<说明 DeepSeek 入口建议、用户选择的预算、临时插件、模型价格、任务价值和风险如何共同形成当前方案。>",
+  "deepseek_entry": {
+    "status": "READY",
+    "operation_id": "<DeepSeek ASSIST operation_id>",
+    "budget_options_presented": true
+  },
+  "budget": {
+    "approval_status": "approved_by_user",
+    "tier": "balanced",
+    "currency": "USD",
+    "max_cost_usd": 2.0,
+    "estimated_cost_usd": {
+      "low": 0.3,
+      "high": 1.5
+    },
+    "max_model_calls": 4,
+    "max_output_tokens_per_call": 1600,
+    "approval_reference": "<用户明确选择预算档位或自定义上限的简短引用>"
+  },
   "experts": [
     {
       "name": "<唯一专家名称>",
       "mission": "<该专家独立负责的问题>",
       "instructions": "<该专家针对本任务的具体工作要求>",
-      "model": "<OpenRouter 中本任务最适合的模型 ID>"
+      "model": "<OpenRouter 中预算范围内最适合的模型 ID>"
     }
   ],
   "stages": [
     {
       "id": "<阶段唯一 ID>",
       "mode": "parallel",
-      "members": [
-        "<本阶段参与的专家名称>"
-      ],
-      "input_from": [
-        "task"
-      ]
+      "members": ["<本阶段参与的专家名称>"],
+      "input_from": ["task"]
     }
   ],
   "red_team": {
     "enabled": false,
     "name": "red_team",
-    "model": "<启用时由网页 GPT 动态选择 OpenRouter 模型 ID>",
-    "instructions": "<启用时由网页 GPT 根据任务生成红队反证要求>"
+    "model": "<启用时在预算内动态选择模型 ID>",
+    "instructions": "<启用时的红队要求>"
   },
   "judge": {
     "enabled": true,
     "name": "final_judge",
-    "model": "<由网页 GPT 动态选择 OpenRouter 模型 ID>",
-    "instructions": "<由网页 GPT 根据任务生成最终综合、裁决或报告要求>"
+    "model": "<预算内的最终裁决模型 ID>",
+    "instructions": "<最终综合、裁决或报告要求>"
   }
 }
