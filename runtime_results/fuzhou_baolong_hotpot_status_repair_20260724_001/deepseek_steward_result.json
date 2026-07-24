@@ -1,0 +1,21 @@
+{
+  "mode": "REPAIR",
+  "decision": "NO_EDIT",
+  "diagnosis": "The listExpertTeamRuns endpoint returned a response exceeding the GPT Action client's size limit (ResponseTooLargeError). The GitHub API response for workflow runs includes verbose metadata, and even with per_page=10, the JSON size may exceed the client's constraints. This is not a repository code defect; it is an external API response size issue that cannot be fixed by repository edits. The OpenAPI schema is correct; no repository configuration or code can directly reduce the size of GitHub's raw response.",
+  "confidence": 0.95,
+  "edits": [],
+  "delete_files": [],
+  "verification": [
+    "No repository changes; verification not applicable."
+  ],
+  "resume": "STOP",
+  "message_to_web_gpt": "The response size limitation is external. To determine the status of operation_id 'fuzhou_baolong_hotpot_20260724_001', avoid listExpertTeamRuns entirely. Use getExpertTeamOperationMetadata with operation_id='fuzhou_baolong_hotpot_20260724_001' and ref=runtime-results. This endpoint returns a compact JSON object containing status, run_id, error details, and steward_decision, and avoids large response payloads. If that call fails because the metadata file hasn't been published yet, you can then fall back to listExpertTeamRuns with per_page=1 and filter by event=workflow_dispatch and status=completed to find the latest completed run, paying attention to display_title for correlation. Do not fabricate a run_id.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  }
+}

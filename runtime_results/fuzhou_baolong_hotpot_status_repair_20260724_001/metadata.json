@@ -1,0 +1,10 @@
+{
+  "operation_id": "fuzhou_baolong_hotpot_status_repair_20260724_001",
+  "operation": "deepseek_steward",
+  "status": "success",
+  "steward_mode": "REPAIR",
+  "readable_result_file": "deepseek_steward_result.json",
+  "steward_decision": "NO_EDIT",
+  "steward_resume": "STOP",
+  "result_file": "deepseek_steward_result.json"
+}
