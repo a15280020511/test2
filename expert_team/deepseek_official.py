@@ -3,11 +3,6 @@
 The expert marketplace remains on OpenRouter. DeepSeek Steward is intentionally
 isolated from OpenRouter and talks directly to https://api.deepseek.com with the
 DEEPSEEK_API_KEY repository secret.
-
-Hard rule: Steward must discover and use the strongest available official DeepSeek
-model. If the official DeepSeek API cannot be reached or model discovery fails, the
-Steward operation fails immediately. It never falls back to OpenRouter or another
-provider.
 """
 
 from __future__ import annotations
@@ -22,10 +17,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 DEEPSEEK_API_BASE = "https://api.deepseek.com"
-# Informational current strongest known baseline. This constant is NOT a connectivity
-# fallback: default operation still requires successful official /models discovery.
 DEFAULT_STEWARD_MODEL = "deepseek-v4-pro"
-DEFAULT_MAX_TOKENS = 65536
+DEFAULT_MAX_TOKENS = 12000
 _MODEL_VERSION_RE = re.compile(r"^deepseek-v(?P<version>\d+(?:\.\d+)*)(?:-(?P<tier>[a-z0-9-]+))?$")
 
 
@@ -45,8 +38,8 @@ def _max_tokens() -> int:
         value = int(raw)
     except ValueError as exc:
         raise RuntimeError("DEEPSEEK_STEWARD_MAX_TOKENS must be an integer") from exc
-    if value < 1024:
-        raise RuntimeError("DEEPSEEK_STEWARD_MAX_TOKENS must be >= 1024")
+    if value < 1024 or value > 24000:
+        raise RuntimeError("DEEPSEEK_STEWARD_MAX_TOKENS must be between 1024 and 24000")
     return value
 
 
@@ -64,24 +57,22 @@ def _request_json(method: str, path: str, payload: dict[str, Any] | None = None,
         },
     )
     try:
-        with urlopen(request, timeout=timeout) as response:  # noqa: S310 - fixed trusted official host
+        with urlopen(request, timeout=timeout) as response:
             parsed = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         try:
             detail = exc.read().decode("utf-8", errors="replace")[:2000]
-        except Exception:  # pragma: no cover - defensive error reporting only
+        except Exception:
             detail = ""
         raise RuntimeError(f"DeepSeek official API HTTP {exc.code}: {detail or exc.reason}") from exc
     except URLError as exc:
         raise RuntimeError(f"DeepSeek official API connection failed: {exc.reason}") from exc
-
     if not isinstance(parsed, dict):
         raise RuntimeError("DeepSeek official API returned a non-object JSON response")
     return parsed
 
 
 def list_official_models() -> list[str]:
-    """Return model IDs currently exposed by DeepSeek's official /models endpoint."""
     payload = _request_json("GET", "/models", timeout=60)
     data = payload.get("data")
     if not isinstance(data, list):
@@ -93,19 +84,10 @@ def list_official_models() -> list[str]:
 
 
 def _strength_key(model_id: str) -> tuple[int, int, int, int, str]:
-    """Best-effort ordering for official DeepSeek model IDs.
-
-    Higher version wins first; within a version, capability-oriented tiers outrank
-    speed-oriented tiers. The current official V4 pair therefore selects V4-Pro.
-    """
     match = _MODEL_VERSION_RE.match(model_id)
     if not match:
-        legacy_score = {
-            "deepseek-reasoner": 200,
-            "deepseek-chat": 100,
-        }.get(model_id, 0)
+        legacy_score = {"deepseek-reasoner": 200, "deepseek-chat": 100}.get(model_id, 0)
         return (0, 0, 0, legacy_score, model_id)
-
     version_parts = [int(part) for part in match.group("version").split(".")[:3]]
     version_parts += [0] * (3 - len(version_parts))
     tier = (match.group("tier") or "").lower()
@@ -127,17 +109,9 @@ def _strength_key(model_id: str) -> tuple[int, int, int, int, str]:
 
 @lru_cache(maxsize=1)
 def select_strongest_official_model() -> str:
-    """Select the strongest available official DeepSeek model.
-
-    DEEPSEEK_STEWARD_MODEL is an explicit operator override. In normal operation no
-    override is set, so the official model list must be read successfully at runtime.
-    Failure to reach DeepSeek, authenticate, or obtain a usable model list is fatal and
-    ends the Steward task. There is deliberately no OpenRouter or fixed-model fallback.
-    """
     override = os.getenv("DEEPSEEK_STEWARD_MODEL", "").strip()
     if override:
         return override
-
     models = [model for model in list_official_models() if model.startswith("deepseek-")]
     if not models:
         raise RuntimeError(
@@ -148,21 +122,14 @@ def select_strongest_official_model() -> str:
 
 
 def _generate_json_sync(system_prompt: str, payload: dict[str, Any]) -> tuple[str, str]:
-    # Strongest-model discovery is a mandatory DeepSeek-official preflight. Any failure
-    # propagates and terminates the current Steward task before inference begins.
     model = select_strongest_official_model()
     messages = [
         {
             "role": "system",
-            "content": system_prompt
-            + "\nYou must return one non-empty valid JSON object and no markdown fences.",
+            "content": system_prompt + "\nYou must return one non-empty valid JSON object and no markdown fences.",
         },
-        {
-            "role": "user",
-            "content": json.dumps(payload, ensure_ascii=False),
-        },
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
-
     request_payload: dict[str, Any] = {
         "model": model,
         "messages": messages,
@@ -172,9 +139,6 @@ def _generate_json_sync(system_prompt: str, payload: dict[str, Any]) -> tuple[st
         "reasoning_effort": "max",
         "max_tokens": _max_tokens(),
     }
-
-    # DeepSeek documents that JSON Output can occasionally return empty content.
-    # Retry once with an explicit reminder; never fall back to another provider.
     for attempt in range(2):
         response = _request_json("POST", "/chat/completions", request_payload, timeout=300)
         choices = response.get("choices")
@@ -186,15 +150,10 @@ def _generate_json_sync(system_prompt: str, payload: dict[str, Any]) -> tuple[st
             return model, content.strip()
         if attempt == 0:
             request_payload["messages"] = messages + [
-                {
-                    "role": "user",
-                    "content": "Return the required non-empty JSON object now.",
-                }
+                {"role": "user", "content": "Return the required non-empty JSON object now."}
             ]
-
     raise RuntimeError("DeepSeek official API returned empty JSON content twice")
 
 
 async def generate_official_deepseek_json(system_prompt: str, payload: dict[str, Any]) -> tuple[str, str]:
-    """Call the official DeepSeek API without blocking the async workflow."""
     return await asyncio.to_thread(_generate_json_sync, system_prompt, payload)
