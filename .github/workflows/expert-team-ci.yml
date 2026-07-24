@@ -95,6 +95,17 @@ jobs:
           puts "GPT Action OpenAPI strict contract OK"
           RUBY
 
+      - name: Validate DeepSeek provider separation
+        run: |
+          grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
+          grep -F 'DEEPSEEK_API_KEY' expert_team/deepseek_official.py >/dev/null
+          grep -F 'must not fall back to OpenRouter' DEEPSEEK_STEWARD.md >/dev/null
+          if grep -F 'create_model_client' expert_team/deepseek_steward.py >/dev/null; then
+            echo "DeepSeek Steward must not use the OpenRouter expert client"
+            exit 1
+          fi
+          echo "DeepSeek provider separation OK"
+
       - name: Run offline contract tests
         run: python -m unittest discover -s tests -v
 
@@ -105,11 +116,10 @@ jobs:
           OPENROUTER_SMOKE_MODEL: openrouter/free
         run: python scripts/live_smoke_test.py
 
-      - name: Run live DeepSeek Steward smoke test
+      - name: Run live official DeepSeek Steward smoke test
         env:
           PYTHONPATH: .
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          DEEPSEEK_STEWARD_MODEL: deepseek/deepseek-v4-pro
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: python scripts/deepseek_steward_smoke_test.py
 
       - name: Upload smoke result
