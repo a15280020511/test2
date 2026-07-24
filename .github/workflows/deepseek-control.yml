@@ -116,6 +116,36 @@ jobs:
             --target-repo "$TARGET_REPO" \
             --output-dir /tmp/deepseek-control-output
 
+      - name: Redact bearer authorization ticket
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path = Path('/tmp/deepseek-control-output/control-result.json')
+          if not path.exists():
+              raise SystemExit(0)
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          ticket = payload.pop('control_ticket', None)
+          if isinstance(ticket, dict):
+              raw = json.dumps(ticket, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+              payload['control_ticket_receipt'] = {
+                  'ticket_sha256': hashlib.sha256(raw.encode('utf-8')).hexdigest(),
+                  'issuer': ticket.get('issuer'),
+                  'target_repo': ticket.get('target_repo'),
+                  'task_id': ticket.get('task_id'),
+                  'revision': ticket.get('revision'),
+                  'issued_at': ticket.get('issued_at'),
+                  'expires_at': ticket.get('expires_at'),
+              }
+          path.write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
       - name: Publish control summary
         if: always()
         run: |
