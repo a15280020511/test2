@@ -5,16 +5,19 @@ from pathlib import Path
 
 
 class AutomaticRecoveryContractTests(unittest.TestCase):
-    def test_production_workflow_auto_creates_missing_receipt_and_escalates_failures(self) -> None:
+    def test_production_workflow_uses_budget_receipts_and_escalates_failures(self) -> None:
         text = Path(".github/workflows/expert-team-production.yml").read_text(encoding="utf-8")
         self.assertIn("run-name: expert-${{ inputs.operation_id }}-${{ inputs.operation }}", text)
         self.assertIn("receipt_comment_id:", text)
         receipt_block = text.split("receipt_comment_id:", 1)[1].split("plan_json:", 1)[0]
         self.assertIn("required: false", receipt_block)
-        self.assertIn("Ensure durable operation receipt", text)
+        self.assertIn("Ensure durable operation and budget receipt", text)
         self.assertIn("issues: write", text)
         self.assertIn("PROVIDED_RECEIPT_COMMENT_ID", text)
         self.assertIn("server-side-fallback", text)
+        self.assertIn("execute_team requires a durable Web GPT receipt", text)
+        self.assertIn("Verify DeepSeek entry and durable user budget approval", text)
+        self.assertIn("issues/comments/${RECEIPT_COMMENT_ID}", text)
         self.assertIn("steps.receipt.outputs.receipt_comment_id", text)
         self.assertIn("scripts.managed_operation", text)
         self.assertIn("scripts.publish_operation_status", text)
@@ -22,6 +25,7 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("deepseek-supervisor.yml/dispatches", text)
         self.assertIn("needs.run.result == 'failure'", text)
         self.assertIn("original_plan_json", text)
+        self.assertIn("Never fabricate or bypass user budget approval", text)
 
     def test_independent_supervisor_has_separate_concurrency_and_bounded_resume(self) -> None:
         text = Path(".github/workflows/deepseek-supervisor.yml").read_text(encoding="utf-8")
