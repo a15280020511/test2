@@ -32,6 +32,20 @@ RANKING_SORTS = (
     "newest",
 )
 
+# The complete model-intelligence snapshot is kept in the audit artifact. GPT Actions
+# only receives a bounded planning snapshot to avoid ResponseTooLargeError.
+GPT_RANKING_LIMIT = 6
+GPT_SELECTION_PARAMETERS = frozenset(
+    {
+        "tools",
+        "tool_choice",
+        "structured_outputs",
+        "response_format",
+        "reasoning",
+        "include_reasoning",
+    }
+)
+
 
 def _api_key() -> str:
     value = os.getenv("OPENROUTER_API_KEY", "").strip()
@@ -151,15 +165,17 @@ def build_model_intelligence_snapshot(limit_per_ranking: int = 20) -> dict[str, 
 
 def build_compact_model_intelligence_snapshot(
     snapshot: dict[str, Any],
+    limit_per_ranking: int = GPT_RANKING_LIMIT,
 ) -> dict[str, Any]:
-    """Create a GitHub-Contents-friendly snapshot for Web GPT to read directly.
+    """Create a response-size-safe selection snapshot for Web GPT.
 
-    The full OpenRouter snapshot can exceed GitHub Contents API practical response
-    limits. This compact form preserves the task-selection signals while omitting
-    large descriptions and raw benchmark feeds. Rankings contain model IDs and the
-    ``models`` map contains the metadata needed for task-specific model selection.
+    The full catalog, raw benchmark feed, and full ranking rows remain in the audit
+    artifact. The directly readable form keeps only bounded top candidates per ranking
+    and the minimum metadata required for task-specific quality/cost/speed selection.
     """
-    COMPACT_MAX_PER_RANKING = 10  # safeguard against response-too-large errors
+    if limit_per_ranking < 1:
+        raise ValueError("limit_per_ranking must be >= 1")
+
     ranking_ids: dict[str, list[str]] = {}
     models: dict[str, dict[str, Any]] = {}
 
@@ -171,7 +187,7 @@ def build_compact_model_intelligence_snapshot(
         if not isinstance(items, list):
             continue
         ranking_ids[str(sort)] = []
-        for item in items[:COMPACT_MAX_PER_RANKING]:
+        for item in items[:limit_per_ranking]:
             if not isinstance(item, dict):
                 continue
             model_id = str(item.get("id") or "").strip()
@@ -181,27 +197,33 @@ def build_compact_model_intelligence_snapshot(
             if model_id in models:
                 continue
 
-            # Keep only essential fields to avoid GPT Action response size limits
-            benchmarks = item.get("benchmarks") if isinstance(item.get("benchmarks"), dict) else {}
-            artificial_analysis = (
-                benchmarks.get("artificial_analysis")
-                if isinstance(benchmarks.get("artificial_analysis"), dict)
-                else {}
-            )
+            architecture = item.get("architecture") if isinstance(item.get("architecture"), dict) else {}
+            pricing = item.get("pricing") if isinstance(item.get("pricing"), dict) else {}
+            raw_parameters = item.get("supported_parameters")
+            supported_parameters = raw_parameters if isinstance(raw_parameters, list) else []
+            selected_parameters = [
+                str(parameter)
+                for parameter in supported_parameters
+                if str(parameter) in GPT_SELECTION_PARAMETERS
+            ]
 
             models[model_id] = {
-                "id": model_id,
-                "name": item.get("name"),
                 "context_length": item.get("context_length"),
-                "pricing": item.get("pricing"),
-                "artificial_analysis": artificial_analysis,
+                "pricing": {
+                    "prompt": pricing.get("prompt"),
+                    "completion": pricing.get("completion"),
+                },
+                "supported_parameters": selected_parameters,
+                "input_modalities": architecture.get("input_modalities"),
+                "reasoning": bool(item.get("reasoning")) or "reasoning" in selected_parameters,
             }
 
     return {
-        "schema_version": "2",
+        "schema_version": "3",
         "generated_at": snapshot.get("generated_at"),
         "source": snapshot.get("source"),
         "selection_rule": snapshot.get("selection_rule"),
+        "ranking_limit": limit_per_ranking,
         "rankings": ranking_ids,
         "models": models,
     }
