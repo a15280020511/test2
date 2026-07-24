@@ -1,0 +1,198 @@
+name: DeepSeek Control Failure Sentinel
+run-name: "DeepSeek Control Sentinel · ${{ github.event.workflow_run.id }}"
+
+on:
+  workflow_run:
+    workflows:
+      - DeepSeek Control Plane
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: "deepseek-control-sentinel-${{ github.event.workflow_run.id }}"
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Diagnose control failure without checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          mkdir -p control-sentinel-output
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import re
+          import time
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+          from typing import Any
+
+          API = "https://api.github.com"
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          OUT = Path("control-sentinel-output")
+
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+                  return None
+
+
+          def required(name: str) -> str:
+              value = os.environ.get(name, "").strip()
+              if not value:
+                  raise RuntimeError(f"missing required value: {name}")
+              return value
+
+
+          def github(path: str, *, binary: bool = False) -> Any:
+              request = urllib.request.Request(
+                  f"{API}{path}",
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {required('GH_TOKEN')}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "deepseek-control-failure-sentinel",
+                  },
+              )
+              opener = urllib.request.build_opener(NoRedirect)
+              try:
+                  with opener.open(request, timeout=120) as response:
+                      raw = response.read()
+                      return raw if binary else json.loads(raw.decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  if exc.code in {301, 302, 303, 307, 308}:
+                      location = exc.headers.get("Location", "")
+                      if not location:
+                          raise RuntimeError("GitHub log redirect had no location") from exc
+                      redirected = urllib.request.Request(
+                          location,
+                          headers={"Accept": "*/*", "User-Agent": "deepseek-control-failure-sentinel"},
+                      )
+                      with urllib.request.urlopen(redirected, timeout=180) as response:  # noqa: S310
+                          return response.read() if binary else json.loads(response.read().decode("utf-8"))
+                  body = exc.read().decode("utf-8", errors="replace")
+                  raise RuntimeError(f"GitHub API failed: HTTP {exc.code}: {body[:4000]}") from exc
+
+
+          def version(model_id: str) -> tuple[int, ...]:
+              return tuple(int(value) for value in re.findall(r"\d+", model_id.lower()))
+
+
+          def call_deepseek(packet: dict[str, Any]) -> dict[str, Any]:
+              key = required("DEEPSEEK_API_KEY")
+              headers = {"Accept": "application/json", "Authorization": f"Bearer {key}"}
+              request = urllib.request.Request("https://api.deepseek.com/models", headers=headers)
+              with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+                  models = json.loads(response.read().decode("utf-8")).get("data", [])
+              candidates = [
+                  str(item.get("id", ""))
+                  for item in models
+                  if str(item.get("id", "")).lower().startswith("deepseek")
+                  or str(item.get("owned_by", "")).lower() == "deepseek"
+              ]
+              if not candidates:
+                  raise RuntimeError("DeepSeek /models returned no usable model")
+              premium = [m for m in candidates if any(t in m.lower() for t in ("pro", "max", "ultra", "expert"))]
+              non_light = [m for m in candidates if not any(t in m.lower() for t in ("flash", "lite", "mini"))]
+              model = max(premium or non_light or candidates, key=lambda value: (version(value), value.lower()))
+              body = json.dumps(
+                  {
+                      "model": model,
+                      "messages": [
+                          {
+                              "role": "system",
+                              "content": (
+                                  "You are the isolated highest-priority supervisor for the independent DeepSeek "
+                                  "control plane. Diagnose only from supplied evidence. Return JSON only with decision "
+                                  "RETRY, REPAIR, WAIT, or STOP; root_cause; evidence[]; required_actions[]; "
+                                  "failure_scope CONTROL_REPOSITORY, TARGET_REPOSITORY, EXTERNAL, or UNKNOWN; and confidence."
+                              ),
+                          },
+                          {"role": "user", "content": json.dumps(packet, ensure_ascii=False, sort_keys=True)},
+                      ],
+                      "response_format": {"type": "json_object"},
+                      "stream": False,
+                  },
+                  ensure_ascii=False,
+              ).encode("utf-8")
+              request = urllib.request.Request(
+                  "https://api.deepseek.com/chat/completions",
+                  data=body,
+                  headers={**headers, "Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+                  raw = json.loads(response.read().decode("utf-8"))
+              result = json.loads(raw["choices"][0]["message"]["content"])
+              if not isinstance(result, dict) or result.get("decision") not in {"RETRY", "REPAIR", "WAIT", "STOP"}:
+                  raise RuntimeError("DeepSeek control-sentinel response violated the contract")
+              result["runtime_model"] = model
+              return result
+
+
+          try:
+              run_id = int(required("SOURCE_RUN_ID"))
+              run = github(f"/repos/{REPO}/actions/runs/{run_id}")
+              jobs = github(f"/repos/{REPO}/actions/runs/{run_id}/jobs?per_page=100")
+              logs: dict[str, str] = {}
+              for job in jobs.get("jobs", [])[:10]:
+                  try:
+                      raw = github(f"/repos/{REPO}/actions/jobs/{job['id']}/logs", binary=True)
+                      logs[str(job["id"])] = raw.decode("utf-8", errors="replace")[-60000:]
+                  except Exception as exc:  # noqa: BLE001
+                      logs[str(job.get("id"))] = f"log retrieval failed: {exc}"
+              diagnosis = call_deepseek({"repository": REPO, "run": run, "jobs": jobs, "job_log_tails": logs})
+              output = {
+                  "status": "CONTROL_FAILURE_DIAGNOSED",
+                  "source_run_id": run_id,
+                  "diagnosis": diagnosis,
+                  "generated_at": int(time.time()),
+              }
+          except Exception as exc:  # noqa: BLE001
+              output = {
+                  "status": "CONTROL_SENTINEL_FAILED",
+                  "source_run_id": os.environ.get("SOURCE_RUN_ID"),
+                  "error": f"{type(exc).__name__}: {exc}",
+                  "generated_at": int(time.time()),
+              }
+          (OUT / "control-failure-diagnosis.json").write_text(
+              json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
+          if output["status"] == "CONTROL_SENTINEL_FAILED":
+              raise SystemExit(1)
+          PY
+
+      - name: Publish control-sentinel summary
+        if: always()
+        run: |
+          if [[ -f control-sentinel-output/control-failure-diagnosis.json ]]; then
+            echo '## DeepSeek control-plane failure diagnosis' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat control-sentinel-output/control-failure-diagnosis.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload control-sentinel evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "deepseek-control-sentinel-${{ github.event.workflow_run.id }}"
+          path: control-sentinel-output/
+          if-no-files-found: warn
+          retention-days: 30
