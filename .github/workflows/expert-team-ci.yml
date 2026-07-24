@@ -50,27 +50,42 @@ jobs:
           fi
           echo "DeepSeek provider separation and hard-stop policy OK"
 
-      - name: Validate automatic repair loop contract
+      - name: Validate internal automatic repair loop contract
         run: |
           grep -F 'scripts.managed_operation' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'scripts.repair_delivery' .github/workflows/expert-team-production.yml >/dev/null
           grep -F 'scripts.publish_runtime_result' .github/workflows/expert-team-production.yml >/dev/null
-          grep -F 'one repair attempt and one retry' ACTION_RECOVERY.md >/dev/null
-          grep -F 'operationId: dispatchExpertTeamOperation' gpt_action_openapi.yaml >/dev/null
-          grep -F 'enum: [ASSIST, REPAIR]' gpt_action_openapi.yaml >/dev/null
+          grep -F 'one repair cycle and one retry' scripts/managed_operation.py >/dev/null
           grep -F 'operationId: getAutoRepairResult' gpt_action_openapi.yaml >/dev/null
           grep -F '"repairing"' scripts/managed_operation.py >/dev/null
           grep -F '"retrying"' scripts/managed_operation.py >/dev/null
-          echo "Automatic DeepSeek repair loop contract OK"
+          echo "Internal DeepSeek repair loop contract OK"
+
+      - name: Validate durable receipt and top DeepSeek supervisor
+        run: |
+          grep -F 'version: 1.6.0' gpt_action_openapi.yaml >/dev/null
+          grep -F 'operationId: createOperationReceipt' gpt_action_openapi.yaml >/dev/null
+          grep -F 'issues/15/comments' gpt_action_openapi.yaml >/dev/null
+          grep -F 'receipt_comment_id:' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'run-name: expert-${{ inputs.operation_id }}-${{ inputs.operation }}' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'Escalate failed production run to DeepSeek Top Supervisor' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'deepseek-supervisor.yml/dispatches' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'group: deepseek-top-supervisor' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'Run highest-level DeepSeek Steward REPAIR' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'scripts.supervisor_resume' .github/workflows/deepseek-supervisor.yml >/dev/null
+          grep -F 'operationId: dispatchDeepSeekSupervisor' gpt_action_openapi.yaml >/dev/null
+          grep -F 'two consecutive control reads' ACTION_RECOVERY.md >/dev/null
+          grep -F 'highest technical control layer' DEEPSEEK_STEWARD.md >/dev/null
+          echo "Durable receipt and DeepSeek top-supervisor contract OK"
 
       - name: Validate permanent operation status control plane
         run: |
-          grep -F 'version: 1.5.0' gpt_action_openapi.yaml >/dev/null
           grep -F 'operationId: getCurrentOperationStatus' gpt_action_openapi.yaml >/dev/null
           grep -F 'runtime_results/current_operation_status.json' gpt_action_openapi.yaml >/dev/null
           grep -F 'CURRENT_STATUS_PATH' scripts/publish_operation_status.py >/dev/null
           grep -F 'result_published' scripts/publish_operation_status.py >/dev/null
-          grep -F -- '--result-published' .github/workflows/expert-team-production.yml >/dev/null
+          grep -F 'receipt_comment_id' scripts/publish_operation_status.py >/dev/null
+          grep -F 'supervisor_for_operation_id' scripts/publish_operation_status.py >/dev/null
           if grep -F 'operationId: getOperationStatus' gpt_action_openapi.yaml >/dev/null; then
             echo "Per-operation status must not remain the primary Action control plane"
             exit 1
@@ -85,7 +100,7 @@ jobs:
           import json
           from pathlib import Path
           payload = json.loads(Path('/tmp/current_operation_status.json').read_text())
-          required = {'schema_version','operation_id','operation','status','run_id','result_ready','result_published','repair_status','updated_at'}
+          required = {'schema_version','operation_id','operation','status','run_id','receipt_comment_id','supervisor_for_operation_id','result_ready','result_published','repair_status','updated_at'}
           missing = required - payload.keys()
           if missing:
               raise SystemExit(f'missing permanent status fields: {sorted(missing)}')
