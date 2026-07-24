@@ -27,6 +27,17 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("--mode plan", text)
         self.assertIn("--mode execute", text)
 
+    def test_top_supervisor_can_adapt_resource_and_model_failures_without_changing_user_intent(self) -> None:
+        text = Path("expert_team/deepseek_top_supervisor.py").read_text(encoding="utf-8")
+        self.assertIn("OpenRouter 402", text)
+        self.assertIn("retry_operation_overrides", text)
+        self.assertIn("preserving user intent", text)
+        self.assertIn("lower-cost compatible models", text)
+        resume = Path("scripts/supervisor_resume.py").read_text(encoding="utf-8")
+        self.assertIn("_apply_retry_overrides", resume)
+        self.assertIn("plan_json", resume)
+        self.assertIn("ranking_limit", resume)
+
     def test_recovery_policy_places_deepseek_at_highest_technical_layer(self) -> None:
         text = Path("ACTION_RECOVERY.md").read_text(encoding="utf-8")
         self.assertIn("highest technical control layer", text)
