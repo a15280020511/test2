@@ -60,6 +60,15 @@ jobs:
           grep -F 'operationId: getAutoRepairResult' gpt_action_openapi.yaml >/dev/null
           echo "Automatic DeepSeek repair loop contract OK"
 
+      - name: Validate tool package guardrails
+        run: |
+          grep -F 'Upstream package maintenance belongs to the upstream maintainers' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
+          grep -F 'Do not build a second package-maintenance platform inside `test2`' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
+          grep -F 'DeepSeek Steward owns **repository-side compatibility and integration problems**' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
+          grep -F 'External tool packages are governed by `TOOL_PACKAGE_GUARDRAILS.md`' DEEPSEEK_STEWARD.md >/dev/null
+          grep -F 'DeepSeek Steward owns only the `test2`-side integration' DEEPSEEK_STEWARD.md >/dev/null
+          echo "Tool package guardrail policy OK"
+
       - name: Run offline contract tests
         run: python -m unittest discover -s tests -v
 
