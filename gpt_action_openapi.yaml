@@ -1,35 +1,41 @@
 openapi: 3.1.0
 
 info:
-  title: test2 Dynamic Expert Team and DeepSeek Steward Action
-  version: 1.2.0
+  title: test2 Dynamic Expert Team and Automatic DeepSeek Steward Action
+  version: 1.3.0
   description: >-
-    Web GPT is the user-facing task commander. DeepSeek Steward is the repository
-    service manager: ASSIST guides Web GPT on repository use and Execution Plan
-    preparation; REPAIR owns repository technical diagnosis and controlled repair.
-    GitHub is the only Action host. OpenRouter and DeepSeek are accessed inside
-    GitHub Actions.
+    Web GPT is the user-facing task commander. GitHub executes model intelligence,
+    dynamic expert teams, and DeepSeek Steward. DeepSeek Steward is the mandatory
+    repository repair manager and uses only the official DeepSeek API. GitHub-internal
+    model_intelligence and execute_team failures automatically trigger one DeepSeek
+    REPAIR cycle, mandatory verification, one retry of the original operation, and
+    verified repair delivery. For Action-edge failures that occur before a workflow can
+    observe them (4xx/5xx, empty or unparseable responses, missing runtime results),
+    Web GPT MUST automatically dispatch deepseek_steward with steward_mode=REPAIR,
+    wait for READY, then retry the failed Action step once. If the official DeepSeek API
+    is unavailable, STOP the current task. Never use OpenRouter as a Steward fallback.
 
 servers:
   - url: https://api.github.com
 
 paths:
-
   /repos/a15280020511/test2/contents/runtime_results/model_intelligence_latest.json:
     get:
       operationId: getOpenRouterModels
       summary: Read latest OpenRouter model intelligence snapshot
       description: >-
-        Read the latest compact OpenRouter model rankings and task-selection metadata.
-        If the file does not exist or is stale, dispatch operation=model_intelligence,
-        wait for success, then call this operation again.
+        Always call with ref=runtime-results. On the first 404, dispatch
+        operation=model_intelligence and wait for its Run to succeed, then retry this read
+        once with ref=runtime-results. If the second read fails, automatically dispatch
+        DeepSeek Steward REPAIR with the failed-call evidence. Do not stop before the
+        automatic repair handoff unless DeepSeek itself is unavailable.
       parameters:
         - name: ref
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: runtime-results
+            enum: [runtime-results]
         - name: Accept
           in: header
           required: false
@@ -44,19 +50,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: No model-intelligence snapshot has been published yet.
+          description: >-
+            Snapshot missing. Refresh once with model_intelligence. If the refreshed read
+            still returns 404, trigger DeepSeek Steward REPAIR automatically.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
-      summary: Read the authoritative expert-team Execution Plan JSON Schema
+      summary: Read authoritative Execution Plan JSON Schema
+      description: >-
+        Always call with ref=main. Any 4xx/5xx, empty response, or unparseable schema is an
+        automatic DeepSeek Steward REPAIR trigger. After READY, retry this read once.
       parameters:
         - name: ref
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: main
+            enum: [main]
         - name: Accept
           in: header
           required: false
@@ -74,17 +85,14 @@ paths:
   /repos/a15280020511/test2/contents/DEEPSEEK_STEWARD.md:
     get:
       operationId: getDeepSeekStewardPolicy
-      summary: Read the DeepSeek Steward operating policy
-      description: >-
-        Read this policy when deciding whether to ask DeepSeek Steward for ASSIST
-        or hand a repository technical problem to REPAIR.
+      summary: Read DeepSeek Steward operating policy
       parameters:
         - name: ref
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: main
+            enum: [main]
         - name: Accept
           in: header
           required: false
@@ -99,44 +107,68 @@ paths:
               schema:
                 type: string
 
+  /repos/a15280020511/test2/contents/ACTION_RECOVERY.md:
+    get:
+      operationId: getActionRecoveryPolicy
+      summary: Read mandatory automatic repair and retry policy
+      description: >-
+        Read this policy when operating test2. Web GPT must automatically hand Action-edge
+        technical failures to DeepSeek Steward REPAIR rather than ending the task immediately.
+      parameters:
+        - name: ref
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [main]
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            default: application/vnd.github.raw+json
+      responses:
+        "200":
+          description: Automatic recovery policy document.
+          content:
+            text/plain:
+              schema:
+                type: string
+
   /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
     post:
       operationId: dispatchExpertTeamOperation
       summary: Run model intelligence, expert team, or DeepSeek Steward
       description: >-
-        Use model_intelligence to refresh model data. Use execute_team only after
-        Web GPT has created a valid task-specific Execution Plan. Use deepseek_steward
-        with ASSIST for repository/form guidance and REPAIR for any repository
-        technical fault. Web GPT should not independently improvise repository code
-        repairs when DeepSeek Steward is available.
+        GitHub internally auto-recovers model_intelligence and execute_team failures: one
+        automatic DeepSeek REPAIR cycle, verification, one retry, then verified delivery.
+        Use deepseek_steward ASSIST for repository/form guidance. For any Action-edge
+        technical failure (4xx/5xx, empty/unparseable required response, unexpectedly missing
+        result after a successful Run), Web GPT MUST automatically dispatch deepseek_steward
+        REPAIR with a Support Packet, wait for completion, read the Steward result, and retry
+        the originally failed Action step once only when resume/status is READY. If the
+        DeepSeek official API is unavailable, STOP. Never substitute an OpenRouter model.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - ref
-                - inputs
+              required: [ref, inputs]
               properties:
                 ref:
                   type: string
-                  default: main
+                  enum: [main]
                 inputs:
                   type: object
-                  required:
-                    - operation_id
-                    - operation
+                  required: [operation_id, operation]
                   properties:
                     operation_id:
                       type: string
                       description: Unique correlation ID generated by Web GPT.
                     operation:
                       type: string
-                      enum:
-                        - model_intelligence
-                        - execute_team
-                        - deepseek_steward
+                      enum: [model_intelligence, execute_team, deepseek_steward]
                     plan_json:
                       type: string
                       default: "{}"
@@ -146,19 +178,16 @@ paths:
                       default: "20"
                     steward_mode:
                       type: string
-                      enum:
-                        - ASSIST
-                        - REPAIR
+                      enum: [ASSIST, REPAIR]
                       default: ASSIST
-                      description: Used only when operation=deepseek_steward.
                     support_packet_json:
                       type: string
                       default: "{}"
                       description: >-
-                        Stringified JSON Support Packet. For ASSIST include the user task,
-                        current plan questions and constraints. For REPAIR include the
-                        failure location, Run/Job/Step/log evidence, errors, attempted fixes
-                        and requested outcome. Never fabricate missing evidence.
+                        Stringified JSON Support Packet. For Action-edge automatic REPAIR,
+                        include the failed operation, HTTP/error response, Run/Job/Step/log
+                        evidence when available, attempts already made, constraints, and the
+                        requested outcome. Never fabricate missing evidence.
       responses:
         "204":
           description: Workflow dispatch accepted.
@@ -179,21 +208,7 @@ paths:
           required: false
           schema:
             type: string
-            enum:
-              - completed
-              - action_required
-              - cancelled
-              - failure
-              - neutral
-              - skipped
-              - stale
-              - success
-              - timed_out
-              - in_progress
-              - queued
-              - requested
-              - waiting
-              - pending
+            enum: [completed, action_required, cancelled, failure, neutral, skipped, stale, success, timed_out, in_progress, queued, requested, waiting, pending]
         - name: per_page
           in: query
           required: false
@@ -258,7 +273,7 @@ paths:
             type: integer
       responses:
         "200":
-          description: Artifacts for the run.
+          description: Artifacts for the Run.
           content:
             application/json:
               schema:
@@ -267,7 +282,11 @@ paths:
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/expert_team_result.json:
     get:
       operationId: getExpertTeamResult
-      summary: Read the final expert-team JSON result directly
+      summary: Read final expert-team JSON result
+      description: >-
+        Always pass ref=runtime-results. If the corresponding Run completed successfully but
+        this result is unexpectedly missing or unparseable, automatically trigger DeepSeek
+        Steward REPAIR, wait for READY, then retry this read once.
       parameters:
         - name: operation_id
           in: path
@@ -276,10 +295,10 @@ paths:
             type: string
         - name: ref
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: runtime-results
+            enum: [runtime-results]
         - name: Accept
           in: header
           required: false
@@ -299,11 +318,11 @@ paths:
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json:
     get:
       operationId: getDeepSeekStewardResult
-      summary: Read DeepSeek Steward ASSIST or REPAIR result directly
+      summary: Read DeepSeek Steward ASSIST or REPAIR result
       description: >-
-        Read the Steward result after its workflow completes. Resume the original
-        Web GPT task only when the returned status/resume is READY. A REPAIR result
-        may include the applied files and verified delivery status.
+        Always pass ref=runtime-results. Resume the original task only when status/resume is
+        READY. If the Steward operation itself failed because the official DeepSeek API was
+        unavailable, STOP the current task and do not use OpenRouter as a fallback.
       parameters:
         - name: operation_id
           in: path
@@ -312,10 +331,10 @@ paths:
             type: string
         - name: ref
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: runtime-results
+            enum: [runtime-results]
         - name: Accept
           in: header
           required: false
@@ -332,10 +351,10 @@ paths:
         "404":
           description: Steward result is not published yet or operation_id is incorrect.
 
-  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/metadata.json:
+  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/auto_repair_result.json:
     get:
-      operationId: getExpertTeamOperationMetadata
-      summary: Read published operation metadata directly
+      operationId: getAutoRepairResult
+      summary: Read automatic DeepSeek repair evidence for a recovered production operation
       parameters:
         - name: operation_id
           in: path
@@ -344,10 +363,42 @@ paths:
             type: string
         - name: ref
           in: query
+          required: true
+          schema:
+            type: string
+            enum: [runtime-results]
+        - name: Accept
+          in: header
           required: false
           schema:
             type: string
-            default: runtime-results
+            default: application/vnd.github.raw+json
+      responses:
+        "200":
+          description: Automatic repair result and delivery state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutoRepairResult"
+        "404":
+          description: This operation did not require automatic repair, or evidence is not published yet.
+
+  /repos/a15280020511/test2/contents/runtime_results/{operation_id}/metadata.json:
+    get:
+      operationId: getExpertTeamOperationMetadata
+      summary: Read published operation metadata
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ref
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [runtime-results]
         - name: Accept
           in: header
           required: false
@@ -367,11 +418,10 @@ paths:
   /repos/a15280020511/test2/actions/artifacts/{artifact_id}/zip:
     get:
       operationId: downloadExpertTeamArtifact
-      summary: Download an optional audit artifact ZIP
+      summary: Download optional audit artifact ZIP
       description: >-
-        Artifact download is optional audit evidence. Read normal expert or Steward
-        results through the runtime_results JSON operations because artifact downloads
-        may redirect to temporary URLs.
+        Artifact download is optional audit evidence. Prefer runtime_results JSON for actual
+        result reading because artifact downloads may redirect to temporary URLs.
       parameters:
         - name: artifact_id
           in: path
@@ -391,7 +441,6 @@ paths:
 
 components:
   schemas:
-
     ModelIntelligenceSnapshot:
       type: object
       properties:
@@ -405,90 +454,12 @@ components:
           type: string
         rankings:
           type: object
-          properties:
-            intelligence-high-to-low:
-              type: array
-              items:
-                type: string
-            coding-high-to-low:
-              type: array
-              items:
-                type: string
-            agentic-high-to-low:
-              type: array
-              items:
-                type: string
-            design-arena-elo-high-to-low:
-              type: array
-              items:
-                type: string
-            top-weekly:
-              type: array
-              items:
-                type: string
-            most-popular:
-              type: array
-              items:
-                type: string
-            throughput-high-to-low:
-              type: array
-              items:
-                type: string
-            latency-low-to-high:
-              type: array
-              items:
-                type: string
-            pricing-low-to-high:
-              type: array
-              items:
-                type: string
-            context-high-to-low:
-              type: array
-              items:
-                type: string
-            newest:
-              type: array
-              items:
-                type: string
+          properties: {}
           additionalProperties: true
         models:
           type: object
-          properties:
-            example:
-              $ref: "#/components/schemas/ModelIntelligenceModel"
-          additionalProperties:
-            $ref: "#/components/schemas/ModelIntelligenceModel"
-      additionalProperties: true
-
-    ModelIntelligenceModel:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        context_length:
-          type: integer
-        pricing:
-          type: object
-          properties:
-            prompt:
-              type: string
-            completion:
-              type: string
+          properties: {}
           additionalProperties: true
-        supported_parameters:
-          type: array
-          items:
-            type: string
-        input_modalities:
-          type: array
-          items:
-            type: string
-        output_modalities:
-          type: array
-          items:
-            type: string
       additionalProperties: true
 
     ExecutionPlanSchemaDocument:
@@ -510,23 +481,7 @@ components:
             type: string
         properties:
           type: object
-          properties:
-            version:
-              type: object
-              properties:
-                const:
-                  type: string
-              additionalProperties: true
-            selection_policy:
-              type: object
-              properties:
-                type:
-                  type: string
-                const:
-                  type: string
-                description:
-                  type: string
-              additionalProperties: true
+          properties: {}
           additionalProperties: true
       additionalProperties: true
 
@@ -553,9 +508,7 @@ components:
         status:
           type: string
         conclusion:
-          type:
-            - string
-            - "null"
+          type: [string, "null"]
         event:
           type: string
         run_number:
@@ -585,9 +538,7 @@ components:
         status:
           type: string
         conclusion:
-          type:
-            - string
-            - "null"
+          type: [string, "null"]
         steps:
           type: array
           items:
@@ -602,9 +553,7 @@ components:
         status:
           type: string
         conclusion:
-          type:
-            - string
-            - "null"
+          type: [string, "null"]
         number:
           type: integer
       additionalProperties: true
@@ -642,34 +591,16 @@ components:
           type: string
         plan:
           type: object
-          properties:
-            task:
-              type: string
+          properties: {}
           additionalProperties: true
         stage_outputs:
           type: object
-          properties:
-            example:
-              type: array
-              items:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  model:
-                    type: string
-                  output:
-                    type: string
-                additionalProperties: true
+          properties: {}
           additionalProperties: true
         red_team_output:
-          type:
-            - string
-            - "null"
+          type: [string, "null"]
         final_answer:
-          type:
-            - string
-            - "null"
+          type: [string, "null"]
       additionalProperties: true
 
     DeepSeekStewardResult:
@@ -689,51 +620,54 @@ components:
           type: array
           items:
             type: string
-        execution_plan_guidance:
-          type: object
-          properties:
-            expert_count_guidance:
-              type: string
-            stage_guidance:
-              type: string
-            red_team_guidance:
-              type: string
-            judge_guidance:
-              type: string
-            model_selection_guidance:
-              type: string
-          additionalProperties: true
         message_to_web_gpt:
           type: string
         resume:
           type: string
         steward_model:
           type: string
+        steward_provider:
+          type: string
         repair_application:
           type: object
-          properties:
-            applied_files:
-              type: array
-              items:
-                type: string
-            deleted_files:
-              type: array
-              items:
-                type: string
+          properties: {}
           additionalProperties: true
         repair_delivery:
           type: object
-          properties:
-            status:
-              type: string
-            method:
-              type: string
-            pull_request_url:
-              type:
-                - string
-                - "null"
-            verification:
-              type: string
+          properties: {}
+          additionalProperties: true
+      additionalProperties: true
+
+    AutoRepairResult:
+      type: object
+      properties:
+        mode:
+          type: string
+        decision:
+          type: string
+        diagnosis:
+          type: string
+        confidence:
+          type: number
+        resume:
+          type: string
+        steward_model:
+          type: string
+        steward_provider:
+          type: string
+        verification:
+          type: string
+        retry:
+          type: object
+          properties: {}
+          additionalProperties: true
+        repair_application:
+          type: object
+          properties: {}
+          additionalProperties: true
+        repair_delivery:
+          type: object
+          properties: {}
           additionalProperties: true
       additionalProperties: true
 
