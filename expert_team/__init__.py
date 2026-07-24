@@ -1,9 +1,11 @@
 """Dynamic expert-team package.
 
-Web GPT plans the team; Microsoft Agent Framework executes it; OpenRouter model
-intelligence is exposed read-only for task-specific model selection.
+Web GPT plans user tasks; DeepSeek Steward manages repository service and repair;
+Microsoft Agent Framework executes expert teams; OpenRouter supplies model inference
+and read-only model intelligence.
 """
 
+from .deepseek_steward import DEFAULT_STEWARD_MODEL, run_deepseek_steward
 from .dynamic_team import (
     ExecutionPlan,
     ExpertSpec,
@@ -22,6 +24,8 @@ from .model_intelligence import (
 )
 
 __all__ = [
+    "DEFAULT_STEWARD_MODEL",
+    "run_deepseek_steward",
     "ExecutionPlan",
     "ExpertSpec",
     "OptionalAgentSpec",
