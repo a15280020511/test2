@@ -1,0 +1,19 @@
+{
+  "mode": "REPAIR",
+  "decision": "STOP",
+  "diagnosis": "The compact OpenRouter model intelligence snapshot served by getOpenRouterModels exceeds the GPT Action client's maximum response size. This is an external client limitation; the repository correctly generates and publishes the snapshot. No safe autonomous edit can reduce the existing snapshot because runtime_results/ is protected, and altering the snapshot generation to enforce a size cap would require policy decisions about which models to exclude, risking weakened intelligence signals. The immediate retry would fail identically.",
+  "confidence": 0.95,
+  "edits": [],
+  "delete_files": [],
+  "verification": [],
+  "resume": "STOP",
+  "message_to_web_gpt": "The model intelligence snapshot is too large for the GPT Action client. This is a client-side limit, not a repository defect. To proceed, dispatch a model_intelligence operation with a smaller ranking_limit (e.g., 5) to produce a new compact snapshot, wait for it to publish, then retry getOpenRouterModels. As Steward, I cannot directly edit the runtime-results snapshot or safely alter the generation defaults without maintainer approval. The current operation is stopped; inform the maintainers that a size-capping mechanism or pagination is needed for this endpoint.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  }
+}

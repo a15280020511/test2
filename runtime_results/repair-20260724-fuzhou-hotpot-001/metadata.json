@@ -1,0 +1,10 @@
+{
+  "operation_id": "repair-20260724-fuzhou-hotpot-001",
+  "operation": "deepseek_steward",
+  "status": "success",
+  "steward_mode": "REPAIR",
+  "readable_result_file": "deepseek_steward_result.json",
+  "steward_decision": "STOP",
+  "steward_resume": "STOP",
+  "result_file": "deepseek_steward_result.json"
+}
