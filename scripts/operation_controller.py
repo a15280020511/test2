@@ -4,7 +4,6 @@ import json
 import os
 import subprocess
 import time
-import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +16,7 @@ PRODUCTION_WORKFLOW = "expert-team-production.yml"
 SUPERVISOR_WORKFLOW = "deepseek-supervisor.yml"
 TERMINAL_STATES = {"success", "STOP", "failure", "cancelled"}
 ACTIVE_STATES = {"running", "repairing", "retrying", "cancel_requested"}
+MAX_CONTROLLER_INPUT_CHARS = 45_000
 
 
 def _request_json(method: str, url: str, token: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -58,6 +58,11 @@ def _event_request() -> tuple[dict[str, Any], int]:
     body = comment.get("body")
     if not isinstance(body, str):
         raise RuntimeError("Issue comment body is missing")
+    if len(body) > MAX_CONTROLLER_INPUT_CHARS:
+        raise RuntimeError(
+            f"Operation submission exceeds the safe controller payload limit of {MAX_CONTROLLER_INPUT_CHARS} characters; "
+            "reduce evidence text or submit a smaller evidence reference"
+        )
     try:
         request = json.loads(body)
     except json.JSONDecodeError as exc:
@@ -94,14 +99,20 @@ def _normalize_request(raw: dict[str, Any], receipt_comment_id: int) -> dict[str
     steward_mode = str(raw.get("steward_mode") or "ASSIST").upper()
     if steward_mode not in {"ASSIST", "REPAIR"}:
         raise RuntimeError("steward_mode must be ASSIST or REPAIR")
+    plan_json = _normalize_json_input(raw.get("plan_json"), "plan_json")
+    support_packet_json = _normalize_json_input(raw.get("support_packet_json"), "support_packet_json")
+    if len(plan_json) + len(support_packet_json) > MAX_CONTROLLER_INPUT_CHARS:
+        raise RuntimeError(
+            f"Normalized plan and support packet exceed the safe dispatch limit of {MAX_CONTROLLER_INPUT_CHARS} characters"
+        )
     return {
         "operation_id": operation_id,
         "operation": operation,
         "receipt_comment_id": str(receipt_comment_id),
-        "plan_json": _normalize_json_input(raw.get("plan_json"), "plan_json"),
+        "plan_json": plan_json,
         "ranking_limit": ranking_limit,
         "steward_mode": steward_mode,
-        "support_packet_json": _normalize_json_input(raw.get("support_packet_json"), "support_packet_json"),
+        "support_packet_json": support_packet_json,
         "task_label": str(raw.get("task_label") or operation_id)[:200],
         "resubmit_busy": bool(raw.get("resubmit_busy", False)),
     }
@@ -110,11 +121,7 @@ def _normalize_request(raw: dict[str, Any], receipt_comment_id: int) -> dict[str
 def _fetch_runtime_state(operation_id: str) -> dict[str, Any]:
     subprocess.run(["git", "fetch", "origin", "runtime-results"], check=False, capture_output=True, text=True)
     completed = subprocess.run(
-        [
-            "git",
-            "show",
-            f"origin/runtime-results:runtime_results/operations/{operation_id}/state.json",
-        ],
+        ["git", "show", f"origin/runtime-results:runtime_results/operations/{operation_id}/state.json"],
         check=False,
         capture_output=True,
         text=True,
@@ -147,9 +154,7 @@ def _dispatch_startup_supervisor(
     *, repository: str, token: str, request: dict[str, Any], controller_run_id: str,
     production_payload: dict[str, Any], last_state: dict[str, Any],
 ) -> str:
-    supervisor_id = safe_operation_id(
-        f"supervisor-{request['operation_id']}-startup-{controller_run_id}"
-    )
+    supervisor_id = safe_operation_id(f"supervisor-{request['operation_id']}-startup-{controller_run_id}")
     support_packet = {
         "operation_id": supervisor_id,
         "original_operation_id": request["operation_id"],
@@ -238,12 +243,10 @@ def run_controller() -> dict[str, Any]:
     for _ in range(7):
         time.sleep(15)
         last_state = _fetch_runtime_state(operation_id)
-        state_run_id = str(last_state.get("run_id") or "")
         state = str(last_state.get("status") or "")
         if state == "BUSY" or state in ACTIVE_STATES or state in TERMINAL_STATES:
-            if state_run_id and state_run_id != controller_run_id or state != "accepted":
-                started = True
-                break
+            started = True
+            break
 
     supervisor_id: str | None = None
     if not started:
