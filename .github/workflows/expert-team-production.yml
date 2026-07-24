@@ -176,7 +176,10 @@ jobs:
             --arg run_id "$GITHUB_RUN_ID" \
             --arg operation "$ORIGINAL_OPERATION" \
             --arg receipt_comment_id "$ORIGINAL_RECEIPT_COMMENT_ID" \
-            '{operation_id:$operation_id,mode:"REPAIR",request:"Top-level supervisor: diagnose and recover a failed production workflow, including failures outside managed_operation.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or one of its infrastructure steps",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter","Repair repository-side faults when evidence supports them","Resume or redispatch the original operation at most once"],requested_outcome:"Restore repository operation and safely resume the original task."}')
+            --arg original_plan_json "$ORIGINAL_PLAN_JSON" \
+            --arg original_ranking_limit "$ORIGINAL_RANKING_LIMIT" \
+            --arg original_support_packet_json "$ORIGINAL_SUPPORT_PACKET_JSON" \
+            '{operation_id:$operation_id,mode:"REPAIR",failure_class:"workflow_failure",request:"Top-level supervisor: diagnose and recover a failed production workflow, including failures outside managed_operation and recoverable provider/resource limits.",current_state:"Expert Team Production workflow failed.",failure_location:"production workflow or one of its infrastructure steps",error_type:"ProductionWorkflowFailure",run_id:$run_id,operation:$operation,receipt_comment_id:$receipt_comment_id,original_plan_json:$original_plan_json,original_ranking_limit:$original_ranking_limit,original_support_packet_json:$original_support_packet_json,constraints:["Use DeepSeek official API only","Never fall back to OpenRouter for Steward","Preserve user intent","Repair repository-side faults when evidence supports them","For recoverable OpenRouter resource or model failures, prefer safe retry_operation_overrides instead of stopping","Resume or redispatch the original operation at most once"],requested_outcome:"Restore repository operation and safely resume the original task."}')
           PAYLOAD=$(jq -cn \
             --arg operation_id "$SUPERVISOR_ID" \
             --arg original_operation_id "$ORIGINAL_OPERATION_ID" \
