@@ -18,13 +18,15 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("DeepSeek unavailability is a hard stop", text)
         self.assertIn("Never route Steward repair through OpenRouter", text)
 
-    def test_action_schema_requires_runtime_results_ref(self) -> None:
+    def test_action_schema_requires_runtime_results_ref_and_repair_route(self) -> None:
         text = Path("gpt_action_openapi.yaml").read_text(encoding="utf-8")
-        self.assertIn("version: 1.3.0", text)
+        self.assertIn("version: 1.3.1", text)
+        self.assertIn("operationId: dispatchExpertTeamOperation", text)
         self.assertIn("operationId: getAutoRepairResult", text)
         self.assertIn("operationId: getActionRecoveryPolicy", text)
         self.assertIn("enum: [runtime-results]", text)
-        self.assertIn("automatically dispatch deepseek_steward", text)
+        self.assertIn("enum: [ASSIST, REPAIR]", text)
+        self.assertIn("DeepSeek REPAIR", text)
 
     def test_managed_operation_limits_repair_to_one_cycle(self) -> None:
         text = Path("scripts/managed_operation.py").read_text(encoding="utf-8")
