@@ -1,0 +1,58 @@
+name: Cancel Expert Team Operation
+run-name: cancel-${{ inputs.operation_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation_id:
+        description: Existing production operation ID to cancel
+        required: true
+        type: string
+      reason:
+        description: User or operator cancellation reason
+        required: false
+        default: user_requested
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cancel matching operation Runs and release lock
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m scripts.cancel_operation \
+            --operation-id "${{ inputs.operation_id }}" \
+            --reason "${{ inputs.reason }}"
+
+      - name: Publish cancellation result
+        if: always()
+        env:
+          PYTHONPATH: .
+        run: python -m scripts.publish_runtime_result --operation-id "${{ inputs.operation_id }}"
+
+      - name: Upload cancellation audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cancellation-${{ inputs.operation_id }}
+          path: artifacts/${{ inputs.operation_id }}/
+          if-no-files-found: warn
+          retention-days: 7
