@@ -12,17 +12,21 @@ The control plane owns:
 - task identity and revision control;
 - duplicate-run prevention;
 - signed execution authorization;
-- start, status, cancel, force-cancel, restart, review, and diagnosis;
+- start, continuous monitoring, status, cancel, force-cancel, and restart;
 - independent retrieval of Run, Job, Step, Log, and Artifact evidence;
-- final DeepSeek quality review before publication;
-- emergency rescue when the normal work workflow is unhealthy.
+- automatic DeepSeek final review after successful execution;
+- automatic DeepSeek diagnosis after failed execution;
+- controlled cross-repository repair branch and PR creation;
+- emergency rescue when the normal control or work workflow is unhealthy.
 
 The work repository owns deterministic execution, simulation, calculation, logs,
 and result artifacts. It must reject unsigned or expired control tickets.
 
 ## Workflows
 
-- `.github/workflows/deepseek-control.yml` is the normal mandatory entry.
+- `.github/workflows/deepseek-control.yml` is the normal mandatory entry. `START`
+  and `RESTART` remain active until the target Run reaches a terminal state, then
+  perform review or diagnosis automatically.
 - `.github/workflows/deepseek-rescue.yml` is an isolated emergency entry. It has no
   checkout and does not depend on scripts from either repository.
 
@@ -32,14 +36,15 @@ Configure these Actions secrets in `test2`:
 
 1. `DEEPSEEK_API_KEY`
    - Official DeepSeek API key.
-   - Used for review and diagnosis.
+   - Used for final review, diagnosis, and repair planning.
 
 2. `CONTROL_PLANE_TOKEN`
    - Fine-grained PAT or GitHub App installation token.
    - Restrict repository access to `a15280020511/test`.
    - Required permissions:
      - Actions: read and write;
-     - Contents: read.
+     - Contents: read and write;
+     - Pull requests: read and write.
    - Do not grant repository deletion, administration, secrets, members, or billing.
 
 3. `CONTROL_TICKET_SECRET`
@@ -59,9 +64,10 @@ Web GPT
 → duplicate check
 → signed ticket
 → test/think-tank.yml
-→ deterministic execution
-→ Artifact
-→ DeepSeek Control REVIEW
+→ control plane polls the exact Run
+→ deterministic execution and Artifact
+→ automatic DeepSeek REVIEW when successful
+   or automatic DeepSeek DIAGNOSE when failed
 → APPROVE / REPLAN / COLLECT / REPAIR / STOP
 → Web GPT publication only after APPROVE
 ```
@@ -70,8 +76,8 @@ Web GPT
 
 Identity is `task_id + revision`.
 
-- An active matching Run returns `DUPLICATE_ACTIVE` and is not dispatched again.
-- A successful matching Run returns `DUPLICATE_COMPLETED` for `START`.
+- An active matching Run is monitored instead of being dispatched again.
+- A successful matching Run is reviewed instead of being duplicated by `START`.
 - `RESTART` may force-cancel an old Run and dispatch an explicitly supplied revision.
 - The work workflow also uses a task-level concurrency group as a second barrier.
 
@@ -79,13 +85,30 @@ Identity is `task_id + revision`.
 
 - `CANCEL` requests normal GitHub cancellation.
 - `FORCE_CANCEL` invokes GitHub force-cancel.
-- `deepseek-rescue.yml` provides the same controls when the normal control workflow is unhealthy.
+- A target Run that exceeds the three-hour monitor ceiling is force-cancelled.
+- `deepseek-rescue.yml` provides cancellation and diagnosis when the normal control
+  workflow is unhealthy.
+
+## Repair
+
+`REPAIR` gathers the failed Run, Jobs, Log tails, Artifacts, and a bounded current
+repository context. DeepSeek may return minimal complete-file edits. The controller:
+
+1. validates every edit path against a restricted code surface;
+2. creates a dedicated repair branch;
+3. applies the proposed edits using the GitHub Contents API;
+4. creates a PR against `main`;
+5. deliberately does not auto-merge.
+
+Repository Validation and Think Tank self-test must pass before a repair PR is
+merged. DeepSeek has the highest technical decision priority, while deterministic
+CI remains the write-safety gate.
 
 ## Final review rule
 
 A GitHub `success` conclusion means only that execution completed without a terminal
-runner error. It is not publication approval. Web GPT must dispatch `REVIEW` and
-publish only when the DeepSeek result says `APPROVE`.
+runner error. It is not publication approval. `START`, `RESTART`, and explicit
+`REVIEW` publish only when the DeepSeek result says `APPROVE`.
 
 ## Physical limits
 
