@@ -49,7 +49,7 @@ jobs:
           grep -F 'cleanup": "always' plugins/expert-team/plugin.json >/dev/null
           grep -F 'shutil.rmtree(temp_root, ignore_errors=True)' scripts/plugin_runner.py >/dev/null
           grep -F '任务级临时插头' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
-          grep -F '预算先批准' DEEPSEEK_STEWARD.md >/dev/null
+          grep -F '持久预算批准回执' DEEPSEEK_STEWARD.md >/dev/null
           echo 'Ephemeral plugin contract OK'
 
       - name: Install expert-team plug for this CI job only
