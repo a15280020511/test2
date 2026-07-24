@@ -117,6 +117,7 @@ jobs:
             scripts/action_entrypoint.py \
             scripts/managed_operation.py \
             scripts/plugin_runner.py \
+            scripts/verify_deepseek_entry.py \
             expert_team/deepseek_official.py \
             expert_team/deepseek_steward.py
           python -m json.tool plugins/expert-team/plugin.json >/dev/null
@@ -125,6 +126,15 @@ jobs:
 
       - name: Prepare repository context
         run: git fetch origin runtime-results || true
+
+      - name: Verify real DeepSeek first-entry result and budget options
+        if: ${{ inputs.operation == 'execute_team' }}
+        env:
+          PLAN_JSON: ${{ inputs.plan_json }}
+        run: |
+          python -m scripts.verify_deepseek_entry \
+            --plan-json "$PLAN_JSON" \
+            --operation-id "${{ inputs.operation_id }}"
 
       - name: Execute managed operation with automatic DeepSeek repair
         env:
