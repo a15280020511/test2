@@ -1,0 +1,170 @@
+name: DeepSeek Top Supervisor
+run-name: supervisor-${{ inputs.operation_id }}-for-${{ inputs.original_operation_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation_id:
+        description: Unique supervisor operation ID
+        required: true
+        type: string
+      original_operation_id:
+        description: Original user-task operation ID being supervised
+        required: true
+        type: string
+      failed_run_id:
+        description: Known failed production Run ID, if available
+        required: false
+        default: ""
+        type: string
+      receipt_comment_id:
+        description: Durable receipt comment ID for the original operation
+        required: false
+        default: ""
+        type: string
+      failure_class:
+        description: Startup timeout, Action-edge, workflow, control-plane, publication, or other failure
+        required: true
+        type: string
+      support_packet_json:
+        description: Evidence-based Support Packet for DeepSeek REPAIR
+        required: true
+        type: string
+      retry_dispatch_json:
+        description: Original production dispatch payload for one bounded safe resume
+        required: false
+        default: "{}"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  issues: read
+
+concurrency:
+  group: deepseek-top-supervisor
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Publish supervisor running status
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "deepseek_supervisor" \
+            --receipt-comment-id "${{ inputs.receipt_comment_id }}" \
+            --supervisor-for-operation-id "${{ inputs.original_operation_id }}" \
+            --phase start
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare repository context
+        run: git fetch origin runtime-results || true
+
+      - name: Run highest-level DeepSeek Steward REPAIR
+        env:
+          PYTHONPATH: .
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SUPPORT_PACKET_JSON: ${{ inputs.support_packet_json }}
+        run: |
+          python -m scripts.action_entrypoint \
+            --operation deepseek_steward \
+            --operation-id "${{ inputs.operation_id }}" \
+            --steward-mode REPAIR \
+            --support-packet-json "$SUPPORT_PACKET_JSON"
+
+      - name: Deliver verified DeepSeek repair
+        env:
+          PYTHONPATH: .
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.repair_delivery --operation-id "${{ inputs.operation_id }}"
+
+      - name: Plan bounded original-operation resume
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+          RETRY_DISPATCH_JSON: ${{ inputs.retry_dispatch_json }}
+        run: |
+          python -m scripts.supervisor_resume \
+            --mode plan \
+            --supervisor-operation-id "${{ inputs.operation_id }}" \
+            --original-operation-id "${{ inputs.original_operation_id }}" \
+            --failed-run-id "${{ inputs.failed_run_id }}" \
+            --retry-dispatch-json "$RETRY_DISPATCH_JSON"
+
+      - name: Publish GPT-readable supervisor result
+        id: publish_result
+        if: always()
+        env:
+          PYTHONPATH: .
+        run: python -m scripts.publish_runtime_result --operation-id "${{ inputs.operation_id }}"
+
+      - name: Publish final supervisor status before resume
+        if: always()
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "deepseek_supervisor" \
+            --receipt-comment-id "${{ inputs.receipt_comment_id }}" \
+            --supervisor-for-operation-id "${{ inputs.original_operation_id }}" \
+            --phase final \
+            --job-status "${{ job.status }}" \
+            --result-published "${{ steps.publish_result.outcome }}"
+
+      - name: Execute one bounded original-operation resume
+        id: resume_original
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m scripts.supervisor_resume \
+            --mode execute \
+            --supervisor-operation-id "${{ inputs.operation_id }}"
+
+      - name: Mark supervisor resume failure
+        if: ${{ failure() && steps.resume_original.outcome == 'failure' }}
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "deepseek_supervisor" \
+            --receipt-comment-id "${{ inputs.receipt_comment_id }}" \
+            --supervisor-for-operation-id "${{ inputs.original_operation_id }}" \
+            --phase final \
+            --job-status failure \
+            --result-published "${{ steps.publish_result.outcome }}"
+
+      - name: Upload supervisor audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-supervisor-${{ inputs.operation_id }}
+          path: artifacts/${{ inputs.operation_id }}/
+          if-no-files-found: warn
+          retention-days: 7
