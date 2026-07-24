@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/a15280020511/test2/execution_plan.schema.json",
   "title": "Web GPT Dynamic Expert Team Execution Plan",
-  "description": "Web GPT 必须先读取 OpenRouter 当前模型情报，再依据 selection_policy 针对具体任务动态选择专家、模型和组合方式。",
+  "description": "Web GPT 是任务规划者。必须先读取 OpenRouter 当前模型情报，再依据 selection_policy 针对具体任务动态选择专家、模型和组合方式。若对仓库使用、填表或编排不确定，可调用 DeepSeek Steward ASSIST；若发现任何仓库技术故障，应停止自行修码并交给 DeepSeek Steward REPAIR。",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "selection_policy", "task", "rationale", "experts", "stages", "red_team", "judge"],
@@ -16,7 +16,7 @@
     "task": {"type": "string", "minLength": 1},
     "rationale": {
       "type": "string",
-      "description": "说明本次如何依据 selection_policy，结合任务难度、价值、风险、不确定性以及 OpenRouter 当前模型能力、价格、延迟和上下文等信号，决定专家数量、模型与工作流组合。"
+      "description": "说明本次如何依据 selection_policy，结合任务难度、价值、风险、不确定性以及 OpenRouter 当前模型能力、价格、延迟和上下文等信号，决定专家数量、模型与工作流组合。DeepSeek Steward ASSIST 可提供仓库和填表建议，但最终 Execution Plan 仍由 Web GPT 决定。"
     },
     "experts": {
       "type": "array",
