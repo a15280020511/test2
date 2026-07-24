@@ -115,6 +115,7 @@ def _plan_resume(
         "matching_runs": [],
         "applied_retry_overrides": {},
         "dispatch_status": "not_attempted",
+        "budget_reapproval_required": False,
     }
 
     if resume != "READY":
@@ -127,6 +128,36 @@ def _plan_resume(
     if not retry_payload:
         plan["reason"] = "no_retry_dispatch_payload"
         write_json(output_dir / "supervisor_resume.json", plan)
+        steward_result["supervisor_resume"] = plan
+        write_json(result_path, steward_result)
+        return plan
+
+    inputs = retry_payload.get("inputs")
+    if not isinstance(inputs, dict):
+        raise RuntimeError("retry dispatch payload has no inputs object")
+    original_operation = str(inputs.get("operation") or "").strip()
+    plan["original_operation"] = original_operation or None
+
+    # A failed execute_team Run may already have consumed some or all of the approved
+    # model budget. Neither DeepSeek nor GitHub can prove that a redispatch is free.
+    # Therefore the supervisor may diagnose and repair, but it may not redispatch or
+    # alter the paid plan. Web GPT must obtain a new explicit budget selection and a
+    # new durable receipt under a new operation_id.
+    if original_operation == "execute_team":
+        plan.update(
+            {
+                "reason": "paid_operation_requires_new_user_budget_approval",
+                "budget_reapproval_required": True,
+                "new_operation_id_required": True,
+                "new_budget_receipt_required": True,
+                "message_to_web_gpt": (
+                    "Explain the failed attempt and possible prior spend to the user, present a new budget, "
+                    "obtain explicit approval, create a new durable receipt, and submit a new operation."
+                ),
+            }
+        )
+        write_json(output_dir / "supervisor_resume.json", plan)
+        steward_result["resume"] = "STOP"
         steward_result["supervisor_resume"] = plan
         write_json(result_path, steward_result)
         return plan
@@ -202,7 +233,7 @@ def _execute_resume(*, supervisor_operation_id: str, repository: str, token: str
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Plan or execute one bounded original-operation resume after DeepSeek supervision")
+    parser = argparse.ArgumentParser(description="Plan or execute one bounded non-paid operation resume after DeepSeek supervision")
     parser.add_argument("--mode", choices=("plan", "execute"), required=True)
     parser.add_argument("--supervisor-operation-id", required=True)
     parser.add_argument("--original-operation-id", default="")
