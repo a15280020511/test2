@@ -5,11 +5,17 @@ from pathlib import Path
 
 
 class AutomaticRecoveryContractTests(unittest.TestCase):
-    def test_production_workflow_requires_receipt_and_auto_escalates_failures(self) -> None:
+    def test_production_workflow_auto_creates_missing_receipt_and_escalates_failures(self) -> None:
         text = Path(".github/workflows/expert-team-production.yml").read_text(encoding="utf-8")
         self.assertIn("run-name: expert-${{ inputs.operation_id }}-${{ inputs.operation }}", text)
         self.assertIn("receipt_comment_id:", text)
-        self.assertIn("required: true", text)
+        receipt_block = text.split("receipt_comment_id:", 1)[1].split("plan_json:", 1)[0]
+        self.assertIn("required: false", receipt_block)
+        self.assertIn("Ensure durable operation receipt", text)
+        self.assertIn("issues: write", text)
+        self.assertIn("PROVIDED_RECEIPT_COMMENT_ID", text)
+        self.assertIn("server-side-fallback", text)
+        self.assertIn("steps.receipt.outputs.receipt_comment_id", text)
         self.assertIn("scripts.managed_operation", text)
         self.assertIn("scripts.publish_operation_status", text)
         self.assertIn("Escalate failed production run to DeepSeek Top Supervisor", text)
@@ -42,6 +48,8 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         text = Path("ACTION_RECOVERY.md").read_text(encoding="utf-8")
         self.assertIn("highest technical control layer", text)
         self.assertIn("Durable operation receipt", text)
+        self.assertIn("server-side fallback is mandatory", text)
+        self.assertIn("must never produce an entry-point `422`", text)
         self.assertIn("second consecutive read", text)
         self.assertIn("deepseek-supervisor.yml", text)
         self.assertIn("one bounded production redispatch", text)
