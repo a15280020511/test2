@@ -93,7 +93,6 @@ def _repo_context(root: Path = Path(".")) -> str:
         chunks.append(block)
         used += len(block)
 
-    # ASSIST benefits from the latest published model-intelligence snapshot when available.
     try:
         completed = subprocess.run(
             [
@@ -278,6 +277,13 @@ async def run_deepseek_steward(
         decision = str(result.get("decision") or "STOP").upper()
         if decision == "EDIT":
             result["repair_application"] = _apply_repair_edits(result, root)
+            result["resume"] = "STOP"
+            result["repair_delivery"] = {
+                "status": "pending_verification",
+                "method": None,
+                "pull_request_url": None,
+                "verification": "pending",
+            }
         else:
             result["repair_application"] = {"applied_files": [], "deleted_files": []}
     else:
