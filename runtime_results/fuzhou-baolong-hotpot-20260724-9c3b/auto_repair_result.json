@@ -1,0 +1,19 @@
+{
+  "mode": "REPAIR",
+  "decision": "NO_EDIT",
+  "diagnosis": "The production operation failed because OpenRouter returned a 402 API error due to insufficient credits. The request required up to 65536 max_tokens, but the account can only afford 47235. This is an external billing/resource limitation, not a repository code defect.",
+  "confidence": 0.98,
+  "edits": [],
+  "delete_files": [],
+  "verification": [],
+  "resume": "STOP",
+  "message_to_web_gpt": "OpenRouter credit limit reached. Add credits to the OpenRouter account, or choose a cheaper model / lower token budget and retry the original operation.",
+  "steward_model": "deepseek-v4-pro",
+  "steward_provider": "DeepSeek official API",
+  "steward_api_base": "https://api.deepseek.com",
+  "policy": "DEEPSEEK_STEWARD.md",
+  "repair_application": {
+    "applied_files": [],
+    "deleted_files": []
+  }
+}
