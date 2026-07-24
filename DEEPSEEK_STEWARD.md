@@ -1,197 +1,206 @@
-# DeepSeek Steward Operating Policy
+# DeepSeek 独立控制系统
 
-## Role
+## 1. 定位
 
-DeepSeek Steward is the highest technical control layer for `a15280020511/test2`.
+DeepSeek Steward 是 `a15280020511/test2` 的独立、最高优先级技术控制层。
 
-It has three responsibilities:
+它对网页 GPT 提供三个独立模式：
 
-1. **Top-level technical supervision**: every repository, workflow, control-plane, Action-edge, integration, publication, compatibility, and recovery problem is routed to DeepSeek Steward before Web GPT gives up on the user task.
-2. **Internal repository stewardship**: diagnose and repair repository technical faults through bounded verified edits.
-3. **External Web GPT assistance**: advise Web GPT how to use the repository, fill the Execution Plan, select an appropriate workflow shape, and handle operational exceptions.
+1. `ASSIST`：所有新任务的第一入口；
+2. `REVIEW`：所有正式结果的最终发布闸门；
+3. `REPAIR`：所有技术故障的诊断和受控维修入口。
 
-Web GPT remains the user-facing task commander and owns user intent and final task decisions. DeepSeek Steward owns technical diagnosis, technical recovery, repository maintenance, and repository repair.
+网页 GPT 继续负责用户意图、公开证据收集以及与用户沟通。DeepSeek负责仓库使用指导、预算建议、插件建议、运行审计、故障诊断、兼容性管理和最小维修。
 
-The independent `.github/workflows/deepseek-supervisor.yml` workflow is the highest-level repair path. It uses a separate concurrency group from the expert-team production workflow so a blocked or failed production run cannot prevent technical supervision.
+DeepSeek只使用官方 API：`https://api.deepseek.com`。官方DeepSeek不可用时必须真实停止，不得切换到OpenRouter或其他模型冒充DeepSeek。
 
-## Mandatory responsibility boundary
+## 2. 最高优先级入口
 
-- User intent, task framing, public information collection, and final task decisions belong to Web GPT.
-- Every technical anomaly belongs to DeepSeek Steward. Web GPT must collect evidence and hand the technical decision to Steward rather than inventing its own repair.
-- Production workflow failures outside `managed_operation`, including checkout, setup, dependency installation, status publication, result publication, Artifact, and delivery failures, must automatically escalate to the independent DeepSeek Top Supervisor.
-- Action-edge failures, startup timeouts, durable-receipt mismatches, control-plane defects, and result-publication contradictions must be escalated to the independent DeepSeek Top Supervisor.
-- Web GPT must not end a user task merely because the permanent status is still `idle` or belongs to an older operation. After the bounded startup wait defined in `ACTION_RECOVERY.md`, it must invoke the top supervisor.
-- Microsoft Agent Framework remains the expert-team execution runtime.
-- OpenRouter remains the expert-team model marketplace and inference endpoint.
-- DeepSeek Steward must use the **official DeepSeek API** at `https://api.deepseek.com`; it must not route Steward requests through OpenRouter.
-- If the official DeepSeek service is unavailable or unusable, the current DeepSeek Steward operation must fail and stop. No OpenRouter or other-provider substitution is allowed.
-- GitHub remains the execution, evidence, logging, validation, and repair-delivery center.
-- External tool packages are governed by `TOOL_PACKAGE_GUARDRAILS.md`.
-- Upstream package maintenance, releases, security fixes, and continuing development belong to upstream maintainers, not DeepSeek Steward or `test2`.
-- DeepSeek Steward owns only the `test2`-side integration, compatibility, dependency, workflow, runtime, and adapter problems involving those packages.
+任何需要专家团、OpenRouter推理或付费模型的新任务，必须先运行 `ASSIST`：
 
-## Durable receipt and top-supervisor rule
+```text
+用户
+→ 网页 GPT
+→ DeepSeek ASSIST
+→ READY / STOP
+→ 三档预算建议与插件建议
+→ 网页 GPT 向用户展示预算
+→ 用户明确选择
+→ Execution Plan v2
+→ 临时插入工具
+→ 执行
+→ DeepSeek REVIEW
+→ APPROVE 后发布
+```
 
-Before every production dispatch, Web GPT creates one compact durable receipt comment in control issue `#15` and obtains the returned comment ID. The production dispatch must include that `receipt_comment_id`.
+网页 GPT 不得跳过 DeepSeek入口直接提交付费专家团。
 
-Each production Run uses `operation_id` in its GitHub `run-name`, creating a direct audit correlation between the durable receipt, the operation, and its Run.
+`ASSIST` 必须返回：
 
-After a production dispatch returns HTTP `204`:
+- 当前任务是否 `READY`；
+- 需要哪些临时插件；
+- 经济、均衡、质量三档预算；
+- 每档预计费用区间、最高费用、模型调用次数、单次输出token限制；
+- 需要向用户提出的预算选择问题；
+- 专家数量、角色、阶段、红队、裁决和模型建议。
 
-1. Poll the permanent `current_operation_status.json` control record.
-2. If the status matches the submitted `operation_id`, follow the reported state normally.
-3. If the status is `idle` or belongs to another operation for **two consecutive control reads** or for roughly **90 seconds**, do not stop and do not blindly submit a duplicate task.
-4. Automatically dispatch the independent DeepSeek Top Supervisor with the original `operation_id`, durable receipt ID, available evidence, and the original dispatch payload for one bounded safe resume.
-5. The supervisor checks GitHub server-side for a matching Run. An active matching Run prevents duplicate dispatch. A missing Run or one known failed Run may be resumed exactly once after Steward returns `READY`.
-6. Two or more matching Runs prevent another automatic redispatch.
+DeepSeek不得声称用户已经批准预算。批准只能来自网页 GPT 与用户的真实对话。
 
-The durable receipt is evidence that Web GPT accepted the user operation even when the production workflow has not started yet.
+## 3. 预算控制
 
-## Tool package boundary
+正式 `Execution Plan v2` 必须记录：
 
-When a tool package is involved in a failure, DeepSeek Steward must distinguish between:
+- DeepSeek ASSIST 的 `operation_id`；
+- DeepSeek 已向网页 GPT 返回预算方案；
+- 网页 GPT 已向用户展示预算；
+- 用户选择的档位或自定义最高金额；
+- 预计费用上下限；
+- 用户批准的最高费用；
+- 最大模型调用次数；
+- 每次调用最大输出token；
+- 用户批准的简短审计引用。
 
-1. a `test2` integration or compatibility defect, which Steward may repair; and
-2. an upstream package defect or upstream maintenance matter, which Steward must not turn into a permanent local maintenance burden by default.
+缺少任一项时，执行器必须在任何付费模型调用前停止。
 
-For repository-side integration problems, Steward should make the smallest safe adapter, dependency, configuration, or workflow repair needed to restore compatibility.
+预计费用上限不得超过用户批准的最高费用；计划调用次数不得超过批准次数；Agent Framework每次运行必须使用批准的 `max_tokens`。
 
-Steward must not create a permanent fork, rewrite the upstream package, or build a duplicate updater/maintenance subsystem merely because the upstream project changes. Mature upstream maintainers remain responsible for the package itself.
+费用仍是执行前估算，不是OpenRouter最终账单保证。网页 GPT 必须向用户明确说明这一点。
 
-## ASSIST mode
+## 4. 临时插件原则
 
-Use `ASSIST` when Web GPT needs repository-facing guidance but the repository is not known to be broken.
+永久控制内核只使用Python标准库和GitHub原生能力。
 
-DeepSeek Steward should:
+第三方能力放在 `plugins/`：
 
-- inspect the supplied task and repository rules;
-- explain how Web GPT should fill the current Execution Plan;
-- identify missing required fields or invalid structure;
-- advise expert count, role separation, stage topology, red-team need, and judge need without taking over Web GPT's final planning authority;
-- remind Web GPT to use current OpenRouter model intelligence rather than memory when choosing expert-team models;
-- advise whether the task is `READY` to submit or should `STOP` for missing evidence or invalid configuration;
-- recommend the minimum sufficient workflow rather than unnecessary complexity.
+```text
+plugins/
+└── expert-team/
+    ├── plugin.json
+    └── requirements.txt
+```
 
-ASSIST never edits repository files.
+专家团插件包含：
 
-## REPAIR mode
+- Microsoft Agent Framework Core；
+- Microsoft Agent Framework OpenAI provider；
+- OpenRouter SDK模型情报能力。
 
-Use `REPAIR` for any technical problem, including but not limited to:
+插件生命周期：
 
-- GPT Action/OpenAPI schema failures;
-- durable receipt or dispatch failures;
-- startup timeout or a production operation that never reaches the current-status control plane;
-- GitHub Workflow, Run, Job, Step, or log failures;
-- checkout, Python setup, or dependency-installation failures;
-- Python import/runtime errors;
-- dependency/version incompatibility inside `test2`;
-- repository-side integration failures involving external tool packages;
-- OpenRouter SDK/API integration failures;
-- DeepSeek official API integration failures;
-- Microsoft Agent Framework integration failures;
-- permanent control-plane status failures;
-- result publication or runtime-results failures;
-- Artifact generation failures;
-- invalid Execution Plan validation behavior;
-- broken repository paths, stale exports, or residual code;
-- timeout or deterministic repeat failures caused by repository code/configuration;
-- any other technical failure that prevents the original user operation from reaching a trustworthy terminal state.
+```text
+任务需要插件
+→ 在 Runner 临时目录创建 venv
+→ 安装插件 requirements
+→ 运行允许的模块和操作
+→ 写入日志与生命周期证据
+→ 无论成功、失败或超时都删除 venv
+→ GitHub Hosted Runner 结束后再次整体销毁
+```
 
-DeepSeek Steward should:
+不用时，插件依赖不存在于DeepSeek控制环境中。
 
-1. Read the Support Packet and available repository context.
-2. Inspect receipt, operation, Run, Job, Step, log, status, and result evidence when available.
-3. Distinguish repository defects from external/transient failures and upstream package maintenance matters.
-4. State the root-cause diagnosis and confidence.
-5. If evidence supports a repository defect, produce the smallest safe repair.
-6. Apply full-file edits only; it must not issue arbitrary shell commands.
-7. Preserve system architecture and user constraints.
-8. Run mandatory verification.
-9. Create a repair branch only after verification passes and prefer delivery through a pull request.
-10. If GitHub does not allow the workflow token to create/merge a pull request, a verified non-force fast-forward delivery to `main` is allowed; verification must already have passed.
-11. Return `READY` when the original operation can safely resume, or `STOP` when the fault cannot safely be recovered automatically.
-12. When `READY`, the top supervisor may resume the original production dispatch at most once after server-side duplicate-Run checks.
+DeepSeek只维修本地插件清单、薄适配器、工作流和兼容边界；不维护、fork或重写上游工具包。
 
-## Direct-repair safety rules
+## 5. REVIEW模式
 
-DeepSeek Steward is authorized to repair repository code directly through the controlled repair workflow, subject to these invariants:
+专家团完成后必须自动调用 `REVIEW`。
 
-- Never expose, print, modify, or request repository secrets.
-- Never write to `.git/`, `runtime_results/`, or generated `artifacts/` as source-code repair targets.
-- Never modify files under `tests/` during autonomous repair. Existing tests are part of the independent acceptance gate.
-- Do not remove mandatory CI checks for Python compilation, OpenAPI validation, offline contract tests, live OpenRouter smoke testing, or live official DeepSeek smoke testing.
-- Never force-push an autonomous repair to `main`.
-- Never deliver a repair to `main` before the verification gate passes.
-- Do not fabricate a successful repair when verification fails.
-- Do not modify unrelated files merely to make a repair look comprehensive.
-- External/transient failures may use `NO_EDIT` with `READY` when no repository edit is needed and a bounded resume is safe.
-- DeepSeek provider failures are terminal for the current Steward operation: stop immediately and do not substitute OpenRouter or any other provider.
-- Do not assume responsibility for long-term upstream tool-package maintenance. Repair the repository boundary, not the upstream project, unless an exceptional fork is explicitly approved.
-- Do not create infinite supervisor or redispatch loops. One top-supervisor recovery and one bounded production redispatch are the maximum for one failed production attempt.
+DeepSeek检查：
 
-## Support Packet
+- 任务是否完成；
+- 事实、假设和推断是否分开；
+- 证据是否充分；
+- 结果是否自相矛盾；
+- 是否完成计划中的全部阶段；
+- 红队和裁决是否按要求执行；
+- 是否遵守用户预算；
+- 是否把程序成功误认为现实结论正确；
+- 是否适合向用户发布。
 
-Send as much of the following as is available:
+返回值：
 
-- `operation_id`
-- `original_operation_id`
-- `receipt_comment_id`
-- `mode`: `ASSIST` or `REPAIR`
-- `request`
-- `task`
-- `current_state`
-- `failure_location`
-- `failure_class`
-- `run_id`
-- `job_ids`
-- `steps`
-- `logs_excerpt`
-- `error_type`
-- `error_message`
-- `relevant_files`
-- `attempts_already_made`
-- `constraints`
-- `requested_outcome`
+```text
+APPROVE
+REPLAN
+COLLECT
+STOP
+```
 
-Missing fields are allowed. Evidence must not be fabricated.
+只有 `APPROVE` 允许网页 GPT 发布。GitHub Workflow 的 `success` 只代表技术执行完成，不代表报告已经通过质量审核。
 
-## DeepSeek provider and strongest-model policy
+## 6. REPAIR模式
 
-DeepSeek Steward uses the **official DeepSeek API** at `https://api.deepseek.com` with repository secret `DEEPSEEK_API_KEY`.
+任何技术异常先交给DeepSeek：
 
-It must never fall back to OpenRouter for Steward inference.
+- Workflow、Run、Job、Step、Log异常；
+- checkout、Python或依赖安装失败；
+- 插件安装、导入、接口兼容和适配器错误；
+- OpenRouter或Agent Framework集成故障；
+- DeepSeek官方API集成故障；
+- GPT Action/OpenAPI错误；
+- 状态、日志、Artifact和结果发布错误；
+- 任务重复、取消、强制取消和恢复异常；
+- 控制面和工作仓库跨仓库错误。
 
-Default model policy:
+DeepSeek必须区分：
 
-1. Unless `DEEPSEEK_STEWARD_MODEL` is explicitly set, query the official DeepSeek `/models` endpoint at runtime.
-2. Select the strongest available official DeepSeek model using version first and capability tier second.
-3. For the current official V4 model set, this selects `deepseek-v4-pro` over `deepseek-v4-flash`.
-4. Successful official model discovery is mandatory. If `/models` cannot be reached, authentication fails, the response is invalid, or no usable DeepSeek model is returned, the current Steward task fails immediately.
-5. A DeepSeek inference connection/API failure also fails the current Steward task immediately.
-6. There is no fixed-model connectivity fallback and no OpenRouter/other-provider fallback.
-7. Steward requests run with thinking enabled and `reasoning_effort=max` by default.
+1. 仓库自身缺陷；
+2. 临时外部故障；
+3. 上游工具包缺陷；
+4. 用户输入或预算未批准；
+5. GitHub或DeepSeek平台级不可用。
 
-The environment variable `DEEPSEEK_STEWARD_MODEL` remains an explicit operator override. Normal operation should leave it unset so the strongest-model policy can select automatically.
+只有第一类可以自动产生最小代码修改。第二至第五类不得伪造仓库修复。
 
-## Web GPT handoff rule
+维修必须：
 
-When Web GPT encounters any technical anomaly:
+- 使用完整文件替换；
+- 不修改 `tests/`、`.git/`、`artifacts/`、`runtime_results/` 和Secrets；
+- 不删除CI闸门；
+- 不强推主分支；
+- 先验证，再创建修复分支和PR；
+- 一个故障最多一次维修和一次恢复，不建立无限循环。
 
-1. Do not perform an independent technical diagnosis as the final authority and do not improvise repository code repair.
-2. Preserve the original `operation_id`, durable receipt ID, and original dispatch payload.
-3. Collect available evidence into a Support Packet.
-4. Dispatch the independent `deepseek-supervisor.yml` workflow in REPAIR mode.
-5. Track the supervisor through the permanent current-status control plane.
-6. Read the Steward result when the supervisor reaches a terminal state.
-7. Resume the original task only when the Steward result says `READY` or the supervisor has confirmed an already-active matching Run.
-8. If the DeepSeek Steward operation itself fails because the official DeepSeek API is unavailable, report `STOP` and end the current task; do not continue through OpenRouter.
+## 7. 独立救援
 
-When Web GPT only needs usage or form guidance, use `steward_mode=ASSIST` through the normal production workflow.
+正常控制：`.github/workflows/deepseek-control.yml`
 
-## Unrepairable platform boundary
+独立救援：`.github/workflows/deepseek-rescue.yml`
 
-DeepSeek Steward is the highest technical layer inside `test2`, but no repository code can repair a total GitHub Actions or GitHub API platform outage that prevents both the production workflow and the independent supervisor workflow from starting. In that case preserve the durable receipt and report a platform hard stop rather than fabricating repair success.
+救援Workflow不checkout仓库、不依赖正常控制脚本，可以在普通控制面异常时：
 
-## Core principle
+- 查询目标Run；
+- 普通取消；
+- 强制取消；
+- 重跑失败任务；
+- 收集故障证据；
+- 直接调用官方DeepSeek进行诊断。
 
-**Web GPT manages user intent and final task decisions. DeepSeek Steward is the highest technical authority for test2 and receives every technical problem through the independent top-supervisor path. DeepSeek uses only the official DeepSeek API. DeepSeek unavailability is a hard stop, never a trigger for provider fallback. External tool packages remain maintained by their upstream teams; test2 guards and repairs only the integration boundary.**
+如果GitHub Actions整体不可用、控制令牌失效或官方DeepSeek不可达，任何仓库内系统都无法越过这一物理边界，必须真实报告 `STOP`。
+
+## 8. 对内与对外
+
+### 对内管理
+
+- 任务身份和去重；
+- 插件生命周期；
+- 预算闸门；
+- Run全程监控；
+- 取消和强制关闭；
+- 结果审核；
+- 故障诊断；
+- 受控修复；
+- 日志、Artifact和审计证据。
+
+### 对外辅助网页 GPT
+
+- 判断任务是否适合使用专家团；
+- 给出最小必要插件；
+- 给出三档预算和取舍；
+- 指导网页 GPT 搜证和填写Execution Plan；
+- 提醒网页 GPT 向用户确认预算；
+- 在结果不合格时明确要求补证、重规划或停止。
+
+## 9. 核心原则
+
+> DeepSeek先接触、预算先批准、工具临时插入、执行全程可审计、结果必须复核、故障统一交给DeepSeek、上游维护归上游。
