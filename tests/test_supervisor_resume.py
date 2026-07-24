@@ -11,7 +11,12 @@ from scripts.supervisor_resume import _plan_resume
 
 
 class SupervisorResumeTests(unittest.TestCase):
-    def _run_plan(self, runs: list[dict], failed_run_id: str = "") -> dict:
+    def _run_plan(
+        self,
+        runs: list[dict],
+        failed_run_id: str = "",
+        retry_operation_overrides: dict | None = None,
+    ) -> dict:
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
             os.chdir(tmp)
@@ -19,7 +24,13 @@ class SupervisorResumeTests(unittest.TestCase):
                 output = Path("artifacts/sup-1")
                 output.mkdir(parents=True)
                 (output / "deepseek_steward_result.json").write_text(
-                    json.dumps({"resume": "READY", "decision": "NO_EDIT"}),
+                    json.dumps(
+                        {
+                            "resume": "READY",
+                            "decision": "NO_EDIT",
+                            "retry_operation_overrides": retry_operation_overrides or {},
+                        }
+                    ),
                     encoding="utf-8",
                 )
                 retry_payload = json.dumps(
@@ -30,6 +41,7 @@ class SupervisorResumeTests(unittest.TestCase):
                             "operation": "execute_team",
                             "receipt_comment_id": "55",
                             "plan_json": "{}",
+                            "ranking_limit": "20",
                         },
                     }
                 )
@@ -49,6 +61,22 @@ class SupervisorResumeTests(unittest.TestCase):
     def test_missing_run_allows_one_resume(self) -> None:
         plan = self._run_plan([])
         self.assertEqual(plan["action"], "dispatch")
+
+    def test_deepseek_plan_override_is_applied_before_resume(self) -> None:
+        replacement_plan = {
+            "task": "same task",
+            "rationale": "lower-cost technical retry",
+            "experts": [],
+            "stages": [],
+        }
+        plan = self._run_plan(
+            [],
+            retry_operation_overrides={"plan_json": replacement_plan, "ranking_limit": "8"},
+        )
+        payload = plan["retry_dispatch_payload"]
+        self.assertEqual(payload["inputs"]["ranking_limit"], "8")
+        self.assertEqual(json.loads(payload["inputs"]["plan_json"]), replacement_plan)
+        self.assertEqual(plan["applied_retry_overrides"]["plan_json"], "replaced")
 
     def test_active_matching_run_blocks_duplicate(self) -> None:
         plan = self._run_plan(
