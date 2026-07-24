@@ -1,0 +1,10 @@
+{
+  "operation_id": "repair-openrouter-models-20260724-fzbl01",
+  "operation": "deepseek_steward",
+  "status": "success",
+  "steward_mode": "REPAIR",
+  "readable_result_file": "deepseek_steward_result.json",
+  "steward_decision": "EDIT",
+  "steward_resume": "STOP",
+  "result_file": "deepseek_steward_result.json"
+}
