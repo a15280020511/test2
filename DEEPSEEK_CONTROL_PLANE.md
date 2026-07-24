@@ -19,7 +19,8 @@ The control plane owns:
 - independent retrieval of Run, Job, Step, Log, and Artifact evidence;
 - automatic DeepSeek final review after successful execution;
 - automatic DeepSeek diagnosis after failed execution;
-- automatic restricted repair PR creation when diagnosis confirms a repository defect;
+- automatic restricted repair PR creation when diagnosis confirms a target-repository defect;
+- automatic checkout-free diagnosis and bounded self-repair escalation when the control workflow itself fails;
 - emergency rescue when the normal control or work workflow is unhealthy.
 
 The work repository owns deterministic execution, simulation, calculation, logs, provenance, and result Artifacts. It must reject unsigned, mismatched, or expired control tickets.
@@ -28,7 +29,8 @@ The work repository owns deterministic execution, simulation, calculation, logs,
 
 - `.github/workflows/deepseek-control.yml` is the only normal mandatory entry. Its production command is `scripts.deepseek_priority_control`, which runs DeepSeek before dispatch and then delegates mechanical monitoring to `scripts.cross_repo_control`.
 - `.github/workflows/deepseek-rescue.yml` is an isolated manual emergency entry. It has no checkout and does not depend on scripts from either repository.
-- `.github/workflows/deepseek-control-failure-sentinel.yml` independently diagnoses a failed control-plane workflow without checkout.
+- `.github/workflows/deepseek-control-failure-sentinel.yml` independently diagnoses a failed control-plane workflow without checkout. It may request one failed-job rerun or dispatch `deepseek-supervisor.yml` for a confirmed persistent control-repository defect.
+- `.github/workflows/deepseek-supervisor.yml` performs the highest-level bounded repair planning and verified delivery. The sentinel passes `retry_dispatch_json={}` so control-plane self-repair never automatically restarts paid expert work.
 
 ## Required secrets
 
@@ -69,9 +71,22 @@ Web GPT
 → deterministic execution and Artifact
 → automatic DeepSeek REVIEW when successful
    or automatic DeepSeek DIAGNOSE when failed
-→ if repository defect: automatic restricted REPAIR PR
+→ if target-repository defect: automatic restricted REPAIR PR
 → APPROVE / COLLECT / REPLAN / REPAIR / STOP
 → Web GPT publication only after APPROVE
+```
+
+If `deepseek-control.yml` itself fails:
+
+```text
+failed control Run
+→ checkout-free control failure sentinel
+→ exact Run / Jobs / Log tails
+→ strongest DeepSeek diagnosis
+→ RETRY: one failed-job rerun when run_attempt < 2
+→ REPAIR + CONTROL_REPOSITORY: dispatch highest DeepSeek Supervisor
+→ verified repair delivery and CI-gated PR
+→ WAIT / STOP: retain diagnosis without unsafe action
 ```
 
 ## Entry gate
@@ -112,7 +127,9 @@ When DeepSeek diagnosis returns `REPAIR`, the priority controller automatically 
 5. redacts the short-lived control ticket before any output;
 6. deliberately does not auto-merge.
 
-Repository Validation and Think Tank self-test must pass before a repair PR is merged. DeepSeek has the highest technical decision priority; deterministic CI remains the write-safety gate.
+For a control-repository failure, the checkout-free sentinel routes the diagnosis to the existing highest DeepSeek Supervisor instead of trying to edit its own workflow inline. This keeps the observer independent while preserving the established repair validation and delivery path.
+
+Repository Validation, control-plane CI, and applicable self-tests must pass before a repair PR is merged. DeepSeek has the highest technical decision priority; deterministic CI remains the write-safety gate.
 
 ## Ticket confidentiality
 
@@ -124,4 +141,4 @@ A GitHub `success` conclusion means only that execution completed without a term
 
 ## Physical limits
 
-This design survives failure of the `test` workflow, local scripts, dependencies, and result-publication path because control and rescue live in `test2`. GitHub hosted Actions does not expose a user-defined priority queue; highest priority is enforced logically through the mandatory entry gate and independent recovery lanes. The system cannot operate when GitHub Actions itself is unavailable, the control token is revoked, or the official DeepSeek API is unreachable. Those conditions must result in a truthful stop.
+This design survives failure of the `test` workflow, local scripts, dependencies, result publication, and the normal control workflow because independent failure sentinels and rescue paths remain available. GitHub hosted Actions does not expose a user-defined priority queue; highest priority is enforced logically through mandatory entry and recovery routing. The system cannot operate when GitHub Actions itself is unavailable, required tokens are revoked, or the official DeepSeek API is unreachable. Those conditions must result in a truthful stop.
