@@ -15,15 +15,17 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("Escalate failed production run to DeepSeek Top Supervisor", text)
         self.assertIn("deepseek-supervisor.yml/dispatches", text)
         self.assertIn("needs.run.result == 'failure'", text)
+        self.assertIn("original_plan_json", text)
 
     def test_independent_supervisor_has_separate_concurrency_and_bounded_resume(self) -> None:
         text = Path(".github/workflows/deepseek-supervisor.yml").read_text(encoding="utf-8")
         self.assertIn("group: deepseek-top-supervisor", text)
-        self.assertIn("Run highest-level DeepSeek Steward REPAIR", text)
+        self.assertIn("Run highest-level DeepSeek technical supervisor", text)
+        self.assertIn("scripts.top_supervisor_entrypoint", text)
+        self.assertIn("scripts.enrich_supervisor_packet", text)
         self.assertIn("scripts.supervisor_resume", text)
         self.assertIn("--mode plan", text)
         self.assertIn("--mode execute", text)
-        self.assertIn("deepseek_steward", text)
 
     def test_recovery_policy_places_deepseek_at_highest_technical_layer(self) -> None:
         text = Path("ACTION_RECOVERY.md").read_text(encoding="utf-8")
