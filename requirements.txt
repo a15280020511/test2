@@ -1,9 +1,2 @@
-# Expert-team execution core
-agent-framework-core>=1.11,<2
-agent-framework-openai>=1.10,<2
-
-# OpenRouter official Python SDK: read-only model intelligence/catalog layer.
-openrouter>=1.0,<2
-
-# Runtime execution-plan hard validation.
-jsonschema>=4.23,<5
+# Production and CI install the exact dependency graph validated in requirements.lock.
+-r requirements.lock
