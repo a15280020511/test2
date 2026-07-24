@@ -105,7 +105,6 @@ jobs:
           print(cleaned[:120])
           PY
           )"
-          RESULT="artifacts/${SAFE_ID}/deepseek_steward_result.json"
 
           DECISION="$(python - <<'PY'
           import json, os
@@ -128,7 +127,7 @@ jobs:
             exit 1
           fi
 
-          if git diff --quiet && git diff --cached --quiet; then
+          if [ -z "$(git status --porcelain)" ]; then
             echo "DeepSeek Steward returned EDIT but produced no repository changes."
             exit 1
           fi
@@ -155,7 +154,9 @@ jobs:
           walk = lambda do |node, path|
             case node
             when Hash
-              if node["type"] == "object" && !node.key?("properties")
+              type = node["type"]
+              object_type = type == "object" || (type.is_a?(Array) && type.include?("object"))
+              if object_type && !node.key?("properties")
                 errors << "object schema missing properties at #{path.join('/')}"
               end
               node.each { |k, v| walk.call(v, path + [k.to_s]) }
@@ -197,11 +198,12 @@ jobs:
             if [ $PR_MERGE_STATUS -eq 0 ]; then
               DELIVERY_METHOD="verified_pr_merge"
             else
-              echo "PR merge was unavailable; falling back to verified fast-forward delivery."
+              echo "PR merge was unavailable; falling back to verified non-force delivery."
               git push origin "HEAD:main"
+              gh pr close "$PR_URL" --comment "Repair was delivered by verified fast-forward fallback because workflow PR merge was unavailable." || true
             fi
           else
-            echo "PR creation was unavailable; falling back to verified fast-forward delivery."
+            echo "PR creation was unavailable; falling back to verified non-force delivery."
             cat /tmp/deepseek-pr-error.txt || true
             git push origin "HEAD:main"
           fi
