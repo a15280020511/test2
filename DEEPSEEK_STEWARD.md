@@ -61,8 +61,8 @@ DeepSeek Steward should:
 5. Apply full-file edits only; it must not issue arbitrary shell commands.
 6. Preserve system architecture and user constraints.
 7. Run mandatory verification.
-8. Create a repair branch and pull request only after verification passes.
-9. Merge the repair only after the repair verification gate passes.
+8. Create a repair branch only after verification passes and prefer delivery through a pull request.
+9. If GitHub does not allow the workflow token to create/merge a pull request, a verified non-force fast-forward delivery to `main` is allowed; verification must already have passed.
 10. Return `READY` when the original Web GPT task can resume, or `STOP` when the fault cannot safely be repaired automatically.
 
 ## Direct-repair safety rules
@@ -73,7 +73,8 @@ DeepSeek Steward is authorized to repair repository code directly through the co
 - Never write to `.git/`, `runtime_results/`, or generated `artifacts/` as source-code repair targets.
 - Never modify files under `tests/` during autonomous repair. Existing tests are part of the independent acceptance gate.
 - Do not remove the mandatory CI checks for Python compilation, OpenAPI validation, offline contract tests, or live OpenRouter smoke testing.
-- Do not bypass the repair branch/verification/PR mechanism by pushing an unverified repair straight to `main`.
+- Never force-push an autonomous repair to `main`.
+- Never deliver a repair to `main` before the verification gate passes.
 - Do not fabricate a successful repair when verification fails.
 - Do not modify unrelated files merely to make a repair look comprehensive.
 - External/transient failures should normally return `STOP` or `NO_EDIT`, not produce speculative repository edits.
