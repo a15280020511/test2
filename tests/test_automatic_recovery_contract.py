@@ -27,7 +27,7 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("original_plan_json", text)
         self.assertIn("Never fabricate or bypass user budget approval", text)
 
-    def test_independent_supervisor_has_separate_concurrency_and_bounded_resume(self) -> None:
+    def test_independent_supervisor_has_separate_concurrency_and_bounded_non_paid_resume(self) -> None:
         text = Path(".github/workflows/deepseek-supervisor.yml").read_text(encoding="utf-8")
         self.assertIn("group: deepseek-top-supervisor", text)
         self.assertIn("Run highest-level DeepSeek technical supervisor", text)
@@ -37,15 +37,16 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("--mode plan", text)
         self.assertIn("--mode execute", text)
 
-    def test_top_supervisor_can_adapt_resource_and_model_failures_without_changing_user_intent(self) -> None:
+    def test_top_supervisor_forbids_paid_retry_but_can_adapt_non_paid_work(self) -> None:
         text = Path("expert_team/deepseek_top_supervisor.py").read_text(encoding="utf-8")
-        self.assertIn("OpenRouter 402", text)
+        self.assertIn("Paid expert-team attempts are never redispatched automatically", text)
+        self.assertIn("Never authorize automatic redispatch", text)
+        self.assertIn("budget_reapproval_required", text)
         self.assertIn("retry_operation_overrides", text)
-        self.assertIn("preserving user intent", text)
-        self.assertIn("lower-cost compatible models", text)
         resume = Path("scripts/supervisor_resume.py").read_text(encoding="utf-8")
+        self.assertIn("paid_operation_requires_new_user_budget_approval", resume)
+        self.assertIn("new_budget_receipt_required", resume)
         self.assertIn("_apply_retry_overrides", resume)
-        self.assertIn("plan_json", resume)
         self.assertIn("ranking_limit", resume)
 
     def test_recovery_policy_places_deepseek_at_highest_technical_layer(self) -> None:
@@ -56,7 +57,8 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertIn("must never produce an entry-point `422`", text)
         self.assertIn("second consecutive read", text)
         self.assertIn("deepseek-supervisor.yml", text)
-        self.assertIn("one bounded production redispatch", text)
+        self.assertIn("non-paid production redispatch", text)
+        self.assertIn("Paid expert-team retry prohibition", text)
         self.assertIn("runtime_results/current_operation_status.json", text)
 
     def test_action_schema_exposes_receipt_and_top_supervisor(self) -> None:
@@ -72,9 +74,11 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertNotIn("operationId: getOperationStatus", text)
         self.assertNotIn("runtime_results/status/{operation_id}.json", text)
 
-    def test_managed_operation_keeps_single_internal_repair_cycle(self) -> None:
+    def test_managed_operation_retries_only_non_paid_work(self) -> None:
         text = Path("scripts/managed_operation.py").read_text(encoding="utf-8")
-        self.assertIn("one repair cycle and one retry", text)
+        self.assertIn("This automatic retry path must never be used for execute_team", text)
+        self.assertIn("budget_reapproval_required", text)
+        self.assertIn("new_budget_receipt_required", text)
         self.assertEqual(text.count("repair_command = _entrypoint_command("), 1)
         self.assertEqual(text.count("second = _run(original_command"), 1)
         self.assertIn("DeepSeek Steward failed or was unavailable. Hard stop", text)
