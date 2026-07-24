@@ -64,6 +64,15 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Publish running operation status
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "${{ inputs.operation }}" \
+            --phase start
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -110,3 +119,14 @@ jobs:
         env:
           PYTHONPATH: .
         run: python -m scripts.publish_runtime_result --operation-id "${{ inputs.operation_id }}"
+
+      - name: Publish final operation status
+        if: always()
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m scripts.publish_operation_status \
+            --operation-id "${{ inputs.operation_id }}" \
+            --operation "${{ inputs.operation }}" \
+            --phase final \
+            --job-status "${{ job.status }}"
