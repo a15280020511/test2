@@ -4,8 +4,8 @@ info:
   title: test2 Single-Task Expert Team and DeepSeek Supervisor Action
   version: 1.7.0
   description: >-
-    Web GPT owns user intent. GitHub enforces one paid task at a time, operation-level
-    state, hard budget preflight, cancellation, audit, and DeepSeek technical recovery.
+    Normal submission is one structured Issue comment. GitHub creates the receipt, dispatches the
+    Worker, enforces one paid task, budgets calls, watches startup, and escalates faults to DeepSeek.
 
 servers:
   - url: https://api.github.com
@@ -13,11 +13,11 @@ servers:
 paths:
   /repos/a15280020511/test2/issues/15/comments:
     post:
-      operationId: createOperationReceipt
-      summary: Create an optional durable operation receipt
+      operationId: submitExpertTeamOperation
+      summary: Submit one complete operation through the durable controller
       description: >-
-        Recommended before dispatch. Post compact JSON with operation_id, operation, and task label.
-        The production workflow creates a server-side receipt when this call is omitted.
+        Primary entry. Post compact JSON in body with command=submit_operation, operation_id,
+        operation, task_label, and plan_json. Do not call direct dispatch after this returns 201.
       requestBody:
         required: true
         content:
@@ -28,9 +28,12 @@ paths:
               properties:
                 body:
                   type: string
+                  description: >-
+                    Compact JSON command. plan_json and support_packet_json may be embedded objects.
+                    Default task budget is USD 1.00 with 30 percent reserved for recovery.
       responses:
         "201":
-          description: Durable receipt comment created.
+          description: Durable submission comment created; Operation Controller continues asynchronously.
           content:
             application/json:
               schema:
@@ -41,8 +44,8 @@ paths:
       operationId: getOpenRouterModels
       summary: Read bounded current OpenRouter model intelligence
       description: >-
-        Call with ref=runtime-results. Use current pricing and capability metadata when planning.
-        Refresh through model_intelligence when absent or stale.
+        Call with ref=runtime-results. Use current pricing and capabilities when planning. When absent,
+        submit one model_intelligence command through submitExpertTeamOperation.
       parameters:
         - $ref: "#/components/parameters/RuntimeRef"
         - $ref: "#/components/parameters/RawAccept"
@@ -54,13 +57,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelIntelligenceSnapshot"
         "404":
-          description: Snapshot absent; dispatch model_intelligence and track getOperationState.
+          description: Snapshot absent; submit model_intelligence and track getOperationState.
 
   /repos/a15280020511/test2/contents/execution_plan.schema.json:
     get:
       operationId: getExecutionPlanSchema
       summary: Read the hard Execution Plan JSON Schema
-      description: Read with ref=main. The runtime enforces this schema before any paid model call.
+      description: Read with ref=main. Runtime enforces it before every paid expert call and recovery.
       parameters:
         - $ref: "#/components/parameters/MainRef"
         - $ref: "#/components/parameters/RawAccept"
@@ -90,7 +93,7 @@ paths:
   /repos/a15280020511/test2/contents/ACTION_RECOVERY.md:
     get:
       operationId: getActionRecoveryPolicy
-      summary: Read the control, budget, cancellation, and recovery policy
+      summary: Read control, budget, cancellation, and recovery policy
       parameters:
         - $ref: "#/components/parameters/MainRef"
         - $ref: "#/components/parameters/RawAccept"
@@ -105,10 +108,10 @@ paths:
   /repos/a15280020511/test2/actions/workflows/expert-team-production.yml/dispatches:
     post:
       operationId: dispatchExpertTeamOperation
-      summary: Submit one budget-controlled production operation
+      summary: Advanced direct production dispatch
       description: >-
-        Dispatch with a unique operation_id. receipt_comment_id is optional. Poll getOperationState.
-        When another task owns the lock, this operation becomes BUSY without paid model calls.
+        Internal recovery or advanced fallback only. Normal Web GPT uses submitExpertTeamOperation.
+        Never call both for one operation_id. Poll getOperationState after HTTP 204.
       requestBody:
         required: true
         content:
@@ -135,8 +138,6 @@ paths:
                     plan_json:
                       type: string
                       default: "{}"
-                      description: >-
-                        Stringified plan. Default task budget is USD 1.00 with 30 percent recovery reserve.
                     ranking_limit:
                       type: string
                       default: "20"
@@ -149,15 +150,15 @@ paths:
                       default: "{}"
       responses:
         "204":
-          description: Dispatch accepted; poll getOperationState for accepted, running, BUSY, or terminal state.
+          description: Direct dispatch accepted; poll getOperationState.
 
   /repos/a15280020511/test2/actions/workflows/cancel-operation.yml/dispatches:
     post:
       operationId: cancelExpertTeamOperation
       summary: Cancel a queued or running operation by operation_id
       description: >-
-        User-directed cancellation. The server finds matching active Runs, cancels them, releases the
-        single-task lock, and records cancelled. Cancellation does not trigger DeepSeek repair.
+        User cancellation. Server finds matching active Runs, cancels them, releases the lock, and
+        records cancelled. A user cancellation never triggers DeepSeek repair.
       requestBody:
         required: true
         content:
@@ -180,15 +181,15 @@ paths:
                       default: user_requested
       responses:
         "204":
-          description: Cancellation workflow accepted; poll getOperationState.
+          description: Cancellation accepted; poll getOperationState.
 
   /repos/a15280020511/test2/actions/workflows/deepseek-supervisor.yml/dispatches:
     post:
       operationId: dispatchDeepSeekSupervisor
       summary: Dispatch the independent DeepSeek technical supervisor
       description: >-
-        Use for technical anomalies. DeepSeek may repair code through a verified PR or produce one
-        validated budget-compliant plan override. It never changes user intent.
+        Manual Action-edge fallback. The Operation Controller and failed production Workflow normally
+        escalate automatically. DeepSeek preserves intent and the original logical-task budget.
       requestBody:
         required: true
         content:
@@ -230,8 +231,8 @@ paths:
       operationId: getOperationState
       summary: Read authoritative state for one operation
       description: >-
-        Primary task control endpoint. States include accepted, running, repairing, retrying, BUSY,
-        cancel_requested, cancelled, success, STOP, and failure.
+        Primary control endpoint. Poll the submitted operation_id. BUSY means another operation owns
+        the only paid-task lock; no queue or paid call was created for this task.
       parameters:
         - $ref: "#/components/parameters/OperationId"
         - $ref: "#/components/parameters/RuntimeRef"
@@ -244,13 +245,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/OperationStatus"
         "404":
-          description: The workflow has not created the ledger record yet; retry briefly, then supervise if unresolved.
+          description: Controller ledger not visible yet; retry briefly before manual supervision.
 
   /repos/a15280020511/test2/contents/runtime_results/current_operation_status.json:
     get:
       operationId: getCurrentOperationStatus
-      summary: Read the current active-operation dashboard
-      description: Dashboard only. Use getOperationState for the submitted operation and cancellation decisions.
+      summary: Read current active-operation dashboard
+      description: Dashboard only. Use getOperationState for the submitted operation and cancellation.
       parameters:
         - $ref: "#/components/parameters/RuntimeRef"
         - $ref: "#/components/parameters/RawAccept"
@@ -320,7 +321,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/FreeObject"
         "404":
-          description: Result is not published or the operation is not successful.
+          description: Result is not published or operation is not successful.
 
   /repos/a15280020511/test2/contents/runtime_results/{operation_id}/deepseek_steward_result.json:
     get:
@@ -380,7 +381,7 @@ paths:
         - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Budget cap, reserve, model prices, token ceilings, and worst-case estimate.
+          description: Budget, reserve, model prices, token ceilings, retries, and fallbacks.
           content:
             application/json:
               schema:
@@ -396,7 +397,7 @@ paths:
         - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Attempts, Runs, plan provenance, budget, model calls, recovery, and result audit.
+          description: Attempts, Runs, provenance, budget, calls, recovery, and result audit.
           content:
             application/json:
               schema:
@@ -412,7 +413,7 @@ paths:
         - $ref: "#/components/parameters/RawAccept"
       responses:
         "200":
-          description: Matching Runs, cancel actions, and lock release result.
+          description: Matching Runs, cancel actions, and lock-release result.
           content:
             application/json:
               schema:
