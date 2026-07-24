@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +27,11 @@ def _run(command: list[str]) -> None:
     subprocess.run(command, check=True, text=True)
 
 
+def _current_run_id() -> int | None:
+    value = (os.getenv("GITHUB_RUN_ID") or "").strip()
+    return int(value) if value.isdigit() else None
+
+
 def _build_status(operation_id: str, operation: str, phase: str, job_status: str) -> dict[str, Any]:
     output_dir = Path("artifacts") / operation_id
     metadata = _read_json(output_dir / "metadata.json")
@@ -45,20 +50,17 @@ def _build_status(operation_id: str, operation: str, phase: str, job_status: str
 
         if job_status == "success" and metadata_status == "success":
             status = "success"
-        elif managed_status == "STOP":
-            status = "STOP"
-        elif metadata_status == "failure":
+        elif managed_status == "STOP" or metadata_status == "failure":
             status = "STOP"
         else:
             status = "failure"
 
         if managed.get("auto_repair_triggered") is True:
-            if str(auto_repair.get("resume") or "").upper() == "READY":
-                repair_status = "repaired"
-            elif auto_repair:
-                repair_status = "attempted"
-            else:
-                repair_status = "attempted"
+            repair_status = (
+                "repaired"
+                if str(auto_repair.get("resume") or "").upper() == "READY"
+                else "attempted"
+            )
         else:
             repair_status = "none"
 
@@ -67,14 +69,14 @@ def _build_status(operation_id: str, operation: str, phase: str, job_status: str
         "operation_id": operation_id,
         "operation": operation,
         "status": status,
-        "run_id": os.getenv("GITHUB_RUN_ID") or None,
+        "run_id": _current_run_id(),
         "result_ready": result_ready,
         "repair_status": repair_status,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
-def _publish(payload: dict[str, Any], operation_id: str) -> None:
+def _publish_once(payload: dict[str, Any], operation_id: str) -> None:
     _run(["git", "config", "user.name", "github-actions[bot]"])
     _run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
     _run(["git", "fetch", "origin", "runtime-results"])
@@ -101,6 +103,21 @@ def _publish(payload: dict[str, Any], operation_id: str) -> None:
             _run(["git", "-C", str(worktree), "push", "origin", "HEAD:runtime-results"])
         finally:
             subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], check=False)
+
+
+def _publish(payload: dict[str, Any], operation_id: str) -> None:
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            _publish_once(payload, operation_id)
+            return
+        except Exception as exc:  # retry only this tiny control-plane publication
+            last_error = exc
+            subprocess.run(["git", "worktree", "prune"], check=False)
+            if attempt < 3:
+                time.sleep(2)
+    assert last_error is not None
+    raise last_error
 
 
 def main() -> None:
