@@ -34,6 +34,9 @@ jobs:
       - name: Validate GPT Action OpenAPI contract
         run: ruby scripts/validate_action_schema.rb
 
+      - name: Validate independent DeepSeek control plane
+        run: ruby scripts/validate_control_schema.rb
+
       - name: Validate DeepSeek provider separation and hard stop
         run: |
           grep -F 'https://api.deepseek.com' expert_team/deepseek_official.py >/dev/null
