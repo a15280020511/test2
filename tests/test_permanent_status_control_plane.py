@@ -12,12 +12,18 @@ from scripts.publish_operation_status import _build_status
 
 class PermanentStatusControlPlaneTests(unittest.TestCase):
     def test_start_status_is_running_and_not_ready(self) -> None:
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "12345"}, clear=False):
+        with patch.dict(
+            os.environ,
+            {"GITHUB_RUN_ID": "12345", "RECEIPT_COMMENT_ID": "77"},
+            clear=False,
+        ):
             payload = _build_status("op-1", "execute_team", "start")
-        self.assertEqual(payload["schema_version"], "2")
+        self.assertEqual(payload["schema_version"], "3")
         self.assertEqual(payload["operation_id"], "op-1")
         self.assertEqual(payload["status"], "running")
         self.assertEqual(payload["run_id"], "12345")
+        self.assertEqual(payload["receipt_comment_id"], "77")
+        self.assertIsNone(payload["supervisor_for_operation_id"])
         self.assertFalse(payload["result_ready"])
         self.assertFalse(payload["result_published"])
 
