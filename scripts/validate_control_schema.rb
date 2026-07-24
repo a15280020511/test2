@@ -61,10 +61,10 @@ raise "control workflow must expose REPAIR" unless control.include?("- REPAIR")
 raise "control workflow must use task-scoped concurrency" unless control.include?("deepseek-control-${{ inputs.task_id }}-${{ inputs.revision }}")
 raise "control workflow monitor timeout is missing" unless control.include?("timeout-minutes: 210")
 
-rescue = File.read(".github/workflows/deepseek-rescue.yml")
-raise "rescue workflow must expose force cancellation" unless rescue.include?("FORCE_CANCEL")
-raise "rescue workflow must remain checkout-independent" if rescue.include?("actions/checkout")
-raise "rescue workflow must use an independent inline implementation" unless rescue.include?("python - <<'PY'")
+rescue_workflow = File.read(".github/workflows/deepseek-rescue.yml")
+raise "rescue workflow must expose force cancellation" unless rescue_workflow.include?("FORCE_CANCEL")
+raise "rescue workflow must remain checkout-independent" if rescue_workflow.include?("actions/checkout")
+raise "rescue workflow must use an independent inline implementation" unless rescue_workflow.include?("python - <<'PY'")
 
 controller = File.read("scripts/cross_repo_control.py")
 required_controller_tokens = [
