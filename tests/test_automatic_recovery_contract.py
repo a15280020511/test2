@@ -19,6 +19,17 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
         self.assertNotIn("group: expert-team-production", text)
         self.assertIn("Escalate failed production run to DeepSeek Top Supervisor", text)
 
+    def test_one_step_controller_owns_normal_submission_and_startup_supervision(self) -> None:
+        schema = Path("gpt_action_openapi.yaml").read_text(encoding="utf-8")
+        workflow = Path(".github/workflows/operation-controller.yml").read_text(encoding="utf-8")
+        controller = Path("scripts/operation_controller.py").read_text(encoding="utf-8")
+        self.assertIn("operationId: submitExpertTeamOperation", schema)
+        self.assertNotIn("operationId: createOperationReceipt", schema)
+        self.assertIn("issue_comment", workflow)
+        self.assertIn("scripts.operation_controller", workflow)
+        self.assertIn("startup_timeout", controller)
+        self.assertIn("MAX_CONTROLLER_INPUT_CHARS = 45_000", controller)
+
     def test_cancel_workflow_exists_and_does_not_route_user_cancel_to_deepseek(self) -> None:
         text = Path(".github/workflows/cancel-operation.yml").read_text(encoding="utf-8")
         self.assertIn("Cancel matching operation Runs and release lock", text)
@@ -37,9 +48,10 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
 
     def test_top_supervisor_override_is_schema_and_budget_validated(self) -> None:
         resume = Path("scripts/supervisor_resume.py").read_text(encoding="utf-8")
-        self.assertIn("validate_execution_plan(replacement_plan)", resume)
-        self.assertIn("preflight_execution_plan(replacement_plan)", resume)
+        self.assertIn("validate_execution_plan(effective_plan)", resume)
+        self.assertIn('preflight_execution_plan(effective_plan, execution_phase="recovery")', resume)
         self.assertIn("may not increase the user's logical-task budget", resume)
+        self.assertIn("logical_task_recovery_budget_already_consumed", resume)
         self.assertIn("effective_plan_source", resume)
         self.assertIn("deepseek_top_supervisor", resume)
 
@@ -61,6 +73,7 @@ class AutomaticRecoveryContractTests(unittest.TestCase):
     def test_action_schema_exposes_single_task_ledger_and_cancel(self) -> None:
         text = Path("gpt_action_openapi.yaml").read_text(encoding="utf-8")
         self.assertIn("version: 1.7.0", text)
+        self.assertIn("operationId: submitExpertTeamOperation", text)
         self.assertIn("operationId: dispatchExpertTeamOperation", text)
         self.assertIn("operationId: cancelExpertTeamOperation", text)
         self.assertIn("operationId: dispatchDeepSeekSupervisor", text)
