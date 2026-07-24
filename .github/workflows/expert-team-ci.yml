@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -30,6 +30,7 @@ jobs:
             scripts/action_entrypoint.py \
             scripts/managed_operation.py \
             scripts/plugin_runner.py \
+            scripts/plugin_smoke_entrypoint.py \
             scripts/verify_deepseek_entry.py \
             scripts/cross_repo_control.py
           python - <<'PY'
@@ -51,6 +52,32 @@ jobs:
           grep -F '任务级临时插头' TOOL_PACKAGE_GUARDRAILS.md >/dev/null
           grep -F '持久预算批准回执' DEEPSEEK_STEWARD.md >/dev/null
           echo 'Ephemeral plugin contract OK'
+
+      - name: Execute and destroy a real expert-team plug
+        run: |
+          python -m scripts.plugin_runner \
+            --plugin expert-team \
+            --operation contract_smoke \
+            --operation-id ci-ephemeral-plugin \
+            --module scripts.plugin_smoke_entrypoint
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lifecycle = json.loads(
+              Path('artifacts/ci-ephemeral-plugin/plugin-expert-team-lifecycle.json').read_text()
+          )
+          result = json.loads(
+              Path('artifacts/ci-ephemeral-plugin/plugin-import-smoke.json').read_text()
+          )
+          if lifecycle.get('status') != 'success':
+              raise SystemExit(f'plugin lifecycle did not succeed: {lifecycle}')
+          if lifecycle.get('cleaned') is not True:
+              raise SystemExit(f'plugin temporary environment was not removed: {lifecycle}')
+          if result.get('status') != 'PLUGIN_IMPORT_OK':
+              raise SystemExit(f'actual plugin dependencies were not imported: {result}')
+          print('Real expert-team plug installed, executed and disappeared successfully')
+          PY
 
       - name: Install expert-team plug for this CI job only
         run: |
@@ -173,5 +200,7 @@ jobs:
             artifacts/offline_tests.log
             artifacts/live_smoke_result.json
             artifacts/deepseek_steward_smoke_result.json
+            artifacts/ci-ephemeral-plugin/plugin-expert-team-lifecycle.json
+            artifacts/ci-ephemeral-plugin/plugin-import-smoke.json
           if-no-files-found: warn
           retention-days: 30
